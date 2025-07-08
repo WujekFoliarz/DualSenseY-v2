@@ -1,85 +1,55 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required (VERSION 3.8)
 
-project(
-    "DSX"
-    VERSION 1.0
-    LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
 
-# Global CMake variables are set here
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "Use hybrid high-performance GPU" FORCE)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# Options
-option(ENABLE_WARNINGS "Enable to add warnings to a target." ON)
-option(ENABLE_WARNINGS_AS_ERRORS "Enable to treat warnings as errors." OFF)
-
-option(ENABLE_SANITIZE_ADDR "Enable address sanitize." OFF)
-option(ENABLE_SANITIZE_UNDEF "Enable undefined sanitize." OFF)
-option(ENABLE_SANITIZE_LEAK "Enable leak sanitize (Gcc/Clang only)." OFF)
-option(ENABLE_SANITIZE_THREAD "Enable thread sanitize (Gcc/Clang only)." OFF)
-
-option(ENABLE_CLANG_TIDY "Enable to add clang tidy." OFF)
-option(ENABLE_CLANG_FORMAT "Enable to add clang-format." OFF)
-option(ENABLE_CMAKE_FORMAT "Enable to add cmake-format." OFF)
-
-option(ENABLE_LTO "Enable to add Link Time Optimization." ON)
-
-# CMAKE MODULES
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
-include(ConfigSafeGuards)
-include(AddGitSubmodule)
-include(Docs)
-include(Tools)
-
-if(ENABLE_WARNINGS)
-    include(Warnings)
+# Enable Hot Reload for MSVC compilers if supported.
+if (POLICY CMP0141)
+  cmake_policy(SET CMP0141 NEW)
+  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-add_cmake_format_target()
-add_clang_format_target()
+set(PRODUCTION_BUILD OFF CACHE BOOL "Make this a production build" FORCE)
+project (DualSenseY)
+file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
 
-if(ENABLE_SANITIZE_ADDR
-   OR ENABLE_SANITIZE_UNDEF
-   OR ENABLE_SANITIZE_LEAK
-   OR ENABLE_SANITIZE_THREAD)
-    include(Sanitizer)
-    add_sanitizer_flags()
+if(WIN32)
+    add_executable(${PROJECT_NAME} WIN32 ${MY_SOURCES})
+else()
+    add_executable(${PROJECT_NAME} ${MY_SOURCES})
 endif()
 
-if(ENABLE_LTO)
-    include(LTO)
+set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/source"
+)
+
+if(PRODUCTION_BUILD)
+	target_compile_definitions("${PROJECT_NAME}" PUBLIC RESOURCES_PATH="./resources/") 
+	target_compile_definitions("${PROJECT_NAME}" PUBLIC PRODUCTION_BUILD=1) 
+	target_compile_definitions("${PROJECT_NAME}" PUBLIC DEVELOPLEMT_BUILD=0) 
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/resources $<TARGET_FILE_DIR:${PROJECT_NAME}>/resources)
+else()
+	target_compile_definitions("${PROJECT_NAME}" PUBLIC RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
+	target_compile_definitions("${PROJECT_NAME}" PUBLIC PRODUCTION_BUILD=0) 
+	target_compile_definitions("${PROJECT_NAME}" PUBLIC DEVELOPLEMT_BUILD=1) 
 endif()
 
-# EXTERNAL LIBRARIES
+# Subdirectiories
+# add_subdirectory(thirdparty/)
+add_subdirectory(thirdparty/glfw)
+add_subdirectory(thirdparty/glad)
+add_subdirectory(thirdparty/imgui)
+add_subdirectory(thirdparty/duaLib)
+add_subdirectory(thirdparty/json)
+add_subdirectory(thirdparty/miniaudio)
 
-# set (VCPKG_DIR ${CMAKE_SOURCE_DIR}/external/vcpkg)
-# you can set any other vcpkg installation on your system
-set (VCPKG_DIR ${CMAKE_SOURCE_DIR}/external/vcpkg)
-include(${VCPKG_DIR}/scripts/buildsystems/vcpkg.cmake)
+# Linking libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio)
 
-find_package(fmt CONFIG REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
-find_package(imgui CONFIG REQUIRED)
-find_package(implot CONFIG REQUIRED)
-find_package(OpenGL REQUIRED)
-
-add_subdirectory(configured)
-add_subdirectory(external)
-add_subdirectory(app)
-add_subdirectory(hidapi)
-add_subdirectory(ViGEmClient)
-add_subdirectory("json/")
-add_subdirectory("traypp/" EXCLUDE_FROM_ALL)
-add_subdirectory("Crashlogs/" EXCLUDE_FROM_ALL)
-link_libraries(tray)
-
-# INSTALL TARGETS
-
-install(
-    TARGETS ${EXECUTABLE_NAME}
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin)
+# Copying DLLs to out folder
+#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:duaLib> $<TARGET_FILE_DIR:${PROJECT_NAME}>)
