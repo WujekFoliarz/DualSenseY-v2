@@ -413,3 +413,14 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/.vs/DualSenseY-v2/CopilotIndices/17.12.53.23981/CodeChunks.db
+/.vs/DualSenseY-v2/CopilotIndices/17.12.53.23981/CodeChunks.db-shm
+/.vs/DualSenseY-v2/CopilotIndices/17.12.53.23981/CodeChunks.db-wal
+/.vs/DualSenseY-v2/CopilotIndices/17.12.53.23981/SemanticSymbols.db-shm
+/.vs/DualSenseY-v2/CopilotIndices/17.12.53.23981/SemanticSymbols.db-wal
+/.vs/DualSenseY-v2/v17/Browse.VC.db-shm
+/.vs/DualSenseY-v2/v17/Browse.VC.db-wal
+/.vs/DualSenseY-v2/v17/DocumentLayout.backup.json
+/.vs/DualSenseY-v2/v17/DocumentLayout.json
+/.vs/ProjectSettings.json
+/.vs/slnx.sqlite
