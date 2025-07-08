@@ -1,0 +1,11 @@
+prefix="@CMAKE_INSTALL_PREFIX@"
+exec_prefix="@CMAKE_INSTALL_PREFIX@"
+libdir=@libdir_for_pc_file@
+includedir=@includedir_for_pc_file@
+
+Name: ViGEmClient
+Description: ViGEmClient emulates Xbox 360 Controller and DS4 Controller for Windows using ViGEmBus.
+Version: @VIGEMCLIENT_VERSION@
+Libs: -L${libdir} -l@VIGEMCLIENT_LIB_NAME@
+Cflags: -I${includedir}
+

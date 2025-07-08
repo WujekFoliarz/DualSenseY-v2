@@ -5,7 +5,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "scePadSettings.h"
+#include "scePadSettings.hpp"
 
 struct glfwDeleter {
 	void operator()(GLFWwindow* window) {

@@ -18,6 +18,10 @@
 #include "audioPassthrough.hpp"
 #include <thread>
 #include <chrono>
+#include "controllerEmulation.hpp"
+
+std::thread g_vigemThread;
+std::atomic<bool> g_vigemThreadRunning = true;
 
 bool Application::run() {
 	Platform platform = Application::getPlatform();
@@ -34,14 +38,22 @@ bool Application::run() {
 	AllocConsole();
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);
-	freopen_s(&fp, "CONOUT$", "w", stderr);
+	freopen_s(&fp, "CONO UT$", "w", stderr);
 	freopen_s(&fp, "CONIN$", "r", stdin);
 	#endif
 
 	createWindow();
 	AudioPassthrough audio = {};
+	Vigem vigem = {};
 	Strings strings; // translations
-	MainWindow main(strings, audio);
+	
+	if (vigem.isVigemConnected()) {
+		g_vigemThread = std::thread(emulatedControllerUpdate, std::ref(vigem), std::ref(m_scePadSettings), std::ref(g_vigemThreadRunning));
+		g_vigemThread.detach();
+	}
+
+	// Windows
+	MainWindow main(strings, audio, vigem);
 
 	strings.readStringsFromJson(countryCodeToFile("en"));
 
@@ -71,7 +83,7 @@ bool Application::run() {
 		//ImGui::ShowDemoWindow();
 
 		for (int i = 0; i < 4; i++) {
-			applySettings(i+1,m_scePadSettings[i], audio);
+			applySettings(i+1, m_scePadSettings[i], audio);
 		}
 
 		#pragma region ImGUI + GLFW
@@ -117,6 +129,11 @@ void Application::createWindow() {
 }
 
 Application::~Application() {
+	g_vigemThreadRunning = false;
+	if (g_vigemThread.joinable()) {
+		g_vigemThread.join();
+	}
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

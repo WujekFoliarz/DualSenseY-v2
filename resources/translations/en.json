@@ -184,5 +184,8 @@
   "Status": "Status",
   "Audio": "Audio",
   "Audio passthrough": "Audio passthrough",
+  "VigemMissing": "Connection to ViGEm Client couldn't be made",
+  "VigemInstallLink": "Install ViGEM Client",
+  "None": "None",
   "About": "About"
 }

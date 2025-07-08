@@ -24,6 +24,12 @@ inline uint32_t scaleFloatToInt(float input_float, float max_float) {
 	return scaled_int;
 }
 
+enum class EmulatedController {
+	NONE,
+	XBOX360,
+	DUALSHOCK4
+};
+
 struct s_scePadSettings {
 	uint32_t handle = 0;
 
@@ -32,11 +38,14 @@ struct s_scePadSettings {
 
 	int brightness = 0;
 	bool disablePlayerLed = false;
+
 	bool audioPassthrough = false;
 	int speakerVolume = 0;
 	int micGain = 8;
 	int audioPath = 3;
 	float hapticIntensity = 1.0f;
+
+	int emulatedController = (int)EmulatedController::NONE;
 };
 
 static void applySettings(uint32_t userId, s_scePadSettings settings, AudioPassthrough& audio) {
@@ -59,7 +68,7 @@ static void applySettings(uint32_t userId, s_scePadSettings settings, AudioPasst
 	scePadGetControllerType(settings.handle, &controllerType);
 
 	s_ScePadVolumeGain volume = {};
-	volume.speakerVolume = controllerType == DUALSENSE ? settings.speakerVolume * 6 : settings.speakerVolume * 8;
+	volume.speakerVolume = settings.speakerVolume * 9;
 	volume.micGain = settings.micGain * 6;
 	scePadSetVolumeGain(settings.handle, &volume);
 

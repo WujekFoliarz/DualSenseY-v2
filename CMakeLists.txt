@@ -47,9 +47,10 @@ add_subdirectory(thirdparty/imgui)
 add_subdirectory(thirdparty/duaLib)
 add_subdirectory(thirdparty/json)
 add_subdirectory(thirdparty/miniaudio)
+add_subdirectory(thirdparty/ViGEmClient)
 
 # Linking libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient)
 
 # Copying DLLs to out folder
 #add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:duaLib> $<TARGET_FILE_DIR:${PROJECT_NAME}>)

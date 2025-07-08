@@ -148,6 +148,23 @@ bool MainWindow::audio(int& currentController, s_scePadSettings scePadSettings[4
 	return true;
 }
 
+bool MainWindow::emulation(int& currentController, s_scePadSettings scePadSettings[4], Vigem& vigem) {
+	ImGui::SeparatorText(str("EmulationHeader"));
+
+	if (!vigem.isVigemConnected()) {
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("VigemMissing")); ImGui::SameLine(); ImGui::Spacing(); ImGui::SameLine();
+		ImGui::TextLinkOpenURL(str("VigemInstallLink"), "https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe");
+	}
+	else {
+		ImGui::RadioButton(str("None"), &scePadSettings[currentController].emulatedController, 0); ImGui::SameLine();
+		ImGui::RadioButton("Xbox 360", &scePadSettings[currentController].emulatedController, 1); ImGui::SameLine();
+		ImGui::RadioButton("Dualshock 4", &scePadSettings[currentController].emulatedController, 2);
+		vigem.plugControllerByIndex(currentController, scePadSettings[currentController].emulatedController);
+	}
+
+	return true;
+}
+
 void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	static int c = 0; 
 	scale = 100 * (scale * 2.5);
@@ -164,8 +181,9 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	menuBar();
 	if (controllers(c, scePadSettings, scale)) {
 		udp(c, scale);
+		emulation(c, scePadSettings, m_vigem);
 		led(c, scePadSettings, scale);
-		audio(c, scePadSettings);
+		audio(c, scePadSettings);	
 	}
 	
 	ImGui::End();
