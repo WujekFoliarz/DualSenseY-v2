@@ -157,7 +157,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	ImGui::SetNextWindowSize(viewport->WorkSize);
 
 	ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
-
+	ImGui::TextColored(ImVec4(1, 0, 0, 1), "Work in progress. Older build at v2 branch on github");
 	s_ScePadData state = {};
 	scePadReadState(scePadSettings[c].handle, &state);
 
