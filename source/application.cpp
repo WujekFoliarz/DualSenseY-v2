@@ -23,6 +23,19 @@
 std::thread g_vigemThread;
 std::atomic<bool> g_vigemThreadRunning = true;
 
+void Application::disableControllerInputIfMinimized() {
+	ImGuiIO& io = ImGui::GetIO();
+	bool isMinimized = glfwGetWindowAttrib(m_glfwWindow.get(), GLFW_ICONIFIED);
+	bool isFocused = glfwGetWindowAttrib(m_glfwWindow.get(), GLFW_FOCUSED);
+
+	if (isMinimized || !isFocused) {
+		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+	}
+	else {
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  
+	}
+}
+
 bool Application::run() {
 	Platform platform = Application::getPlatform();
 	#pragma region Initialize duaLib
@@ -33,6 +46,7 @@ bool Application::run() {
 	m_scePadSettings[1].handle = scePadOpen(2, 0, 0);
 	m_scePadSettings[2].handle = scePadOpen(3, 0, 0);
 	m_scePadSettings[3].handle = scePadOpen(4, 0, 0);
+	scePadSetParticularMode(true);
 #pragma endregion
 	#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
 	AllocConsole();
@@ -87,6 +101,7 @@ bool Application::run() {
 		}
 
 		#pragma region ImGUI + GLFW
+		disableControllerInputIfMinimized();
 		glfwPollEvents();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -122,7 +137,6 @@ void Application::createWindow() {
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(m_glfwWindow.get(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
 	ImGui_ImplOpenGL3_Init();
-
 
 	assert(m_glfwWindow.get() != nullptr);
 	LOGI("Window created");

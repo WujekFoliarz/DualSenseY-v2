@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#if (!defined(__linux__)) && (!defined(__MACOS__))
 
 //
 // WinAPI
@@ -1383,3 +1384,5 @@ VIGEM_ERROR vigem_target_ds4_get_output(
 
     return VIGEM_ERROR_NONE;
 }
+
+#endif

@@ -187,5 +187,6 @@
   "VigemMissing": "Connection to ViGEm Client couldn't be made",
   "VigemInstallLink": "Install ViGEM Client",
   "None": "None",
+  "VigemNotAvailablePlatform": "ViGEm Client is not available on this platform",
   "About": "About"
 }

@@ -5,15 +5,17 @@
 #include <mutex>
 #include <chrono>
 #include <cassert>
-
-#if (!defined(__linux__)) || (!defined(__MACOS__))
 #include <iostream>
 #include <string>
-#include <guiddef.h>
 #include <stdexcept>
 #include <codecvt>
+#include <cmath>
+#include <algorithm>
+
+#if (!defined(__linux__)) && (!defined(__MACOS__))
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
+#include <guiddef.h>
 
 static GUID StringToGuid(const std::string& guidStr) {
 	GUID guid = {};
@@ -107,6 +109,7 @@ ma_context g_context;
 std::mutex g_contextLock;
 
 void captureDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
+	using namespace std;
 	const float* inputF32 = static_cast<const float*>(pInput);
 	const uint32_t numChannels = 2;  // Assuming stereo
 	AudioPassthrough* userData = (AudioPassthrough*)pDevice->pUserData;
@@ -274,6 +277,7 @@ void AudioPassthrough::validate() {
 }
 
 bool AudioPassthrough::startByUserId(uint32_t userId) {
+#if (!defined(__linux__)) && (!defined(__MACOS__))
 	assert(userId >= 1 && userId <= 4);
 
 	uint32_t index = userId - 1;
@@ -337,6 +341,8 @@ bool AudioPassthrough::startByUserId(uint32_t userId) {
 
 	m_active[index] = true;
 	return true;
+#endif
+	return false;
 }
 
 bool AudioPassthrough::stopByUserId(uint32_t userId) {

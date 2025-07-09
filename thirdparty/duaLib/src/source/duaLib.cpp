@@ -286,7 +286,7 @@ namespace duaLibUtils {
 				snprintf(tmp, sizeof(tmp), "%02X:%02X:%02X:%02X:%02X:%02X",
 						 macReport.ClientMac[5], macReport.ClientMac[4], macReport.ClientMac[3],
 						 macReport.ClientMac[2], macReport.ClientMac[1], macReport.ClientMac[0]);
-				outMac = tmp;
+				outMac = tmp;				
 				return true;
 			}
 		}
@@ -301,7 +301,6 @@ namespace duaLibUtils {
 						 macReport.ClientMac[5], macReport.ClientMac[4], macReport.ClientMac[3],
 						 macReport.ClientMac[2], macReport.ClientMac[1], macReport.ClientMac[0]);
 				outMac = tmp;
-
 				return true;
 			}
 		}
@@ -776,6 +775,12 @@ int watchFunc() {
 				if (!handle) continue;
 
 				if (duaLibUtils::getMacAddress(handle, newMac, g_deviceList.devices[j].Device, info->bus_type)) {
+					// Ignore ViGEm controllers
+					if (newMac.rfind("C0:13:37") != std::string::npos) {
+						hid_close(handle);
+						continue;
+					}
+
 					for (int k = 0; k < MAX_CONTROLLER_COUNT; ++k) {
 						std::shared_lock guard(g_controllers[k].lock);
 						if (g_controllers[k].macAddress == newMac && duaLibUtils::isValid(g_controllers[k].handle)) {
@@ -1059,26 +1064,31 @@ int scePadReadState(int handle, s_ScePadData* data) {
 			if (controller.dualsenseCurInputState.ButtonTriangle) bitmaskButtons |= SCE_BM_TRIANGLE;
 			if (controller.dualsenseCurInputState.ButtonSquare) bitmaskButtons |= SCE_BM_SQUARE;
 
-			if (controller.dualsenseCurInputState.ButtonL1) bitmaskButtons |= 0x00000400;
-			if (controller.dualsenseCurInputState.ButtonL2) bitmaskButtons |= 0x00000100;
-			if (controller.dualsenseCurInputState.ButtonR1) bitmaskButtons |= 0x00000800;
-			if (controller.dualsenseCurInputState.ButtonR2) bitmaskButtons |= 0x00000200;
+			if (controller.dualsenseCurInputState.ButtonL1) bitmaskButtons |= SCE_BM_L1;
+			if (controller.dualsenseCurInputState.ButtonL2) bitmaskButtons |= SCE_BM_L2;
+			if (controller.dualsenseCurInputState.ButtonR1) bitmaskButtons |= SCE_BM_R1;
+			if (controller.dualsenseCurInputState.ButtonR2) bitmaskButtons |= SCE_BM_R2;
 
-			if (controller.dualsenseCurInputState.ButtonL3) bitmaskButtons |= 0x00000002;
-			if (controller.dualsenseCurInputState.ButtonR3) bitmaskButtons |= 0x00000004;
+			if (controller.dualsenseCurInputState.ButtonL3) bitmaskButtons |= SCE_BM_L3;
+			if (controller.dualsenseCurInputState.ButtonR3) bitmaskButtons |= SCE_BM_R3;
 
-			if (controller.dualsenseCurInputState.DPad == Direction::North) bitmaskButtons |= 0x00000010;
-			if (controller.dualsenseCurInputState.DPad == Direction::South) bitmaskButtons |= 0x00000040;
-			if (controller.dualsenseCurInputState.DPad == Direction::East) bitmaskButtons |= 0x00000020;
-			if (controller.dualsenseCurInputState.DPad == Direction::West) bitmaskButtons |= 0x00000080;
+			if (controller.dualsenseCurInputState.DPad == Direction::NorthEast) bitmaskButtons |= SCE_BM_N_DPAD + SCE_BM_E_DPAD;
+			if (controller.dualsenseCurInputState.DPad == Direction::NorthWest) bitmaskButtons |= SCE_BM_N_DPAD + SCE_BM_W_DPAD;
+			if (controller.dualsenseCurInputState.DPad == Direction::SouthEast) bitmaskButtons |= SCE_BM_S_DPAD + SCE_BM_E_DPAD;
+			if (controller.dualsenseCurInputState.DPad == Direction::SouthWest) bitmaskButtons |= SCE_BM_S_DPAD + SCE_BM_W_DPAD;
 
-			if (controller.dualsenseCurInputState.ButtonOptions) bitmaskButtons |= 0x00000008;
+			if (controller.dualsenseCurInputState.DPad == Direction::North) bitmaskButtons |= SCE_BM_N_DPAD;
+			if (controller.dualsenseCurInputState.DPad == Direction::South) bitmaskButtons |= SCE_BM_S_DPAD;
+			if (controller.dualsenseCurInputState.DPad == Direction::East) bitmaskButtons |= SCE_BM_E_DPAD;
+			if (controller.dualsenseCurInputState.DPad == Direction::West) bitmaskButtons |= SCE_BM_W_DPAD;
 
-			if (controller.dualsenseCurInputState.ButtonPad) bitmaskButtons |= 0x00100000;
+			if (controller.dualsenseCurInputState.ButtonOptions) bitmaskButtons |= SCE_BM_OPTIONS;
+
+			if (controller.dualsenseCurInputState.ButtonPad) bitmaskButtons |= SCE_BM_TOUCH;
 
 			if (g_particularMode) {
-				if (controller.dualsenseCurInputState.ButtonCreate) bitmaskButtons |= 0x00000001;
-				if (controller.dualsenseCurInputState.ButtonHome) bitmaskButtons |= 0x00010000;
+				if (controller.dualsenseCurInputState.ButtonCreate) bitmaskButtons |= SCE_BM_SHARE;
+				if (controller.dualsenseCurInputState.ButtonHome) bitmaskButtons |= SCE_BM_PSBTN;
 			}
 
 			data->bitmask_buttons = bitmaskButtons;
@@ -1176,26 +1186,31 @@ int scePadReadState(int handle, s_ScePadData* data) {
 			if (controller.dualshock4CurInputState.ButtonTriangle) bitmaskButtons |= SCE_BM_TRIANGLE;
 			if (controller.dualshock4CurInputState.ButtonSquare) bitmaskButtons |= SCE_BM_SQUARE;
 
-			if (controller.dualshock4CurInputState.ButtonL1) bitmaskButtons |= 0x00000400;
-			if (controller.dualshock4CurInputState.ButtonL2) bitmaskButtons |= 0x00000100;
-			if (controller.dualshock4CurInputState.ButtonR1) bitmaskButtons |= 0x00000800;
-			if (controller.dualshock4CurInputState.ButtonR2) bitmaskButtons |= 0x00000200;
+			if (controller.dualshock4CurInputState.ButtonL1) bitmaskButtons |= SCE_BM_L1;
+			if (controller.dualshock4CurInputState.ButtonL2) bitmaskButtons |= SCE_BM_L2;
+			if (controller.dualshock4CurInputState.ButtonR1) bitmaskButtons |= SCE_BM_R1;
+			if (controller.dualshock4CurInputState.ButtonR2) bitmaskButtons |= SCE_BM_R2;
 
-			if (controller.dualshock4CurInputState.ButtonL3) bitmaskButtons |= 0x00000002;
-			if (controller.dualshock4CurInputState.ButtonR3) bitmaskButtons |= 0x00000004;
+			if (controller.dualshock4CurInputState.ButtonL3) bitmaskButtons |= SCE_BM_L3;
+			if (controller.dualshock4CurInputState.ButtonR3) bitmaskButtons |= SCE_BM_R3;
 
-			if (controller.dualshock4CurInputState.DPad == Direction::North) bitmaskButtons |= 0x00000010;
-			if (controller.dualshock4CurInputState.DPad == Direction::South) bitmaskButtons |= 0x00000040;
-			if (controller.dualshock4CurInputState.DPad == Direction::East) bitmaskButtons |= 0x00000020;
-			if (controller.dualshock4CurInputState.DPad == Direction::West) bitmaskButtons |= 0x00000080;
+			if (controller.dualshock4CurInputState.DPad == Direction::NorthEast) bitmaskButtons |= SCE_BM_N_DPAD + SCE_BM_E_DPAD;
+			if (controller.dualshock4CurInputState.DPad == Direction::NorthWest) bitmaskButtons |= SCE_BM_N_DPAD + SCE_BM_W_DPAD;
+			if (controller.dualshock4CurInputState.DPad == Direction::SouthEast) bitmaskButtons |= SCE_BM_S_DPAD + SCE_BM_E_DPAD;
+			if (controller.dualshock4CurInputState.DPad == Direction::SouthWest) bitmaskButtons |= SCE_BM_S_DPAD + SCE_BM_W_DPAD;
 
-			if (controller.dualshock4CurInputState.ButtonOptions) bitmaskButtons |= 0x00000008;
+			if (controller.dualshock4CurInputState.DPad == Direction::North) bitmaskButtons |= SCE_BM_N_DPAD;
+			if (controller.dualshock4CurInputState.DPad == Direction::South) bitmaskButtons |= SCE_BM_S_DPAD;
+			if (controller.dualshock4CurInputState.DPad == Direction::East) bitmaskButtons |= SCE_BM_E_DPAD;
+			if (controller.dualshock4CurInputState.DPad == Direction::West) bitmaskButtons |= SCE_BM_W_DPAD;
 
-			if (controller.dualshock4CurInputState.ButtonPad) bitmaskButtons |= 0x00100000;
+			if (controller.dualshock4CurInputState.ButtonOptions) bitmaskButtons |= SCE_BM_OPTIONS;
+
+			if (controller.dualshock4CurInputState.ButtonPad) bitmaskButtons |= SCE_BM_TOUCH;
 
 			if (g_particularMode) {
-				if (controller.dualshock4CurInputState.ButtonShare) bitmaskButtons |= 0x00000001;
-				if (controller.dualshock4CurInputState.ButtonHome) bitmaskButtons |= 0x00010000;
+				if (controller.dualshock4CurInputState.ButtonShare) bitmaskButtons |= SCE_BM_SHARE;
+				if (controller.dualshock4CurInputState.ButtonHome) bitmaskButtons |= SCE_BM_PSBTN;
 			}
 
 			data->bitmask_buttons = bitmaskButtons;

@@ -128,7 +128,11 @@ bool MainWindow::audio(int& currentController, s_scePadSettings scePadSettings[4
 
 	if (failedToStart) {
 		ImGui::SameLine();
+	#if (!defined(__linux__)) && (!defined(__MACOS__))
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("Failed to start"));
+	#else
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("Audio passthrough is not available on this platform"));
+	#endif
 	}
 	else if (!failedToStart && scePadSettings[currentController].audioPassthrough) {
 		ImGui::SetNextItemWidth(400);
@@ -152,8 +156,12 @@ bool MainWindow::emulation(int& currentController, s_scePadSettings scePadSettin
 	ImGui::SeparatorText(str("EmulationHeader"));
 
 	if (!vigem.isVigemConnected()) {
+	#if (!defined(__linux__)) && (!defined(__MACOS__))
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("VigemMissing")); ImGui::SameLine(); ImGui::Spacing(); ImGui::SameLine();
 		ImGui::TextLinkOpenURL(str("VigemInstallLink"), "https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe");
+	#else
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("VigemNotAvailablePlatform"));
+	#endif
 	}
 	else {
 		ImGui::RadioButton(str("None"), &scePadSettings[currentController].emulatedController, 0); ImGui::SameLine();

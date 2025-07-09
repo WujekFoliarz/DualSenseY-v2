@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <mutex>
+#include <atomic>
 
 class AudioPassthrough {
 private:

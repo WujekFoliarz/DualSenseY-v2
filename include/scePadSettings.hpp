@@ -52,11 +52,11 @@ static void applySettings(uint32_t userId, s_scePadSettings settings, AudioPasst
 	if (settings.audioToLed) {
 		float peak = audio.getCurrentCapturePeak();
 		float max = 1.0;
-		s_SceLightBar lightbar = { scaleFloatToInt(peak,max),scaleFloatToInt(peak,max) ,scaleFloatToInt(peak,max) };
+		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max) };
 		scePadSetLightBar(settings.handle, &lightbar);
 	}
 	else {
-		s_SceLightBar lightbar = { scaleFloatToInt(settings.led[0], 1.0f),scaleFloatToInt(settings.led[1], 1.0f),scaleFloatToInt(settings.led[2],1.0f) };
+		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(settings.led[0], 1.0f), (uint8_t)scaleFloatToInt(settings.led[1], 1.0f), (uint8_t)scaleFloatToInt(settings.led[2],1.0f) };
 		scePadSetLightBar(settings.handle, &lightbar);
 	}
 
