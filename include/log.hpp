@@ -1,7 +1,9 @@
 #ifndef LOG_HPP
 #define LOG_HPP
 
-//#define DISABLE_LOGGING
+#if (defined(PRODUCTION_BUILD) && PRODUCTION_BUILD == 1)
+#define DISABLE_LOGGING
+#endif
 
 #ifdef DISABLE_LOGGING
 #	define LOGV(...) do { } while (0)

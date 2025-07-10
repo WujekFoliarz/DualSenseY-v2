@@ -1907,6 +1907,20 @@ int scePadSetPlayerLed(int handle, bool state) {
 	return SCE_PAD_ERROR_INVALID_HANDLE;
 }
 
+std::string scePadGetMacAddress(int handle) {
+	if (!g_initialized) return "";
+
+	for (auto& controller : g_controllers) {
+		std::shared_lock guard(controller.lock);
+
+		if (controller.sceHandle != handle) continue;
+		if (!controller.valid) return "";
+
+		return controller.macAddress;
+	}
+	return "";
+}
+
 #if COMPILE_TO_EXE
 int main() {
 	s_ScePadInitParam initParam = {};

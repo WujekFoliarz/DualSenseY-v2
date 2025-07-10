@@ -1,5 +1,4 @@
 #include "application.hpp"
-#include <iostream>
 #include "log.hpp"
 
 #if defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
@@ -7,6 +6,9 @@
 #include <consoleapi.h>
 #endif
 
+#include <iostream>
+#include <thread>
+#include <chrono>
 #include <cassert>
 #include <imgui.h>
 #include <duaLib.h>
@@ -16,8 +18,7 @@
 #include "mainWindow.hpp"
 #include "strings.hpp"
 #include "audioPassthrough.hpp"
-#include <thread>
-#include <chrono>
+#include "udp.hpp"
 #include "controllerEmulation.hpp"
 
 std::thread g_vigemThread;
@@ -59,6 +60,7 @@ bool Application::run() {
 	createWindow();
 	AudioPassthrough audio = {};
 	Vigem vigem = {};
+	UDP udp = {};
 	Strings strings; // translations
 	
 	if (vigem.isVigemConnected()) {
@@ -67,7 +69,7 @@ bool Application::run() {
 	}
 
 	// Windows
-	MainWindow main(strings, audio, vigem);
+	MainWindow main(strings, audio, vigem, udp);
 
 	strings.readStringsFromJson(countryCodeToFile("en"));
 

@@ -2,6 +2,7 @@
 #define DUALIB_H
 
 #include <stdint.h>
+#include <string>
 
 #ifndef _SCE_PAD_TRIGGER_EFFECT_H
 #define _SCE_PAD_TRIGGER_EFFECT_H
@@ -426,6 +427,7 @@ extern "C" {
 
  int scePadSetPlayerLedBrightness(int handle, int brightness);
  int scePadSetPlayerLed(int handle, bool state);
+ std::string scePadGetMacAddress(int handle);
 #ifdef __cplusplus
 }
 #endif

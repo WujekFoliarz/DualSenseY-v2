@@ -88,10 +88,14 @@ bool MainWindow::led(int& currentController, s_scePadSettings scePadSettings[4],
 	return true;
 }
 
-bool MainWindow::udp(int& currentController, float scale) {
+bool MainWindow::udp(int& currentController, float scale, UDP& udp) {
 	ImGui::SeparatorText(str("DSX Mods/UDP"));
 	ImGui::Text(std::string(strr("Status") + ":").c_str()); ImGui::SameLine();
-	ImGui::TextColored(ImVec4(1, 0, 0, 1), m_strings.getString("Inactive").c_str());
+
+	if(udp.isActive())
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), m_strings.getString("Active").c_str());
+	else
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), m_strings.getString("Inactive").c_str());
 
 	return true;
 }
@@ -188,7 +192,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 
 	menuBar();
 	if (controllers(c, scePadSettings, scale)) {
-		udp(c, scale);
+		udp(c, scale, m_udp);
 		emulation(c, scePadSettings, m_vigem);
 		led(c, scePadSettings, scale);
 		audio(c, scePadSettings);	
