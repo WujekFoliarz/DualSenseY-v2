@@ -20,7 +20,7 @@ std::string getFormattedDateTime() {
 }
 
 void UDP::listen(std::atomic<bool>& threadRunning, asio::ip::udp::socket& socket, std::chrono::steady_clock::time_point& lastUpdate) {
-	uint32_t scePad[4] = { scePadGetHandle(1, 0, 0) ,scePadGetHandle(2, 0, 0) ,scePadGetHandle(3, 0, 0) ,scePadGetHandle(4, 0, 0) };
+	int scePad[4] = { scePadGetHandle(1, 0, 0) ,scePadGetHandle(2, 0, 0) ,scePadGetHandle(3, 0, 0) ,scePadGetHandle(4, 0, 0) };
 
 	while (threadRunning) {
 		char buffer[1024] = {};
@@ -40,9 +40,9 @@ void UDP::listen(std::atomic<bool>& threadRunning, asio::ip::udp::socket& socket
 			lastUpdate = std::chrono::steady_clock::now();
 
 			ServerResponse response = {};
-			response.Status = "DSX Received UDP Instructions";
-			response.TimeReceived = getFormattedDateTime();
-			response.BatteryLevel = 100;
+			response.status = "DSX Received UDP Instructions";
+			response.timeReceived = getFormattedDateTime();
+			response.batteryLevel = 100;
 
 			for (uint32_t i = 0; i < 4; i++) {				
 				s_SceControllerType controllerType = {};
@@ -57,17 +57,17 @@ void UDP::listen(std::atomic<bool>& threadRunning, asio::ip::udp::socket& socket
 					response.isControllerConnected = true;
 
 					Device device = {};
-					device.Index = i+1;
-					device.MacAddress = scePadGetMacAddress(scePad[i]);
-					device.DeviceType = controllerType == s_SceControllerType::DUALSENSE ? DeviceType::DUALSENSE : DeviceType::DUALSHOCK_V2;	
-					device.ConnectionType = (ConnectionType)(busType-1);
-					device.BatteryLevel = 100;
-					device.IsSupportAT = controllerType == s_SceControllerType::DUALSENSE ? true : false;
-					device.IsSupportLightBar = true;
-					device.IsSupportPlayerLED = controllerType == s_SceControllerType::DUALSENSE ? true : false;
-					device.IsSupportMicLED = controllerType == s_SceControllerType::DUALSENSE ? true : false;
+					device.index = i+1;
+					device.macAddress = scePadGetMacAddress(scePad[i]);
+					device.deviceType = controllerType == s_SceControllerType::DUALSENSE ? DeviceType::DUALSENSE : DeviceType::DUALSHOCK_V2;	
+					device.connectionType = (ConnectionType)(busType-1);
+					device.batteryLevel = 100;
+					device.isSupportAT = controllerType == s_SceControllerType::DUALSENSE ? true : false;
+					device.isSupportLightBar = true;
+					device.isSupportPlayerLED = controllerType == s_SceControllerType::DUALSENSE ? true : false;
+					device.isSupportMicLED = controllerType == s_SceControllerType::DUALSENSE ? true : false;
 
-					response.Devices.push_back(device);
+					response.devices.push_back(device);
 				}
 			}
 

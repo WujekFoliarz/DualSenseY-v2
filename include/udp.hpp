@@ -29,27 +29,27 @@ enum class DeviceType {
 
 class Device {
 public:
-	uint32_t Index;
-	std::string MacAddress;
-	DeviceType DeviceType;
-	ConnectionType ConnectionType;
-	uint32_t BatteryLevel;
-	bool IsSupportAT;
-	bool IsSupportLightBar;
-	bool IsSupportPlayerLED;
-	bool IsSupportMicLED;
+	uint32_t index;
+	std::string macAddress;
+	DeviceType deviceType;
+	ConnectionType connectionType;
+	uint32_t batteryLevel;
+	bool isSupportAT;
+	bool isSupportLightBar;
+	bool isSupportPlayerLED;
+	bool isSupportMicLED;
 
 	nlohmann::json to_json() {
 		nlohmann::json j = nlohmann::json{
-			{"Index", Index},
-			{"MacAddress", MacAddress},
-			{"DeviceType", (uint32_t)DeviceType},
-			{"ConnectionType", (uint32_t)ConnectionType},
-			{"BatteryLevel", BatteryLevel},
-			{"IsSupportAT", IsSupportAT},
-			{"IsSupportLightBar", IsSupportLightBar},
-			{"IsSupportPlayerLED", IsSupportPlayerLED},
-			{"IsSupportMicLED", IsSupportMicLED},
+			{"Index", index},
+			{"MacAddress", macAddress},
+			{"DeviceType", (uint32_t)deviceType},
+			{"ConnectionType", (uint32_t)connectionType},
+			{"BatteryLevel", batteryLevel},
+			{"IsSupportAT", isSupportAT},
+			{"IsSupportLightBar", isSupportLightBar},
+			{"IsSupportPlayerLED", isSupportPlayerLED},
+			{"IsSupportMicLED", isSupportMicLED},
 		};
 
 		return j;
@@ -58,23 +58,23 @@ public:
 
 class ServerResponse {
 public:
-	std::string Status;
-	std::string TimeReceived;
+	std::string status;
+	std::string timeReceived;
 	bool isControllerConnected;
-	uint32_t BatteryLevel;
-	std::vector<Device> Devices;
+	uint32_t batteryLevel;
+	std::vector<Device> devices;
 
 	nlohmann::json to_json() {
 		nlohmann::json deviceArray = nlohmann::json::array();
-		for (auto& device : Devices) {
+		for (auto& device : devices) {
 			deviceArray.push_back(device.to_json());
 		}
 
 		nlohmann::json j = nlohmann::json {
-			{"Status", Status},
-			{"TimeReceived", TimeReceived},
+			{"Status", status},
+			{"TimeReceived", timeReceived},
 			{"isControllerConnected", isControllerConnected},
-			{"BatteryLevel", BatteryLevel},
+			{"BatteryLevel", batteryLevel},
 			{"Devices", deviceArray},		
 		};
 
