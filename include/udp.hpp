@@ -7,7 +7,9 @@
 #include <chrono>
 #include <vector>
 #include <string>
+#include <mutex>
 #include <nlohmann/json.hpp>
+#include "scePadSettings.hpp"
 
 // Server
 enum class ConnectionType {
@@ -104,7 +106,15 @@ public:
 		type = (InstructionType)j.at("type").get<int>();
 
 		for (auto& parameter : j["parameters"]) {
-			parameters.push_back(parameter);
+			if (parameter.is_number_integer()) {
+				parameters.push_back(parameter.get<int>());
+			}
+			else if (parameter.is_number_float()) {
+				parameters.push_back(parameter.get<float>());
+			}
+			else if (parameter.is_string()) {
+				parameters.push_back(parameter.get<std::string>());
+			}
 		}
 	}
 };
@@ -129,9 +139,14 @@ private:
 	std::atomic<bool> m_threadRunning = true;
 	std::thread m_listenThread;
 	std::chrono::steady_clock::time_point m_lastUpdate;
-	static void listen(std::atomic<bool>& threadRunning, asio::ip::udp::socket& socket, std::chrono::steady_clock::time_point& lastUpdate);
+	std::mutex m_settingsLock;
+	s_scePadSettings m_settings = {};
+	void listen();
+
+	void handleRgbUpdate(Instruction instruction);
 public:
 	bool isActive();
+	s_scePadSettings getSettings();
 	UDP();
 	~UDP();
 };

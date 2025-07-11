@@ -16,8 +16,8 @@ struct glfwDeleter {
 class Application {
 private:
 	std::unique_ptr<GLFWwindow, glfwDeleter> m_glfwWindow;
-	uint32_t m_scePad[4] = {0};
 	s_scePadSettings m_scePadSettings[4] = {};
+	bool isMinimized();
 	void disableControllerInputIfMinimized();
 public:
 	enum class Platform {

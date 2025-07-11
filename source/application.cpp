@@ -20,16 +20,22 @@
 #include "audioPassthrough.hpp"
 #include "udp.hpp"
 #include "controllerEmulation.hpp"
+#include "scePadHandle.hpp"
 
 std::thread g_vigemThread;
 std::atomic<bool> g_vigemThreadRunning = true;
 
-void Application::disableControllerInputIfMinimized() {
+bool Application::isMinimized() {
 	ImGuiIO& io = ImGui::GetIO();
 	bool isMinimized = glfwGetWindowAttrib(m_glfwWindow.get(), GLFW_ICONIFIED);
 	bool isFocused = glfwGetWindowAttrib(m_glfwWindow.get(), GLFW_FOCUSED);
+	return (isMinimized || !isFocused);
+}
 
-	if (isMinimized || !isFocused) {
+void Application::disableControllerInputIfMinimized() {
+	ImGuiIO& io = ImGui::GetIO();
+
+	if (isMinimized()) {
 		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
 	}
 	else {
@@ -37,16 +43,17 @@ void Application::disableControllerInputIfMinimized() {
 	}
 }
 
+
 bool Application::run() {
 	Platform platform = Application::getPlatform();
 	#pragma region Initialize duaLib
 	s_ScePadInitParam initParam = {};
 	initParam.allowBT = true;
 	scePadInit3(&initParam);
-	m_scePadSettings[0].handle = scePadOpen(1, 0, 0);
-	m_scePadSettings[1].handle = scePadOpen(2, 0, 0);
-	m_scePadSettings[2].handle = scePadOpen(3, 0, 0);
-	m_scePadSettings[3].handle = scePadOpen(4, 0, 0);
+	g_scePad[0] = scePadOpen(1, 0, 0);
+	g_scePad[1] = scePadOpen(2, 0, 0);
+	g_scePad[2] = scePadOpen(3, 0, 0);
+	g_scePad[3] = scePadOpen(4, 0, 0);
 	scePadSetParticularMode(true);
 #pragma endregion
 	#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
@@ -74,6 +81,7 @@ bool Application::run() {
 	strings.readStringsFromJson(countryCodeToFile("en"));
 
 	bool active = false;
+	uint32_t occasionalFrameWhenMinimized = 0;
 
 	while (!glfwWindowShouldClose(m_glfwWindow.get())) {
 
@@ -85,6 +93,8 @@ bool Application::run() {
 		glfwGetFramebufferSize(m_glfwWindow.get(), &display_w, &display_h);
 		glViewport(0, 0, display_w, display_h);
 		glfwGetWindowContentScale(m_glfwWindow.get(), &xscale, &yscale);
+
+		bool v_isMinimized = isMinimized();
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -96,21 +106,26 @@ bool Application::run() {
 		audio.validate();
 		main.show(m_scePadSettings, xscale);
 
-		//ImGui::ShowDemoWindow();
-
 		for (int i = 0; i < 4; i++) {
-			applySettings(i+1, m_scePadSettings[i], audio);
+			applySettings(i, i == (main.getSelectedController()) && udp.isActive() ? udp.getSettings() : m_scePadSettings[i], audio);
 		}
 
 		#pragma region ImGUI + GLFW
 		disableControllerInputIfMinimized();
 		glfwPollEvents();
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-		glfwSwapBuffers(m_glfwWindow.get());	
-		#pragma endregion
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(16)); // around 60ish frames
+		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
+		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			glfwSwapBuffers(m_glfwWindow.get());
+			occasionalFrameWhenMinimized = 0;
+		}
+
+		ImGui::EndFrame();
+		#pragma endregion	
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(8));
 	}
 
 	return true;
@@ -120,7 +135,7 @@ void Application::createWindow() {
 	glfwInit();
 	m_glfwWindow = std::unique_ptr<GLFWwindow, glfwDeleter>(glfwCreateWindow(1280, 720, "DualSenseY", nullptr, nullptr));
 	glfwMakeContextCurrent(m_glfwWindow.get());
-	glfwSwapInterval(0);
+	glfwSwapInterval(1);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		LOGE("GLAD couldn't be loaded");

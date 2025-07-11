@@ -8,6 +8,7 @@
 #include <cmath>
 #include <log.hpp>
 #include <audioPassthrough.hpp>
+#include "scePadHandle.hpp"
 
 inline uint32_t scaleFloatToInt(float input_float, float max_float) {
 	const uint32_t max_int = 255;
@@ -31,8 +32,6 @@ enum class EmulatedController {
 };
 
 struct s_scePadSettings {
-	uint32_t handle = 0;
-
 	float led[3] = { 0,0,0 };
 	bool audioToLed = false;
 
@@ -48,31 +47,31 @@ struct s_scePadSettings {
 	int emulatedController = (int)EmulatedController::NONE;
 };
 
-static void applySettings(uint32_t userId, s_scePadSettings settings, AudioPassthrough& audio) {
+static void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
 	if (settings.audioToLed) {
 		float peak = audio.getCurrentCapturePeak();
 		float max = 1.0;
 		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max) };
-		scePadSetLightBar(settings.handle, &lightbar);
+		scePadSetLightBar(g_scePad[index], &lightbar);
 	}
 	else {
 		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(settings.led[0], 1.0f), (uint8_t)scaleFloatToInt(settings.led[1], 1.0f), (uint8_t)scaleFloatToInt(settings.led[2],1.0f) };
-		scePadSetLightBar(settings.handle, &lightbar);
+		scePadSetLightBar(g_scePad[index], &lightbar);
 	}
 
-	scePadSetPlayerLedBrightness(settings.handle, settings.brightness);
-	scePadSetPlayerLed(settings.handle, settings.disablePlayerLed ? false : true);
-	scePadSetAudioOutPath(settings.handle, settings.audioPath);
+	scePadSetPlayerLedBrightness(g_scePad[index], settings.brightness);
+	scePadSetPlayerLed(g_scePad[index], settings.disablePlayerLed ? false : true);
+	scePadSetAudioOutPath(g_scePad[index], settings.audioPath);
 
 	s_SceControllerType controllerType = {};
-	scePadGetControllerType(settings.handle, &controllerType);
+	scePadGetControllerType(g_scePad[index], &controllerType);
 
 	s_ScePadVolumeGain volume = {};
 	volume.speakerVolume = settings.speakerVolume * 9;
 	volume.micGain = settings.micGain * 6;
-	scePadSetVolumeGain(settings.handle, &volume);
+	scePadSetVolumeGain(g_scePad[index], &volume);
 
-	audio.setHapticIntensityByUserId(userId, settings.hapticIntensity);
+	audio.setHapticIntensityByUserId(index+1, settings.hapticIntensity);
 }
 
 #endif

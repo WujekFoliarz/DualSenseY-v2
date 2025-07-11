@@ -13,6 +13,7 @@ class MainWindow {
    Vigem& m_vigem;
    UDP& m_udp;
 private:  
+   int m_selectedController = 0;
    bool about(bool* open);  
    bool menuBar();  
    bool controllers(int& currentController, s_scePadSettings scePadSettings[4], float scale);  
@@ -23,7 +24,8 @@ private:
 public:  
    MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp)  
        : m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp) {}
-   void show(s_scePadSettings scePadSettings[4], float scale);  
+   void show(s_scePadSettings scePadSettings[4], float scale);
+   int getSelectedController();
 };  
 
 #endif // MAINWINDOW_H

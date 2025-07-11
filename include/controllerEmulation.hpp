@@ -44,12 +44,17 @@ inline void emulatedControllerUpdate(Vigem& vigem, s_scePadSettings scePadSettin
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	timeBeginPeriod(1);
 
+	static uint32_t scePad[4] = {};
+	for (uint32_t i = 0; i < 4; i++) {
+		scePad[i] = scePadGetHandle(i + 1, 0, 0);
+	}
+
 	while (threadRunning) {
 		for (uint32_t i = 0; i < 4; i++) {
-
+		
 			if ((EmulatedController)scePadSettings[i].emulatedController != EmulatedController::NONE) {
 				s_ScePadData scePadState = {};
-				uint32_t result = scePadReadState(scePadSettings[i].handle, &scePadState);
+				uint32_t result = scePadReadState(scePad[i], &scePadState);
 
 				if (result == SCE_OK) {
 

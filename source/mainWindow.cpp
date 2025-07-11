@@ -6,6 +6,7 @@
 #include <cmath>
 #include "log.hpp"
 #include <duaLib.h>
+#include "scePadHandle.hpp"
 
 #define str(string) m_strings.getString(string).c_str()
 #define strr(string) m_strings.getString(string)
@@ -54,7 +55,7 @@ bool MainWindow::controllers(int& currentController, s_scePadSettings scePadSett
 	bool noneConnected = true;
 	for (uint32_t i = 0; i < 4; i++) {
 		s_ScePadData data = {};
-		uint32_t result = scePadReadState(scePadSettings[i].handle, &data);
+		int result = scePadReadState(g_scePad[i], &data);
 		if (result == SCE_OK) {
 			noneConnected = false;
 			ImGui::RadioButton(std::to_string(i + 1).c_str(), &currentController, i);
@@ -73,6 +74,10 @@ bool MainWindow::controllers(int& currentController, s_scePadSettings scePadSett
 
 bool MainWindow::led(int& currentController, s_scePadSettings scePadSettings[4], float scale) {
 	ImGui::SeparatorText(str("LedSection"));
+
+	if (m_udp.isActive()) {
+		ImGui::TextColored(ImVec4(1,1,0,1), str("LEDandATunavailableUDP"));
+	}
 
 	ImGui::Checkbox(str("DisablePlayerLED"), &scePadSettings[currentController].disablePlayerLed);
 	ImGui::Checkbox(str("AudioToLED"), &scePadSettings[currentController].audioToLed);
@@ -103,7 +108,7 @@ bool MainWindow::udp(int& currentController, float scale, UDP& udp) {
 bool MainWindow::audio(int& currentController, s_scePadSettings scePadSettings[4]) {
 	static bool failedToStart = false;
 	int busType = 0;
-	scePadGetControllerBusType(scePadSettings[currentController].handle, &busType);
+	scePadGetControllerBusType(g_scePad[currentController], &busType);
 
 	ImGui::SeparatorText(str("Audio"));
 
@@ -188,7 +193,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	ImGui::TextColored(ImVec4(1, 0, 0, 1), "Work in progress. Older build at v2 branch on github");
 	s_ScePadData state = {};
-	scePadReadState(scePadSettings[c].handle, &state);
+	scePadReadState(g_scePad[c], &state);
 
 	menuBar();
 	if (controllers(c, scePadSettings, scale)) {
@@ -197,6 +202,12 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 		led(c, scePadSettings, scale);
 		audio(c, scePadSettings);	
 	}
+
+	m_selectedController = c;
 	
 	ImGui::End();
+}
+
+int MainWindow::getSelectedController() {
+	return m_selectedController;
 }
