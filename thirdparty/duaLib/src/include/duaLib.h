@@ -439,6 +439,7 @@ extern "C" {
  int scePadSetPlayerLedBrightness(int handle, int brightness);
  int scePadSetPlayerLed(int handle, bool state);
  std::string scePadGetMacAddress(int handle);
+ std::string scePadGetPath(int handle);
 #ifdef __cplusplus
 }
 #endif

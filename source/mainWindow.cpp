@@ -7,6 +7,7 @@
 #include "log.hpp"
 #include <duaLib.h>
 #include "scePadHandle.hpp"
+#include "utils.hpp"
 
 #define str(string) m_strings.getString(string).c_str()
 #define strr(string) m_strings.getString(string)
@@ -177,8 +178,24 @@ bool MainWindow::emulation(int& currentController, s_scePadSettings scePadSettin
 		ImGui::RadioButton("Xbox 360", &scePadSettings[currentController].emulatedController, 1); ImGui::SameLine();
 		ImGui::RadioButton("Dualshock 4", &scePadSettings[currentController].emulatedController, 2);
 		vigem.plugControllerByIndex(currentController, scePadSettings[currentController].emulatedController);
-	}
 
+		ImGui::NewLine();
+		ImGui::Text("Real controller settings");
+
+		if (m_isAdminWindows) {
+			if (ImGui::Button("Hide")) {
+				hideController(scePadGetPath(g_scePad[currentController]));
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Unhide")) {
+				unhideController(scePadGetPath(g_scePad[currentController]));
+			}
+		}
+		else {
+			ImGui::TextColored(ImVec4(1, 1, 0, 1), str("EmuFeaturesNonAdmin"));
+		}
+	}
+	
 	return true;
 }
 

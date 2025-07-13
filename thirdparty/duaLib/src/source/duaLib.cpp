@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <hidapi.h>
 #include <stdio.h>
 #include <wchar.h>
@@ -435,12 +435,12 @@ struct deviceList {
 
 deviceList g_deviceList = {};
 duaLibUtils::controller g_controllers[MAX_CONTROLLER_COUNT] = {};
-std::atomic<bool> g_threadRunning = false;
-std::atomic<bool> g_initialized = false;
-std::atomic<bool> g_particularMode = false;
-std::atomic<bool> g_allowBluetooth = false;
-std::thread g_readThread;
-std::thread g_watchThread;
+static std::atomic<bool> g_threadRunning = false;
+static std::atomic<bool> g_initialized = false;
+static std::atomic<bool> g_particularMode = false;
+static std::atomic<bool> g_allowBluetooth = false;
+static std::thread g_readThread;
+static std::thread g_watchThread;
 constexpr std::array<s_SceLightBar, 4> g_playerColors = { {
 	{  0, 0, 255 }, // Player 1 - Blue
 	{255,  0,   0 }, // Player 2 - Red
@@ -452,11 +452,21 @@ int readFunc() {
 #if defined(_WIN32) || defined(_WIN64)
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	timeBeginPeriod(1);
+
+	DWORD_PTR affinityMask = 1;
+	SetThreadAffinityMask(GetCurrentThread(), affinityMask);
+
+	SetThreadIdealProcessor(GetCurrentThread(), 0);
+
+	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+	LARGE_INTEGER liDueTime;
 #endif
 
-	while (g_threadRunning) {
-		bool allInvalid = true;
+	auto start = std::chrono::high_resolution_clock::now();
 
+	while (g_threadRunning) {
+		bool allInvalid = true;		
+		
 		for (auto& controller : g_controllers) {
 			if (controller.valid && controller.opened && controller.deviceType == DUALSENSE) {
 				allInvalid = false;
@@ -465,7 +475,7 @@ int readFunc() {
 				dualsenseData::ReportIn01USB  inputUsb = {};
 				dualsenseData::ReportIn31  inputBt = {};
 
-				uint32_t res = -1;
+				int32_t res = -1;
 
 				if (isBt) 
 					res = hid_read_timeout(controller.handle, reinterpret_cast<unsigned char*>(&inputBt), sizeof(inputBt), 0);			
@@ -632,7 +642,7 @@ int readFunc() {
 				dualshock4Data::ReportIn01USB inputUsb = {};
 				dualshock4Data::ReportIn01BT inputBt = {};
 
-				uint32_t res = -1;
+				int32_t res = -1;
 
 				if (isBt)
 					res = hid_read_timeout(controller.handle, reinterpret_cast<unsigned char*>(&inputBt), sizeof(inputBt), 0);
@@ -648,6 +658,8 @@ int readFunc() {
 					continue;
 				}
 				else if (res > 0) {
+					controller.failedReadCount = 0;
+
 					if (controller.dualshock4CurOutputState.LedRed != controller.dualshock4LastOutputState.LedRed ||
 					controller.dualshock4CurOutputState.LedGreen != controller.dualshock4LastOutputState.LedGreen ||
 					controller.dualshock4CurOutputState.LedBlue != controller.dualshock4LastOutputState.LedBlue ||
@@ -736,11 +748,17 @@ int readFunc() {
 			}
 		}
 
-		std::this_thread::sleep_for(std::chrono::nanoseconds(300));
-
 		if (allInvalid) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
+
+	#if defined(_WIN32) || defined(_WIN64)
+		liDueTime.QuadPart = -1000LL;
+		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
+		WaitForSingleObject(hTimer, INFINITE);
+	#else
+		std::this_thread::sleep_for(std::chrono::microseconds(100));
+	#endif
 	}
 	return 0;
 }
@@ -841,12 +859,13 @@ int watchFunc() {
 
 									report.Data.ReportID = 0x31;
 									report.Data.flag = 2;
+									
 									report.Data.State.EnableRumbleEmulation = true;
 									report.Data.State.UseRumbleNotHaptics = true;
 									report.Data.State.AllowRightTriggerFFB = true;
 									report.Data.State.AllowLeftTriggerFFB = true;
 									report.Data.State.AllowLedColor = true;
-									report.Data.State.ResetLights = true;
+									report.Data.State.AllowColorLightFadeAnimation = true;
 									report.Data.State.LeftTriggerFFB[0] = (uint8_t)TriggerEffectType::Off;
 									report.Data.State.RightTriggerFFB[0] = (uint8_t)TriggerEffectType::Off;
 
@@ -1917,6 +1936,20 @@ std::string scePadGetMacAddress(int handle) {
 		if (!controller.valid) return "";
 
 		return controller.macAddress;
+	}
+	return "";
+}
+
+std::string scePadGetPath(int handle) {
+	if (!g_initialized) return "";
+
+	for (auto& controller : g_controllers) {
+		std::shared_lock guard(controller.lock);
+
+		if (controller.sceHandle != handle) continue;
+		if (!controller.valid) return "";
+
+		return controller.lastPath;
 	}
 	return "";
 }

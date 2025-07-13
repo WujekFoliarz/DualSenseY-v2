@@ -6,12 +6,14 @@
 #include "audioPassthrough.hpp"  
 #include "udp.hpp"
 #include "controllerEmulation.hpp"
+#include "utils.hpp"
 
 class MainWindow {  
    Strings& m_strings;  
    AudioPassthrough& m_audio;  
    Vigem& m_vigem;
    UDP& m_udp;
+   bool m_isAdminWindows = isRunningAsAdministratorWindows();
 private:  
    int m_selectedController = 0;
    bool about(bool* open);  
