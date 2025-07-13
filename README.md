@@ -1,4 +1,4 @@
-# For contributiors: I'm starting over and the master branch is the new app. Older build is at v2 branch and i'm not gonna maintain it anymore
+# For contributors: I'm starting over and the master branch is the new app. Older build is at v2 branch and i'm not gonna maintain it anymore
 
 
 [Legacy C# version](https://github.com/WujekFoliarz/DualSenseY/releases/tag/6.2) 
