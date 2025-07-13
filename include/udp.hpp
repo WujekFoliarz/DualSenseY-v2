@@ -85,6 +85,77 @@ public:
 };
 
 // Client
+enum class TriggerMode {
+	Normal = 0,
+	GameCube = 1,
+	VerySoft = 2,
+	Soft = 3,
+	Hard = 4,
+	VeryHard = 5,
+	Hardest = 6,
+	Rigid = 7,
+	VibrateTrigger = 8,
+	Choppy = 9,
+	Medium = 10,
+	VibrateTriggerPulse = 11,
+	CustomTriggerValue = 12,
+	Resistance = 13,
+	Bow = 14,
+	Galloping = 15,
+	SemiAutomaticGun = 16,
+	AutomaticGun = 17,
+	Machine = 18,
+	VIBRATE_TRIGGER_10Hz = 19,
+	OFF = 20,
+	FEEDBACK = 21,
+	WEAPON = 22,
+	VIBRATION = 23,
+	SLOPE_FEEDBACK = 24,
+	MULTIPLE_POSITION_FEEDBACK = 25,
+	MULTIPLE_POSITION_VIBRATION = 26,
+};
+
+enum class CustomTriggerValueMode {
+	OFF = 0,
+	Rigid = 1,
+	RigidA = 2,
+	RigidB = 3,
+	RigidAB = 4,
+	Pulse = 5,
+	PulseA = 6,
+	PulseB = 7,
+	PulseAB = 8,
+	VibrateResistance = 9,
+	VibrateResistanceA = 10,
+	VibrateResistanceB = 11,
+	VibrateResistanceAB = 12,
+	VibratePulse = 13,
+	VibratePulseA = 14,
+	VibratePulsB = 15,
+	VibratePulseAB = 16
+};
+
+enum class PlayerLEDNewRevision {
+	One = 0,
+	Two = 1,
+	Three = 2,
+	Four = 3,
+	Five = 4, // Five is Also All On
+	AllOff = 5
+};
+
+enum class MicLEDMode {
+	On = 0,
+	Pulse = 1,
+	Off = 2
+};
+
+enum class Trigger {
+	Invalid,
+	Left,
+	Right
+};
+
 enum class InstructionType {
 	GetDSXStatus,
 	TriggerUpdate,
@@ -144,6 +215,7 @@ private:
 	void listen();
 
 	void handleRgbUpdate(Instruction instruction);
+	void handleTriggerUpdate(Instruction instruction);
 public:
 	bool isActive();
 	s_scePadSettings getSettings();

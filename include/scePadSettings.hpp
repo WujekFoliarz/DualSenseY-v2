@@ -32,18 +32,29 @@ enum class EmulatedController {
 };
 
 struct s_scePadSettings {
+	// LED Settings
 	float led[3] = { 0,0,0 };
 	bool audioToLed = false;
-
 	int brightness = 0;
 	bool disablePlayerLed = false;
 
+	// Audio passthrough settings
 	bool audioPassthrough = false;
 	int speakerVolume = 0;
 	int micGain = 8;
 	int audioPath = 3;
 	float hapticIntensity = 1.0f;
 
+	// For DSX trigger format
+	bool isLeftUsingDsxTrigger = false;
+	bool isRightUsingDsxTrigger = false;
+	uint8_t leftCustomTrigger[11] = {};
+	uint8_t rightCustomTrigger[11] = {};
+
+	// For Sony trigger format
+	ScePadTriggerEffectParam stockTriggerParam = {};
+
+	// Emulation
 	int emulatedController = (int)EmulatedController::NONE;
 };
 
@@ -72,6 +83,15 @@ static void applySettings(uint32_t index, s_scePadSettings settings, AudioPassth
 	scePadSetVolumeGain(g_scePad[index], &volume);
 
 	audio.setHapticIntensityByUserId(index+1, settings.hapticIntensity);
+
+	settings.stockTriggerParam.triggerMask |= settings.isLeftUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2;
+	settings.stockTriggerParam.triggerMask |= settings.isRightUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
+	scePadSetTriggerEffect(g_scePad[index], &settings.stockTriggerParam);
+
+	uint8_t triggerBitmask = 0;
+	triggerBitmask |= settings.isLeftUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 : 0;
+	triggerBitmask |= settings.isRightUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2 : 0;
+	scePadSetTriggerEffectCustom(g_scePad[index], settings.leftCustomTrigger, settings.rightCustomTrigger, triggerBitmask);
 }
 
 #endif

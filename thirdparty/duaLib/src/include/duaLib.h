@@ -440,6 +440,7 @@ extern "C" {
  int scePadSetPlayerLed(int handle, bool state);
  std::string scePadGetMacAddress(int handle);
  std::string scePadGetPath(int handle);
+ int scePadSetTriggerEffectCustom(int handle, uint8_t left[11], uint8_t right[11], uint8_t triggerBitmask);
 #ifdef __cplusplus
 }
 #endif

@@ -595,7 +595,6 @@ int readFunc() {
 					}
 
 					controller.dualsenseCurOutputState.HostTimestamp = controller.dualsenseCurInputState.SensorTimestamp;
-					controller.triggerMask = 0;
 					res = -1;
 
 					if (controller.connectionType == HID_API_BUS_USB || controller.connectionType == HID_API_BUS_UNKNOWN) {
@@ -701,7 +700,6 @@ int readFunc() {
 					else
 						controller.dualshock4CurOutputState.EnableRumbleUpdate = false;
 
-					controller.triggerMask = 0;
 					res = -1;
 
 					if (controller.connectionType == HID_API_BUS_USB || controller.connectionType == HID_API_BUS_UNKNOWN) {
@@ -1457,12 +1455,12 @@ int scePadSetTriggerEffect(int handle, ScePadTriggerEffectParam* triggerEffect) 
 				TriggerEffectGenerator::MultiplePositionVibration(_trigger.force, 0, triggerEffect->command[i].commandData.multiplePositionVibrationParam.frequency, triggerEffect->command[i].commandData.multiplePositionVibrationParam.amplitude);
 			}
 
-			if (i == SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2) {
+			if (i == SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 && controller.triggerMask & SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2) {
 				for (int i = 0; i < 11; i++) {
 					controller.L2.force[i] = _trigger.force[i];
 				}
 			}
-			else if (i == SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2) {
+			else if (i == SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2 && controller.triggerMask & SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2) {
 				for (int i = 0; i < 11; i++) {
 					controller.R2.force[i] = _trigger.force[i];
 				}
@@ -1952,6 +1950,29 @@ std::string scePadGetPath(int handle) {
 		return controller.lastPath;
 	}
 	return "";
+}
+
+int scePadSetTriggerEffectCustom(int handle, uint8_t left[11], uint8_t right[11], uint8_t triggerBitmask) {
+	if (!g_initialized) return SCE_PAD_ERROR_NOT_INITIALIZED;
+
+	for (auto& controller : g_controllers) {
+		std::shared_lock guard(controller.lock);
+
+		if (controller.sceHandle != handle) continue;
+		if (!controller.valid) return SCE_PAD_ERROR_DEVICE_NOT_CONNECTED;
+
+		if(left != nullptr && triggerBitmask & SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2) {
+			controller.triggerMask |= SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2;
+			std::memcpy(controller.L2.force, left, sizeof(controller.dualsenseCurOutputState.LeftTriggerFFB));
+		}
+		if(right != nullptr && triggerBitmask & SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2) {
+			controller.triggerMask |= SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
+			std::memcpy(controller.R2.force, right, sizeof(controller.dualsenseCurOutputState.RightTriggerFFB));
+		}
+
+		return SCE_OK;
+	}
+	return SCE_PAD_ERROR_INVALID_HANDLE;
 }
 
 #if COMPILE_TO_EXE

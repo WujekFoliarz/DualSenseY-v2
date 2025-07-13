@@ -2,7 +2,8 @@
 #include "log.hpp"
 #include <duaLib.h>
 #include <iomanip>
-#include <scePadHandle.hpp>
+#include "scePadHandle.hpp"
+#include "scePadCustomTriggers.hpp"
 
 std::string getFormattedDateTime() {
 	auto now = std::chrono::system_clock::now();
@@ -37,6 +38,7 @@ void UDP::listen() {
 					case InstructionType::GetDSXStatus:
 						break;
 					case InstructionType::TriggerUpdate:
+						handleTriggerUpdate(instr);
 						break;
 					case InstructionType::RGBUpdate:
 						handleRgbUpdate(instr);
@@ -105,6 +107,48 @@ void UDP::handleRgbUpdate(Instruction instruction) {
 	m_settings.led[0] = static_cast<float>(std::any_cast<int>(instruction.parameters[1])) / 255.0f;
 	m_settings.led[1] = static_cast<float>(std::any_cast<int>(instruction.parameters[2])) / 255.0f;
 	m_settings.led[2] = static_cast<float>(std::any_cast<int>(instruction.parameters[3])) / 255.0f;
+}
+
+void UDP::handleTriggerUpdate(Instruction instruction) {
+	if (instruction.parameters.size() < 3) return;
+	uint32_t settingsCount = instruction.parameters.size() - 3;
+
+	Trigger trigger = (Trigger)std::any_cast<int>(instruction.parameters[1]);
+	TriggerMode triggerMode = (TriggerMode)std::any_cast<int>(instruction.parameters[2]);
+
+	std::vector<uint8_t> settings;
+	if(settingsCount > 0) {
+		for (uint8_t i = 3; i < instruction.parameters.size(); i++) {
+			settings.push_back((uint8_t)std::any_cast<int>(instruction.parameters[i]));
+		}
+	}
+
+	bool usingDsxTrigger = false;
+	if (triggerMode == TriggerMode::FEEDBACK ||
+	triggerMode == TriggerMode::WEAPON ||
+	triggerMode == TriggerMode::VIBRATION ||
+	triggerMode == TriggerMode::SLOPE_FEEDBACK ||
+	triggerMode == TriggerMode::MULTIPLE_POSITION_FEEDBACK ||
+	triggerMode == TriggerMode::MULTIPLE_POSITION_VIBRATION) {
+		usingDsxTrigger = false;
+	}
+	else {
+		usingDsxTrigger = true;
+	}
+
+	if (trigger == Trigger::Left)
+		m_settings.isLeftUsingDsxTrigger = usingDsxTrigger;
+	else if (trigger == Trigger::Right)
+		m_settings.isRightUsingDsxTrigger = usingDsxTrigger;
+
+	switch (triggerMode) {
+		case TriggerMode::Normal:
+			customTriggerNormal(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::GameCube:
+			customTriggerGamecube(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+	}
 }
 
 bool UDP::isActive() {
