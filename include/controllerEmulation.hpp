@@ -42,8 +42,10 @@ inline void emulatedControllerUpdate(Vigem& vigem, s_scePadSettings scePadSettin
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-	timeBeginPeriod(1);
+	HANDLE hTimer = NULL;
+	LARGE_INTEGER liDueTime;
+	hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+	liDueTime.QuadPart = -1000LL;
 
 	while (threadRunning) {
 		for (uint32_t i = 0; i < 4; i++) {
@@ -64,8 +66,11 @@ inline void emulatedControllerUpdate(Vigem& vigem, s_scePadSettings scePadSettin
 			}
 		}
 
-		std::this_thread::sleep_for(std::chrono::nanoseconds(300));
+		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
+		WaitForSingleObject(hTimer, INFINITE);
 	}
+
+	CloseHandle(hTimer);
 #endif
 }
 
