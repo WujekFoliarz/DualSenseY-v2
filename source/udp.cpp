@@ -117,7 +117,7 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 	TriggerMode triggerMode = (TriggerMode)std::any_cast<int>(instruction.parameters[2]);
 
 	std::vector<uint8_t> settings;
-	if(settingsCount > 0) {
+	if (settingsCount > 0) {
 		for (uint8_t i = 3; i < instruction.parameters.size(); i++) {
 			settings.push_back((uint8_t)std::any_cast<int>(instruction.parameters[i]));
 		}
@@ -148,6 +148,149 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 		case TriggerMode::GameCube:
 			customTriggerGamecube(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
 			break;
+		case TriggerMode::VerySoft:
+			customTriggerVerySoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Soft:
+			customTriggerSoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Hard:
+			customTriggerHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::VeryHard:
+			customTriggerVeryHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Hardest:
+			customTriggerHardest(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Rigid:
+			customTriggerRigid(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::VibrateTrigger:
+			customTriggerVibrateTrigger(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Choppy:
+			customTriggerChoppy(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Medium:
+			customTriggerMedium(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::VibrateTriggerPulse:
+			customTriggerVibrateTriggerPulse(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::CustomTriggerValue:
+			customTriggerCustomTriggerValue(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Resistance:
+			customTriggerResistance(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Bow:
+			customTriggerBow(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Galloping:
+			customTriggerGalloping(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::SemiAutomaticGun:
+			customTriggerSemiAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::AutomaticGun:
+			customTriggerAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::Machine:
+			customTriggerMachine(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+		case TriggerMode::VIBRATE_TRIGGER_10Hz:
+			customTriggerVIBRATE_TRIGGER_10Hz(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			break;
+
+		// Sony triggers
+		case TriggerMode::OFF:
+		{
+			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_OFF;
+			break;
+		}
+		case TriggerMode::FEEDBACK:
+		{
+			if (settings.size() < 2) break;
+
+			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_FEEDBACK;
+			m_settings.stockTriggerParam.command[index].commandData.feedbackParam.position = settings[0];
+			m_settings.stockTriggerParam.command[index].commandData.feedbackParam.strength = settings[1];
+			break;
+		}
+		case TriggerMode::WEAPON:
+		{
+			if (settings.size() < 3) break;
+
+			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_WEAPON;
+			m_settings.stockTriggerParam.command[index].commandData.weaponParam.startPosition = settings[0];
+			m_settings.stockTriggerParam.command[index].commandData.weaponParam.endPosition = settings[1];
+			m_settings.stockTriggerParam.command[index].commandData.weaponParam.strength = settings[2];
+			break;
+		}
+		case TriggerMode::VIBRATION:
+		{
+			if (settings.size() < 3) break;
+
+			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_VIBRATION;
+			m_settings.stockTriggerParam.command[index].commandData.vibrationParam.position = settings[0];
+			m_settings.stockTriggerParam.command[index].commandData.vibrationParam.amplitude = settings[1];
+			m_settings.stockTriggerParam.command[index].commandData.vibrationParam.frequency = settings[2];
+			break;
+		}
+		case TriggerMode::SLOPE_FEEDBACK:
+		{
+			if (settings.size() < 4) break;
+
+			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_SLOPE_FEEDBACK;
+			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.startPosition = settings[0];
+			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.endPosition = settings[1];
+			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.startStrength = settings[2];
+			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.endStrength = settings[3];
+			break;
+		}
+		case TriggerMode::MULTIPLE_POSITION_FEEDBACK:
+		{
+			if (settings.size() < 10) break;
+
+			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_FEEDBACK;
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[0] = settings[0];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[1] = settings[1];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[2] = settings[2];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[3] = settings[3];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[4] = settings[4];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[5] = settings[5];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[6] = settings[6];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[7] = settings[7];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[8] = settings[8];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[9] = settings[9];
+			break;
+		}
+		case TriggerMode::MULTIPLE_POSITION_VIBRATION:
+		{
+			if (settings.size() < 11) break;
+
+			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION;
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.frequency = settings[0];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[0] = settings[1];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[1] = settings[2];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[2] = settings[3];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[3] = settings[4];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[4] = settings[5];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[5] = settings[6];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[6] = settings[7];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[7] = settings[8];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[8] = settings[9];
+			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[9] = settings[10];
+			break;
+		}
 	}
 }
 

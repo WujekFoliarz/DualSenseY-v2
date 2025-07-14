@@ -2,6 +2,7 @@
 #define CUSTOMTRIGGERS_H
 
 #include <cstdint>
+#include <vector>
 
 enum DSXTriggerMode : uint8_t {
 	Off = 0x0,
@@ -23,5 +24,25 @@ enum DSXTriggerMode : uint8_t {
 
 void customTriggerNormal(uint8_t ffb[11]);
 void customTriggerGamecube(uint8_t ffb[11]);
+void customTriggerVerySoft(uint8_t ffb[11]);
+void customTriggerSoft(uint8_t ffb[11]);
+void customTriggerHard(uint8_t ffb[11]);
+void customTriggerVeryHard(uint8_t ffb[11]);
+void customTriggerHardest(uint8_t ffb[11]);
+void customTriggerRigid(uint8_t ffb[11]);
+void customTriggerVibrateTrigger(uint8_t ffb[11]);
+void customTriggerChoppy(uint8_t ffb[11]);
+void customTriggerMedium(uint8_t ffb[11]);
+void customTriggerVibrateTriggerPulse(uint8_t ffb[11]);
+void customTriggerCustomTriggerValue(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerResistance(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerBow(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerGalloping(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerSemiAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerMachine(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerVIBRATE_TRIGGER_10Hz(std::vector<uint8_t> param, uint8_t ffb[11]);
+
+
 
 #endif // CUSTOMTRIGGERS_H
