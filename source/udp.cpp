@@ -34,6 +34,7 @@ void UDP::listen() {
 			packet.from_json(packetJson);
 
 			for (auto& instr : packet.instructions) {
+				// I don't care enough to implement the rest, if you wanna do it go ahead.
 				switch (instr.type) {
 					case InstructionType::GetDSXStatus:
 						break;
@@ -46,6 +47,7 @@ void UDP::listen() {
 					case InstructionType::PlayerLED:
 						break;
 					case InstructionType::TriggerThreshold:
+						handleTriggerThresholdUpdate(instr);
 						break;
 					case InstructionType::MicLED:
 						break;
@@ -292,6 +294,15 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 			break;
 		}
 	}
+}
+
+void UDP::handleTriggerThresholdUpdate(Instruction instruction) {
+	if (instruction.parameters.size() < 3) return;
+	Trigger trigger = (Trigger)std::any_cast<int>(instruction.parameters[1]);
+	if(trigger == Trigger::Left)
+		m_settings.leftTriggerThreshold = (uint8_t)std::any_cast<int>(instruction.parameters[2]);
+	else
+		m_settings.rightTriggerThreshold = (uint8_t)std::any_cast<int>(instruction.parameters[2]);
 }
 
 bool UDP::isActive() {

@@ -56,6 +56,8 @@ struct s_scePadSettings {
 
 	// Emulation
 	int emulatedController = (int)EmulatedController::NONE;
+	uint8_t leftTriggerThreshold = 0;
+	uint8_t rightTriggerThreshold = 0;
 };
 
 static void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {

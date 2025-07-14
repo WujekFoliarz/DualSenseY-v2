@@ -22,9 +22,6 @@
 #include "controllerEmulation.hpp"
 #include "scePadHandle.hpp"
 
-std::thread g_vigemThread;
-std::atomic<bool> g_vigemThreadRunning = true;
-
 bool Application::isMinimized() {
 	ImGuiIO& io = ImGui::GetIO();
 	bool isMinimized = glfwGetWindowAttrib(m_glfwWindow.get(), GLFW_ICONIFIED);
@@ -66,14 +63,9 @@ bool Application::run() {
 
 	createWindow();
 	AudioPassthrough audio = {};
-	Vigem vigem = {};
 	UDP udp = {};
-	Strings strings; // translations
-	
-	if (vigem.isVigemConnected()) {
-		g_vigemThread = std::thread(emulatedControllerUpdate, std::ref(vigem), std::ref(m_scePadSettings), std::ref(g_vigemThreadRunning));
-		g_vigemThread.detach();
-	}
+	Vigem vigem(m_scePadSettings, udp);
+	Strings strings = {}; // translations
 
 	// Windows
 	MainWindow main(strings, audio, vigem, udp);
@@ -103,6 +95,7 @@ bool Application::run() {
 		io.FontGlobalScale = xscale + 0.5;
 		#pragma endregion
 
+		vigem.setSelectedController(main.getSelectedController());
 		audio.validate();
 		main.show(m_scePadSettings, xscale);
 
@@ -125,7 +118,7 @@ bool Application::run() {
 		ImGui::EndFrame();
 		#pragma endregion	
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(8));
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
 	return true;
@@ -160,11 +153,6 @@ void Application::createWindow() {
 }
 
 Application::~Application() {
-	g_vigemThreadRunning = false;
-	if (g_vigemThread.joinable()) {
-		g_vigemThread.join();
-	}
-
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

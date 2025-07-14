@@ -16,6 +16,9 @@
 #include <cstdint>
 #include "scePadSettings.hpp" 
 #include "scePadHandle.hpp"
+#include <atomic>
+#include <thread>
+#include "udp.hpp"
 
 class Vigem {  
 private:  
@@ -26,52 +29,23 @@ private:
    PVIGEM_TARGET m_360[4] = {};  
    PVIGEM_TARGET m_ds4[4] = {};
 #endif
-
+ 
+   std::thread m_vigemThread;
+   std::atomic<bool> m_vigemThreadRunning = true;
+   s_scePadSettings* m_scePadSettings = nullptr;
+   UDP& m_udp;
+   std::atomic<uint32_t> m_selectedController = 0;
    void update360ByIndex(uint32_t index, s_ScePadData& state);
    void updateDs4ByIndex(uint32_t index, s_ScePadData& state);
+   void applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state);
+   void emulatedControllerUpdate();
 
-   friend inline void emulatedControllerUpdate(Vigem& vigem, s_scePadSettings scePadSettings[4], std::atomic<bool>& threadRunning);
-public:  
-   Vigem();  
+public: 
+	Vigem(s_scePadSettings* scePadSettings, UDP& udp);
+   ~Vigem();
    void plugControllerByIndex(uint32_t index, uint32_t controllerType);  
-   bool isVigemConnected();  
-};  
-
-inline void emulatedControllerUpdate(Vigem& vigem, s_scePadSettings scePadSettings[4], std::atomic<bool>& threadRunning) {
-#if !defined(__linux__) && !defined(__MACOS__)
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-
-	HANDLE hTimer = NULL;
-	LARGE_INTEGER liDueTime;
-	hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
-	liDueTime.QuadPart = -1000LL;
-
-	while (threadRunning) {
-		for (uint32_t i = 0; i < 4; i++) {
-		
-			if ((EmulatedController)scePadSettings[i].emulatedController != EmulatedController::NONE) {
-				s_ScePadData scePadState = {};
-				uint32_t result = scePadReadState(g_scePad[i], &scePadState);
-
-				if (result == SCE_OK) {
-
-					if ((EmulatedController)scePadSettings[i].emulatedController == EmulatedController::XBOX360) {
-						vigem.update360ByIndex(i, scePadState);
-					}
-					else if ((EmulatedController)scePadSettings[i].emulatedController == EmulatedController::DUALSHOCK4) {
-						vigem.updateDs4ByIndex(i, scePadState);
-					}
-				}
-			}
-		}
-
-		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
-		WaitForSingleObject(hTimer, INFINITE);
-	}
-
-	CloseHandle(hTimer);
-#endif
-}
+   bool isVigemConnected(); 
+   void setSelectedController(uint32_t selectedController);
+};
 
 #endif // CONTROLLEREMULATION_H

@@ -122,7 +122,7 @@ void Vigem::updateDs4ByIndex(uint32_t index, s_ScePadData& state) {
 #endif
 }
 
-Vigem::Vigem() {
+Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_scePadSettings(scePadSettings), m_udp(udp) {
 #if !defined(__linux__) && !defined(__MACOS__)
 	if (!m_vigemClientInitalized) {
 		m_vigemClient = vigem_alloc();
@@ -133,6 +133,9 @@ Vigem::Vigem() {
 			return;
 		}
 
+		m_vigemThread = std::thread(&Vigem::emulatedControllerUpdate, this);
+		m_vigemThread.detach();
+
 		LOGI("ViGEm Client initialized");
 		m_vigemClientInitalized = true;
 	}
@@ -142,6 +145,13 @@ Vigem::Vigem() {
 		m_ds4[i] = vigem_target_ds4_alloc();
 	}
 #endif
+}
+
+Vigem::~Vigem() {
+	m_vigemThreadRunning = false;
+	if (m_vigemThread.joinable()) {
+		m_vigemThread.join();
+	}
 }
 
 void Vigem::plugControllerByIndex(uint32_t index, uint32_t controllerType) {
@@ -166,9 +176,60 @@ void Vigem::plugControllerByIndex(uint32_t index, uint32_t controllerType) {
 #endif
 }
 
+
+void Vigem::setSelectedController(uint32_t selectedController) {
+	m_selectedController = selectedController;
+}
+
 bool Vigem::isVigemConnected() {
 #if !defined(__linux__) && !defined(__MACOS__)
 	return m_vigemClientInitalized;
 #endif;
 	return false;
+}
+
+void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state) {
+#pragma region Trigger threshold
+	state.L2_Analog = state.L2_Analog >= settings.leftTriggerThreshold ? state.L2_Analog : 0;
+	state.R2_Analog = state.R2_Analog >= settings.rightTriggerThreshold ? state.R2_Analog : 0;
+#pragma endregion
+}
+
+void Vigem::emulatedControllerUpdate() {
+#if !defined(__linux__) && !defined(__MACOS__)
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+
+	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+	LARGE_INTEGER liDueTime;
+	liDueTime.QuadPart = -1000LL;
+
+	while (m_vigemThreadRunning) {
+		for (uint32_t i = 0; i < 4; i++) {
+
+			if ((EmulatedController)m_scePadSettings[i].emulatedController != EmulatedController::NONE) {
+				s_ScePadData scePadState = {};
+				uint32_t result = scePadReadState(g_scePad[i], &scePadState);
+
+				s_scePadSettings settingsToUse = (m_selectedController == i && m_udp.isActive()) ? m_udp.getSettings() : m_scePadSettings[i];
+				applyInputSettingsToScePadState(settingsToUse, scePadState);
+
+				if (result == SCE_OK) {
+
+					if ((EmulatedController)m_scePadSettings[i].emulatedController == EmulatedController::XBOX360) {
+						update360ByIndex(i, scePadState);
+					}
+					else if ((EmulatedController)m_scePadSettings[i].emulatedController == EmulatedController::DUALSHOCK4) {
+						updateDs4ByIndex(i, scePadState);
+					}
+				}
+			}
+		}
+
+		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
+		WaitForSingleObject(hTimer, INFINITE);
+	}
+
+	CloseHandle(hTimer);
+#endif
 }

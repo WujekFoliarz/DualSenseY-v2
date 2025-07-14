@@ -216,6 +216,7 @@ private:
 
 	void handleRgbUpdate(Instruction instruction);
 	void handleTriggerUpdate(Instruction instruction);
+	void handleTriggerThresholdUpdate(Instruction instruction);
 public:
 	bool isActive();
 	s_scePadSettings getSettings();
