@@ -28,7 +28,7 @@ void UDP::listen() {
 		try {
 			size_t length = m_socket.receive_from(asio::buffer(buffer), senderEndpoint);
 			LOGI("[UDP] Received packet with length %d", length);
-
+			LOGI("[UDP] Raw packet:\n%s", buffer);
 			nlohmann::json packetJson = nlohmann::json::parse(buffer);
 			Packet packet = {};
 			packet.from_json(packetJson);

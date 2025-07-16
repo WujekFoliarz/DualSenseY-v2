@@ -184,7 +184,12 @@ public:
 				parameters.push_back(parameter.get<float>());
 			}
 			else if (parameter.is_string()) {
-				parameters.push_back(parameter.get<std::string>());
+				try {
+					parameters.push_back(std::stoi(parameter.get<std::string>()));
+				}
+				catch (...) {
+					parameters.push_back(0);
+				}
 			}
 		}
 	}
