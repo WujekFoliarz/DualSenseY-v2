@@ -1,5 +1,7 @@
 # For contributors: I'm starting over and the master branch is the new app. Older build is at v2 branch and i'm not gonna maintain it anymore
 
+# Use [this version](https://github.com/WujekFoliarz/DualSenseY-v2/releases/tag/newbuildexperimental) if you want to play the Skyrim/Fallout4 mod! Current latest build is not compatible.
+
 
 [Legacy C# version](https://github.com/WujekFoliarz/DualSenseY/releases/tag/6.2) 
 
