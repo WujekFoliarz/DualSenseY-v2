@@ -2,7 +2,7 @@
 #define LOG_HPP
 
 #if (defined(PRODUCTION_BUILD) && PRODUCTION_BUILD == 1)
-//#define DISABLE_LOGGING
+#define DISABLE_LOGGING
 #endif
 
 #ifdef DISABLE_LOGGING

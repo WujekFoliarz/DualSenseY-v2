@@ -53,13 +53,13 @@ bool Application::run() {
 	g_scePad[3] = scePadOpen(4, 0, 0);
 	scePadSetParticularMode(true);
 #pragma endregion
-	//#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
+	#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
 	AllocConsole();
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);
 	freopen_s(&fp, "CONO UT$", "w", stderr);
 	freopen_s(&fp, "CONIN$", "r", stdin);
-	//#endif
+	#endif
 
 	createWindow();
 	AudioPassthrough audio = {};
