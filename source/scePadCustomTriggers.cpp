@@ -371,3 +371,17 @@ void customTriggerVIBRATE_TRIGGER_10Hz(std::vector<uint8_t> param, uint8_t ffb[1
 	ffb[9] = 0;
 	ffb[10] = 0;
 }
+
+void customTriggerOFF(uint8_t ffb[11]) {
+	ffb[0] = DSXTriggerMode::Pulse_B;
+	ffb[1] = 0;
+	ffb[2] = 0;
+	ffb[3] = 0;
+	ffb[4] = 0;
+	ffb[5] = 0;
+	ffb[6] = 0;
+	ffb[7] = 0;
+	ffb[8] = 0;
+	ffb[9] = 0;
+	ffb[10] = 0;
+}

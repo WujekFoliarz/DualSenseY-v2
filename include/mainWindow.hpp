@@ -20,9 +20,10 @@ private:
    bool menuBar();  
    bool controllers(int& currentController, s_scePadSettings scePadSettings[4], float scale);  
    bool led(int& currentController, s_scePadSettings scePadSettings[4], float scale);  
-   bool udp(int& currentController, float scale, UDP& udp);  
+   bool udp(int& currentController, float scale);  
    bool audio(int& currentController, s_scePadSettings scePadSettings[4]);
-   bool emulation(int& currentController, s_scePadSettings scePadSettings[4], Vigem& vigem);
+   bool emulation(int& currentController, s_scePadSettings scePadSettings[4]);
+   bool adaptiveTriggers(int& currentController, s_scePadSettings scePadSettings[4]);
 public:  
    MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp)  
        : m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp) {}

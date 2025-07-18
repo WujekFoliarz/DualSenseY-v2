@@ -162,9 +162,9 @@ void playbackDualsenseDataCallback(ma_device* pDevice, void* pOutput, const void
         float inR = userData->m_audioBuffer[index][i * 2 + 1];
 
         out[i * 4 + 0] = 0.0f;
-        out[i * 4 + 1] = inL;     
-        out[i * 4 + 2] = inL * userData->m_hapticIntensity[index];    
-        out[i * 4 + 3] = inR * userData->m_hapticIntensity[index];
+        out[i * 4 + 1] = std::clamp(inL, -1.0f, 1.0f);
+        out[i * 4 + 2] = std::clamp(inL * userData->m_hapticIntensity[index], -1.0f, 1.0f);
+        out[i * 4 + 3] = std::clamp(inR * userData->m_hapticIntensity[index], -1.0f, 1.0f);
     }
 
     for (size_t i = framesToWrite; i < frameCount; ++i) {
@@ -197,7 +197,7 @@ void playbackDualshock4DataCallback(ma_device* pDevice, void* pOutput, const voi
 		float inR = userData->m_audioBuffer[index][i * 2 + 1];
 
 		out[i * 2 + 0] = 0.0f;     
-		out[i * 2 + 1] = inL;      
+		out[i * 2 + 1] = std::clamp(inL, -1.0f, 1.0f);
 	}
 
 	for (size_t i = framesToWrite; i < frameCount; ++i) {

@@ -189,5 +189,6 @@
   "None": "None",
   "VigemNotAvailablePlatform": "ViGEm Client is not available on this platform",
   "EmuFeaturesNonAdmin": "Some emulation features are unavailable when not running as administrator",
+  "TriggerMode": "Trigger mode",
   "About": "About"
 }

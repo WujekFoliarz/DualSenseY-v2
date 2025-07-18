@@ -319,13 +319,21 @@ s_scePadSettings UDP::getSettings() {
 	return m_settings;
 }
 
-UDP::UDP() : m_socket(m_ioContext, asio::ip::udp::endpoint(asio::ip::udp::v4(), 6969)) {
-	if (m_socket.is_open()) {
-		m_listenThread = std::thread(&UDP::listen, this);
-		m_listenThread.detach();
-		LOGI("[UDP] Started");
+UDP::UDP() : m_socket(m_ioContext) {
+	try {
+		m_socket.open(asio::ip::udp::v4());
+		m_socket.bind(asio::ip::udp::endpoint(asio::ip::udp::v4(), 6969));
+
+		if (m_socket.is_open()) {
+			m_listenThread = std::thread(&UDP::listen, this);
+			m_listenThread.detach();
+			LOGI("[UDP] Started");
+		}
+		else {
+			LOGE("[UDP] Failed to start");
+		}
 	}
-	else {
+	catch (...) {
 		LOGE("[UDP] Failed to start");
 	}
 }

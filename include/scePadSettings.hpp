@@ -1,6 +1,10 @@
 #ifndef SCEPADSETTINGS_H
 #define SCEPADSETTINGS_H
 
+
+#include "scePadCustomTriggers.hpp"
+#include "scePadHandle.hpp"
+
 #include <duaLib.h>
 #include <cstdint>
 #include <limits>
@@ -8,7 +12,60 @@
 #include <cmath>
 #include <log.hpp>
 #include <audioPassthrough.hpp>
-#include "scePadHandle.hpp"
+#include <string>
+#include <vector>
+#include <functional>
+#include <unordered_map>
+
+#define TRIGGER_COUNT 2
+#define SONY_FORMAT 0
+#define DSX_FORMAT 1
+#define L2 0
+#define R2 1
+
+constexpr int MAX_PARAM_COUNT = 11;
+
+namespace TriggerStringSony {
+	constexpr const char* OFF = "Off";
+	constexpr const char* FEEDBACK = "Feedback";
+	constexpr const char* WEAPON = "Weapon";
+	constexpr const char* VIBRATION = "Vibration";
+	constexpr const char* SLOPE_FEEDBACK = "Slope Feedback";
+	constexpr const char* MULTIPLE_POSITION_FEEDBACK = "Multiple Position Feedback";
+	constexpr const char* MULTIPLE_POSITION_VIBRATION = "Multiple Position Vibration";
+}
+
+namespace TriggerStringDSX {
+	constexpr const char* Off = "Off";
+	constexpr const char* Rigid = "Rigid";
+	constexpr const char* Pulse = "Pulse";
+	constexpr const char* Rigid_A = "Rigid_A";
+	constexpr const char* Rigid_B = "Rigid_B";
+	constexpr const char* Rigid_AB = "Rigid_AB";
+	constexpr const char* Pulse_A = "Pulse_A";
+	constexpr const char* Pulse_B = "Pulse_B";
+	constexpr const char* Pulse_AB = "Pulse_AB";
+	constexpr const char* Calibration = "Calibration";
+	constexpr const char* Normal = "Normal";
+	constexpr const char* GameCube = "GameCube";
+	constexpr const char* VerySoft = "VerySoft";
+	constexpr const char* Soft = "Soft";
+	constexpr const char* Medium = "Medium";
+	constexpr const char* Hard = "Hard";
+	constexpr const char* VeryHard = "VeryHard";
+	constexpr const char* Hardest = "Hardest";
+	constexpr const char* VibrateTrigger = "VibrateTrigger";
+	constexpr const char* VibrateTriggerPulse = "VibrateTriggerPulse";
+	constexpr const char* Choppy = "Choppy";
+	constexpr const char* CustomTriggerValue = "CustomTriggerValue";
+	constexpr const char* Resistance = "Resistance";
+	constexpr const char* Bow = "Bow";
+	constexpr const char* Galloping = "Galloping";
+	constexpr const char* SemiAutomaticGun = "SemiAutomaticGun";
+	constexpr const char* AutomaticGun = "AutomaticGun";
+	constexpr const char* Machine = "Machine";
+	constexpr const char* VIBRATE_TRIGGER_10Hz = "VIBRATE_TRIGGER_10Hz";
+}
 
 inline uint32_t scaleFloatToInt(float input_float, float max_float) {
 	const uint32_t max_int = 255;
@@ -45,6 +102,13 @@ struct s_scePadSettings {
 	int audioPath = 3;
 	float hapticIntensity = 1.0f;
 
+	// Adaptive trigger ui section
+	int uiSelectedTrigger = L2;
+	int uiParameters[TRIGGER_COUNT][11] = { {0,0,0,0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0} };
+	int uiTriggerFormat[TRIGGER_COUNT] = { SONY_FORMAT, SONY_FORMAT };
+	std::string uiSelectedSonyTriggerMode[TRIGGER_COUNT] = { TriggerStringSony::OFF, TriggerStringSony::OFF };
+	std::string uiSelectedDSXTriggerMode[TRIGGER_COUNT] = { TriggerStringSony::OFF, TriggerStringSony::OFF };
+
 	// For DSX trigger format
 	bool isLeftUsingDsxTrigger = false;
 	bool isRightUsingDsxTrigger = false;
@@ -60,40 +124,57 @@ struct s_scePadSettings {
 	uint8_t rightTriggerThreshold = 0;
 };
 
-static void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
-	if (settings.audioToLed) {
-		float peak = audio.getCurrentCapturePeak();
-		float max = 1.0;
-		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max) };
-		scePadSetLightBar(g_scePad[index], &lightbar);
-	}
-	else {
-		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(settings.led[0], 1.0f), (uint8_t)scaleFloatToInt(settings.led[1], 1.0f), (uint8_t)scaleFloatToInt(settings.led[2],1.0f) };
-		scePadSetLightBar(g_scePad[index], &lightbar);
-	}
 
-	scePadSetPlayerLedBrightness(g_scePad[index], settings.brightness);
-	scePadSetPlayerLed(g_scePad[index], settings.disablePlayerLed ? false : true);
-	scePadSetAudioOutPath(g_scePad[index], settings.audioPath);
+using TriggerHandler = std::function<void(s_scePadSettings&, int&, std::vector<uint8_t>&)>;
 
-	s_SceControllerType controllerType = {};
-	scePadGetControllerType(g_scePad[index], &controllerType);
+const std::unordered_map<std::string, TriggerHandler> sonyTriggerHandlers = {
+	{ TriggerStringSony::OFF, [&](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>&) {
+		uint8_t index = s.uiSelectedTrigger == L2 ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
+		s.stockTriggerParam.command[triggerIndex].mode = SCE_PAD_TRIGGER_EFFECT_MODE_OFF;
+	}},
+	{ TriggerStringSony::FEEDBACK, [&](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {
+		if (p.size() < 2) return;
+		s.stockTriggerParam.command[triggerIndex].mode = SCE_PAD_TRIGGER_EFFECT_MODE_FEEDBACK;
+		s.stockTriggerParam.command[triggerIndex].commandData.feedbackParam.position = p[0];
+		s.stockTriggerParam.command[triggerIndex].commandData.feedbackParam.strength = p[1];
+	}},
+	{ TriggerStringSony::WEAPON, [&](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {
+		if (p.size() < 3) return;
+		s.stockTriggerParam.command[triggerIndex].mode = SCE_PAD_TRIGGER_EFFECT_MODE_WEAPON;
+		s.stockTriggerParam.command[triggerIndex].commandData.weaponParam.startPosition = p[0];
+		s.stockTriggerParam.command[triggerIndex].commandData.weaponParam.endPosition = p[1];
+		s.stockTriggerParam.command[triggerIndex].commandData.weaponParam.strength = p[2];
+	}},
+	{ TriggerStringSony::VIBRATION, [&](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {
+		if (p.size() < 3) return;
+		s.stockTriggerParam.command[triggerIndex].mode = SCE_PAD_TRIGGER_EFFECT_MODE_VIBRATION;
+		s.stockTriggerParam.command[triggerIndex].commandData.vibrationParam.position = p[0];
+		s.stockTriggerParam.command[triggerIndex].commandData.vibrationParam.amplitude = p[1];
+		s.stockTriggerParam.command[triggerIndex].commandData.vibrationParam.frequency = p[2];
+	}},
+	{ TriggerStringSony::SLOPE_FEEDBACK, [&](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {
+		if (p.size() < 4) return;
+		s.stockTriggerParam.command[triggerIndex].mode = SCE_PAD_TRIGGER_EFFECT_MODE_SLOPE_FEEDBACK;
+		s.stockTriggerParam.command[triggerIndex].commandData.slopeFeedbackParam.startPosition = p[0];
+		s.stockTriggerParam.command[triggerIndex].commandData.slopeFeedbackParam.endPosition = p[1];
+		s.stockTriggerParam.command[triggerIndex].commandData.slopeFeedbackParam.startStrength = p[2];
+		s.stockTriggerParam.command[triggerIndex].commandData.slopeFeedbackParam.endStrength = p[3];
+	}},
+	{ TriggerStringSony::MULTIPLE_POSITION_FEEDBACK, [&](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {
+		if (p.size() < 10) return;
+		s.stockTriggerParam.command[triggerIndex].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_FEEDBACK;
+		for (int i = 0; i < 10; ++i)
+			s.stockTriggerParam.command[triggerIndex].commandData.multiplePositionFeedbackParam.strength[i] = p[i];
+	}},
+	{ TriggerStringSony::MULTIPLE_POSITION_VIBRATION, [&](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {
+		if (p.size() < 11) return;
+		s.stockTriggerParam.command[triggerIndex].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION;
+		s.stockTriggerParam.command[triggerIndex].commandData.multiplePositionVibrationParam.frequency = p[0];
+		for (int i = 1; i < 11; ++i)
+			s.stockTriggerParam.command[triggerIndex].commandData.multiplePositionVibrationParam.amplitude[i - 1] = p[i];
+	}}
+};
 
-	s_ScePadVolumeGain volume = {};
-	volume.speakerVolume = settings.speakerVolume * 9;
-	volume.micGain = settings.micGain * 6;
-	scePadSetVolumeGain(g_scePad[index], &volume);
-
-	audio.setHapticIntensityByUserId(index+1, settings.hapticIntensity);
-
-	settings.stockTriggerParam.triggerMask |= settings.isLeftUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2;
-	settings.stockTriggerParam.triggerMask |= settings.isRightUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
-	scePadSetTriggerEffect(g_scePad[index], &settings.stockTriggerParam);
-
-	uint8_t triggerBitmask = 0;
-	triggerBitmask |= settings.isLeftUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 : 0;
-	triggerBitmask |= settings.isRightUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2 : 0;
-	scePadSetTriggerEffectCustom(g_scePad[index], settings.leftCustomTrigger, settings.rightCustomTrigger, triggerBitmask);
-}
+void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio);
 
 #endif
