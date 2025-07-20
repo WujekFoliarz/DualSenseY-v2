@@ -96,11 +96,11 @@ void Vigem::updateDs4ByIndex(uint32_t index, s_ScePadData& state) {
 	report.Report.bTriggerR = state.R2_Analog;
 	report.Report.bBatteryLvl = 100;
 
-	DS4_TOUCH touch;
-	//touch.bPacketCounter = state.TouchPacketNum;
-	//report.Report.bTouchPacketsN = state.TouchPacketNum;
-	//touch.bIsUpTrackingNum1 = state.trackPadTouch0.RawTrackingNum;
-	//touch.bTouchData1[0] = state.trackPadTouch0.X & 0xFF;
+	//DS4_TOUCH touch;
+	//touch.bPacketCounter = state.touchData.touchNum;
+	//report.Report.bTouchPacketsN = state.touchData.touchNum;
+	//touch.bIsUpTrackingNum1 = state.touchData.touch[0].id;
+	//touch.bTouchData1[0] = state.touchData.touch[];
 	//touch.bTouchData1[1] = state.trackPadTouch0.X >> 8 & 0x0F | state.trackPadTouch0.Y << 4 & 0xF0;
 	//touch.bTouchData1[2] = state.trackPadTouch0.Y >> 4;
 

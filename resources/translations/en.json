@@ -190,5 +190,11 @@
   "VigemNotAvailablePlatform": "ViGEm Client is not available on this platform",
   "EmuFeaturesNonAdmin": "Some emulation features are unavailable when not running as administrator",
   "TriggerMode": "Trigger mode",
+  "MicrophoneGain": "Microphone gain",
+  "AudioOutputPath": "Audio output path",
+  "StereoHeadset": "Stereo headset",
+  "MonoLeftHeadset": "Mono left headset",
+  "MonoLeftHeadsetAndSpeaker": "Mono left headset and speaker",
+  "OnlySpeaker": "Only speaker",
   "About": "About"
 }

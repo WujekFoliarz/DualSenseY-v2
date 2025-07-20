@@ -149,16 +149,16 @@ bool MainWindow::audio(int& currentController, s_scePadSettings scePadSettings[4
 		ImGui::SliderFloat(str("Haptics intensity"), &scePadSettings[currentController].hapticIntensity, 0.0f, 5.0f);
 	}
 
-	ImGui::Text(str("Audio output path"));
-	ImGui::RadioButton(str("Stereo headset"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_STEREO_HEADSET);
-	ImGui::RadioButton(str("Mono left headset"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET);
-	ImGui::RadioButton(str("Mono left headset and speaker"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET_AND_SPEAKER);
-	ImGui::RadioButton(str("Only speaker"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_ONLY_SPEAKER);
+	ImGui::Text(str("AudioOutputPath"));
+	ImGui::RadioButton(str("StereoHeadset"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_STEREO_HEADSET);
+	ImGui::RadioButton(str("MonoLeftHeadset"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET);
+	ImGui::RadioButton(str("MonoLeftHeadsetAndSpeaker"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET_AND_SPEAKER);
+	ImGui::RadioButton(str("OnlySpeaker"), &scePadSettings[currentController].audioPath, SCE_PAD_AUDIO_PATH_ONLY_SPEAKER);
 
 	ImGui::SetNextItemWidth(400);
-	ImGui::SliderInt(str("Speaker volume"), &scePadSettings[currentController].speakerVolume, 0, 8, "%d");
+	ImGui::SliderInt(str("SpeakerVolume"), &scePadSettings[currentController].speakerVolume, 0, 8, "%d");
 	ImGui::SetNextItemWidth(400);
-	ImGui::SliderInt(str("Microphone gain"), &scePadSettings[currentController].micGain, 0, 8, "%d");
+	ImGui::SliderInt(str("MicrophoneGain"), &scePadSettings[currentController].micGain, 0, 8, "%d");
 	return true;
 }
 
@@ -215,6 +215,7 @@ bool MainWindow::adaptiveTriggers(int& currentController, s_scePadSettings scePa
 
 			if (position > 9) position = 9;
 			if (strength < 1) strength = 1;
+			if (strength > 8) strength = 8;
 
 			ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("Position"), &position, 0, 9); ImGui::SetNextItemWidth(450);
@@ -227,6 +228,7 @@ bool MainWindow::adaptiveTriggers(int& currentController, s_scePadSettings scePa
 
 			if (startPosition < 2) startPosition = 2;
 			if (startPosition > 7) startPosition = 7;
+			if (endPosition > 8) endPosition = 8;
 			if (strength < 1) strength = 1;
 			if (strength > 8) strength = 8;
 
@@ -244,6 +246,7 @@ bool MainWindow::adaptiveTriggers(int& currentController, s_scePadSettings scePa
 
 			if (position > 9) position = 9;
 			if (amplitude < 1) amplitude = 1;
+			if (amplitude > 8) amplitude = 8;
 			if (frequency < 1) frequency = 1;
 
 			ImGui::SetNextItemWidth(450);
@@ -264,6 +267,7 @@ bool MainWindow::adaptiveTriggers(int& currentController, s_scePadSettings scePa
 			if (startStrength > 8) startStrength = 8;
 			if (startStrength < 1) startStrength = 1;
 			if (endStrength < 1) endStrength = 1;
+			if (endStrength > 8) endStrength = 8;
 
 			ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("StartPosition"), &startPosition, 1, endPosition-1); ImGui::SetNextItemWidth(450);
@@ -293,19 +297,150 @@ bool MainWindow::adaptiveTriggers(int& currentController, s_scePadSettings scePa
 		}
 	}
 	else {
+		if (scePadSettings[currentController].uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::CustomTriggerValue) {
+			static const std::vector<std::string> customTriggerList = { "Off", "Rigid", "Rigid_A", "Rigid_B", "Rigid_AB", "Pulse", "Pulse_A", "Pulse_B", "Pulse_AB"};
+			int& currentlySelectedCustomTrigger = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][0];
+			if (currentlySelectedCustomTrigger > customTriggerList.size()) currentlySelectedCustomTrigger = customTriggerList.size() - 1;
 
+			ImGui::SetNextItemWidth(450);
+			if (ImGui::BeginCombo(str("CustomTriggerMode"), customTriggerList[currentlySelectedCustomTrigger].c_str())) {
+				for (int i = 0; i < customTriggerList.size(); i++) {
+					bool isSelected = (currentlySelectedCustomTrigger == i);
+					if (ImGui::Selectable(customTriggerList[i].c_str(), isSelected)) {
+						currentlySelectedCustomTrigger = i;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+
+			std::string paramStr = str("Parameter");
+			for (int i = 1; i < MAX_PARAM_COUNT; i++) {
+				ImGui::SetNextItemWidth(450);
+				ImGui::SliderInt(std::string(paramStr + " " + std::to_string(i)).c_str(), &scePadSettings[currentController].uiParameters[currentlySelectedTrigger][i], 0, 255);
+			}
+		}
+		else if (scePadSettings[currentController].uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::Resistance) {
+			int& start = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][0];
+			int& force = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][1];
+
+			if (start > 9) start = 9;
+			if (force > 8) force = 8;
+
+			ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 0, 9); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Force"), &force, 0, 8);
+		}
+		else if (scePadSettings[currentController].uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::Bow) {
+			int& start = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][0];
+			int& end = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][1];
+			int& force = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][2];
+			int& snapForce = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][3];
+
+			if (start > 8) start = 8;
+			if (start >= end) end = start + 1;
+			if (end > 8) end = 8;
+			if (force > 8) force = 8;
+			if (snapForce > 8) snapForce = 8;
+
+			ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 0, 7); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("End"), &end, start+1, 8); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Force"), &force, 0, 8); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("SnapForce"), &snapForce, 0, 8);
+		}
+		else if (scePadSettings[currentController].uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::Galloping) {
+			int& start = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][0];
+			int& end = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][1];
+			int& firstFoot = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][2];
+			int& secondFoot = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][3];
+			int& frequency = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][4];
+
+			if (start > 8) start = 8;
+			if (end > 9) end = 9;
+			if (firstFoot > 7) firstFoot = 7;
+			if (secondFoot > 6) secondFoot = 6;
+			if (frequency < 1) frequency = 1;
+
+			ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 0, end-1); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("End"), &end, start, 9); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("FirstFoot"), &firstFoot, 0, secondFoot); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("SecondFoot"), &secondFoot, firstFoot, 6); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Frequency"), &frequency, 0, 255);
+		}
+		else if (scePadSettings[currentController].uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::SemiAutomaticGun) {
+			int& start = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][0];
+			int& end = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][1];
+			int& force = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][2];
+
+			if (start < 2) start = 2;
+			if (start > 7) start = 7;
+			if (end > 8) end = 8;
+			if (end < start) end = start+1;
+			if (force > 8) force = 8;
+			if (force < 1) force = 1;
+
+			ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 2, end-1); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("End"), &end, start, 8); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Force"), &force, 1, 8); 
+		}
+		else if (scePadSettings[currentController].uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::AutomaticGun) {
+			int& start = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][0];
+			int& strength = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][1];
+			int& frequency = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][2];
+
+			if (start > 9) start = 9;
+			if (strength > 8) strength = 8;
+			if (strength < 1) strength = 1;
+			if (frequency < 1) frequency = 1;
+
+			ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 0, 9); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Strength"), &strength, 1, 8); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Frequency"), &frequency, 1, 255);
+		}
+		else if (scePadSettings[currentController].uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::Machine) {
+			int& start = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][0];
+			int& end = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][1];
+			int& strengthA = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][2];
+			int& strengthB = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][3];
+			int& frequency = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][4];
+			int& period = scePadSettings[currentController].uiParameters[currentlySelectedTrigger][5];
+
+			if (start > 8) start = 8;
+			if (end > 9) end = 9;
+			if (end < start) end = start + 1;
+			if (strengthA > 7) strengthA = 7;
+			if (strengthB > 7) strengthB = 7;
+			if (frequency < 1) frequency = 7;
+
+			std::string strStrength = str("Strength");
+			ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 0, end - 1); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("End"), &end, start, 9); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(std::string(strStrength + " A").c_str(), &strengthA, 0, 7); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(std::string(strStrength + " B").c_str(), &strengthB, 0, 7); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Frequency"), &frequency, 0, 255); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Period"), &period, 0, 255);
+		}
 	}
 
-
-	for(int i = 0; i < TRIGGER_COUNT;i++) {
+	for (int i = 0; i < TRIGGER_COUNT; i++) {
 		std::vector<uint8_t> vec;
 
 		for (int j = 0; j < MAX_PARAM_COUNT; j++) {
 			vec.push_back(scePadSettings[currentController].uiParameters[i][j]);
 		}
 
-		if (auto it = sonyTriggerHandlers.find(sonyItems[currentSonyItem[i]]); it != sonyTriggerHandlers.end()) {
-			it->second(scePadSettings[currentController], i, vec);
+		if (currentTriggerFormat == SONY_FORMAT) {
+			if (auto it = sonyTriggerHandlers.find(sonyItems[currentSonyItem[i]]); it != sonyTriggerHandlers.end())
+				it->second(scePadSettings[currentController], i, vec);
+		}
+		else {
+			if (auto it = dsxTriggerHandlers.find(dsxItems[currentDSXItem[i]]); it != dsxTriggerHandlers.end()) 
+				it->second(scePadSettings[currentController], i, vec);		
 		}
 	}
 
@@ -326,7 +461,7 @@ bool MainWindow::emulation(int& currentController, s_scePadSettings scePadSettin
 	else {
 		ImGui::RadioButton(str("None"), &scePadSettings[currentController].emulatedController, 0); ImGui::SameLine();
 		ImGui::RadioButton("Xbox 360", &scePadSettings[currentController].emulatedController, 1); ImGui::SameLine();
-		ImGui::RadioButton("Dualshock 4", &scePadSettings[currentController].emulatedController, 2);
+		ImGui::RadioButton("DualShock 4", &scePadSettings[currentController].emulatedController, 2);
 		m_vigem.plugControllerByIndex(currentController, scePadSettings[currentController].emulatedController);
 
 		ImGui::NewLine();
@@ -358,7 +493,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	ImGui::SetNextWindowSize(viewport->WorkSize);
 
 	ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
-	ImGui::TextColored(ImVec4(1, 0, 0, 1), "Work in progress. Older build at v2 branch on github");
+	ImGui::TextColored(ImVec4(1, 0, 0, 1), "Work in progress. Older build at v2 branch on GitHub");
 	s_ScePadData state = {};
 	scePadReadState(g_scePad[c], &state);
 
