@@ -210,7 +210,7 @@ void customTriggerCustomTriggerValue(std::vector<uint8_t> param, uint8_t ffb[11]
 void customTriggerResistance(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 2) return;
 
-	ffb[0] = DSXTriggerMode::Rigid_B;
+	ffb[0] = DSXTriggerMode::Feedback;
 	uint8_t start = param[0]; 
 	uint8_t force = param[1];
 	if (start <= 9 && force <= 8 && force > 0) {

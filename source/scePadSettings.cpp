@@ -1,11 +1,31 @@
 #include "scePadSettings.hpp"
+#include "led.hpp"
+#include <algorithm>
+
+static std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 
 void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
-	if (settings.audioToLed) {
-		float peak = audio.getCurrentCapturePeak();
-		float max = 1.0;
-		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max), (uint8_t)scaleFloatToInt(peak,max) };
+	auto now = std::chrono::steady_clock::now();
+	auto sec = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+	float elapsed = std::chrono::duration<float>(now - startTime).count();
+
+	float discoModeTime = fmod(elapsed * settings.discoModeSpeed, 1.0f);
+	s_SceLightBar rainbowLightbar = {};
+	getRainbowColor(discoModeTime, rainbowLightbar);
+
+	float audioPeak = audio.getCurrentCapturePeak();
+	uint8_t audioPeakUint8 = (uint8_t)scaleFloatToInt(audioPeak, 1.0);
+
+	if (settings.audioToLed && !settings.discoMode) {		
+		s_SceLightBar lightbar = { audioPeakUint8, audioPeakUint8, audioPeakUint8 };
 		scePadSetLightBar(g_scePad[index], &lightbar);
+	}
+	else if (settings.audioToLed && settings.discoMode) {
+		s_SceLightBar lightbar = { std::min(audioPeakUint8, rainbowLightbar.r), std::min(audioPeakUint8, rainbowLightbar.g), std::min(audioPeakUint8, rainbowLightbar.b) };
+		scePadSetLightBar(g_scePad[index], &lightbar);
+	}
+	else if (settings.discoMode) {
+		scePadSetLightBar(g_scePad[index], &rainbowLightbar);
 	}
 	else {
 		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(settings.led[0], 1.0f), (uint8_t)scaleFloatToInt(settings.led[1], 1.0f), (uint8_t)scaleFloatToInt(settings.led[2],1.0f) };

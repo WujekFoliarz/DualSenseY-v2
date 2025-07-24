@@ -74,14 +74,19 @@ bool MainWindow::controllers(int& currentController, s_scePadSettings scePadSett
 }
 
 bool MainWindow::led(int& currentController, s_scePadSettings scePadSettings[4], float scale) {
-	ImGui::SeparatorText(str("LedSection"));
+	if (m_udp.isActive())
+		return false;
 
-	if (m_udp.isActive()) {
-		ImGui::TextColored(ImVec4(1, 1, 0, 1), str("LEDandATunavailableUDP"));
-	}
+	ImGui::SeparatorText(str("LedSection"));
 
 	ImGui::Checkbox(str("DisablePlayerLED"), &scePadSettings[currentController].disablePlayerLed);
 	ImGui::Checkbox(str("AudioToLED"), &scePadSettings[currentController].audioToLed);
+	ImGui::Checkbox(str("DiscoMode"), &scePadSettings[currentController].discoMode);
+	if (scePadSettings[currentController].discoMode) {
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(300);
+		ImGui::SliderFloat(str("Speed"), &scePadSettings[currentController].discoModeSpeed, 0.020, 2.0);
+	}
 
 	ImGui::Text(str("PlayerLedBrightness")); ImGui::SameLine();
 	ImGui::RadioButton(str("High"), &scePadSettings[currentController].brightness, 0); ImGui::SameLine();
@@ -163,6 +168,9 @@ bool MainWindow::audio(int& currentController, s_scePadSettings scePadSettings[4
 }
 
 bool MainWindow::adaptiveTriggers(int& currentController, s_scePadSettings scePadSettings[4]) {
+	if (m_udp.isActive())
+		return false;
+
 	ImGui::SeparatorText(str("AdaptiveTriggers"));
 
 	ImGui::Text(str("SelectedTrigger"));

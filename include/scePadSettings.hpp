@@ -94,6 +94,8 @@ struct s_scePadSettings {
 	bool audioToLed = false;
 	int brightness = 0;
 	bool disablePlayerLed = false;
+	bool discoMode = false;
+	float discoModeSpeed = 0.1f;
 
 	// Audio passthrough settings
 	bool audioPassthrough = false;
