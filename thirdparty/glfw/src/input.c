@@ -1455,8 +1455,10 @@ GLFWAPI int glfwGetGamepadState(int jid, GLFWgamepadstate* state)
         const _GLFWmapelement* e = js->mapping->axes + i;
         if (e->type == _GLFW_JOYSTICK_AXIS)
         {
-            const float value = js->axes[e->index] * e->axisScale + e->axisOffset;
-            state->axes[i] = fminf(fmaxf(value, -1.f), 1.f);
+            // Annoying with the analog stick section
+
+            // const float value = js->axes[e->index] * e->axisScale + e->axisOffset;
+            state->axes[i] = 0;
         }
         else if (e->type == _GLFW_JOYSTICK_HATBIT)
         {

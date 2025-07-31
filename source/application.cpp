@@ -21,6 +21,7 @@
 #include "udp.hpp"
 #include "controllerEmulation.hpp"
 #include "scePadHandle.hpp"
+#include "keyboardMouseMapper.hpp"
 
 bool Application::isMinimized() {
 	ImGuiIO& io = ImGui::GetIO();
@@ -65,7 +66,8 @@ bool Application::run() {
 	AudioPassthrough audio = {};
 	UDP udp = {};
 	Vigem vigem(m_scePadSettings, udp);
-	Strings strings = {}; // translations
+	Strings strings = {};
+	KeyboardMouseMapper keyboardMouseMapper(m_scePadSettings);
 
 	// Windows
 	MainWindow main(strings, audio, vigem, udp);

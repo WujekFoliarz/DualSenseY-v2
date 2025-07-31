@@ -16,6 +16,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_map>
+#include <atomic>
 
 #define TRIGGER_COUNT 2
 #define SONY_FORMAT 0
@@ -124,6 +125,13 @@ struct s_scePadSettings {
 	int emulatedController = (int)EmulatedController::NONE;
 	uint8_t leftTriggerThreshold = 0;
 	uint8_t rightTriggerThreshold = 0;
+
+	// Keyboard and mouse stuff
+	bool emulateAnalogWsad = false;
+
+	// Analog sticks
+	int leftStickDeadzone = 0;
+	int rightStickDeadzone = 0;
 };
 
 
