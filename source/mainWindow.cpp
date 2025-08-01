@@ -50,7 +50,7 @@ bool MainWindow::menuBar() {
 	return true;
 }
 
-bool MainWindow::controllers(int currentController, s_scePadSettings& scePadSettings, float scale) {
+bool MainWindow::controllers(int& currentController, s_scePadSettings& scePadSettings, float scale) {
 	ImGui::SeparatorText("Controller");
 
 	bool noneConnected = true;
@@ -462,52 +462,54 @@ bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings) {
 }
 
 bool MainWindow::analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
-	ImGui::SeparatorText(str("AnalogSticks"));
+	if(ImGui::TreeNodeEx(str("AnalogSticks")))
+	{
+		const int previewSize = 100;
+		const float radius = static_cast<float>(previewSize);
+		const ImU32 whiteColor = IM_COL32(255, 255, 255, 255);
+		const ImU32 redColor = IM_COL32(255, 0, 0, 255);
+		const ImU32 greenColor = IM_COL32(0, 255, 0, 255);
 
-	const int previewSize = 100;
-	const float radius = static_cast<float>(previewSize);
-	const ImU32 whiteColor = IM_COL32(255, 255, 255, 255);
-	const ImU32 redColor = IM_COL32(255, 0, 0, 255);
-	const ImU32 greenColor = IM_COL32(0, 255, 0, 255);
+		auto drawStick = [&](const s_SceStickData& stick, bool isPressed, int deadzone, ImVec2 centerPos) {
+			ImGui::GetWindowDrawList()->AddCircle(centerPos, radius, isPressed ? redColor : whiteColor, 32, 2.0f);
+			float normDeadzone = (deadzone * radius) / 128;
+			ImGui::GetWindowDrawList()->AddCircle(centerPos, normDeadzone, greenColor, 32, 2.0f);
 
-	auto drawStick = [&](const s_SceStickData& stick, bool isPressed, int deadzone, ImVec2 centerPos) {
-		ImGui::GetWindowDrawList()->AddCircle(centerPos, radius, isPressed ? redColor : whiteColor, 32, 2.0f);
-		float normDeadzone = (deadzone * radius) / 255;
-		ImGui::GetWindowDrawList()->AddCircle(centerPos, normDeadzone, greenColor, 32, 2.0f);
+			float normX = (stick.X - 128) / 127.0f;
+			float normY = -((stick.Y - 128) / 127.0f);
 
-		float normX = (stick.X - 128) / 127.0f;
-		float normY = -((stick.Y - 128) / 127.0f);
+			ImVec2 stickPos = centerPos;
+			stickPos.x += normX * radius;
+			stickPos.y -= normY * radius;
 
-		ImVec2 stickPos = centerPos;
-		stickPos.x += normX * radius;
-		stickPos.y -= normY * radius; 
+			ImGui::GetWindowDrawList()->AddCircleFilled(stickPos, 5, redColor, 32);
+			ImGui::GetWindowDrawList()->AddText(stickPos, whiteColor, std::to_string(stick.X).c_str());
+			ImGui::GetWindowDrawList()->AddText(ImVec2(stickPos.x - 19, stickPos.y - 30), whiteColor, std::to_string(stick.Y).c_str());
+			};
 
-		ImGui::GetWindowDrawList()->AddCircleFilled(stickPos, 5, redColor, 32);
-		ImGui::GetWindowDrawList()->AddText(stickPos, whiteColor, std::to_string(stick.X).c_str());
-		ImGui::GetWindowDrawList()->AddText(ImVec2(stickPos.x - 19, stickPos.y - 30), whiteColor, std::to_string(stick.Y).c_str());
-	};
+		ImVec2 leftCenter = ImGui::GetCursorScreenPos();
+		leftCenter.x += previewSize;
+		leftCenter.y += previewSize;
 
-	ImVec2 leftCenter = ImGui::GetCursorScreenPos();
-	leftCenter.x += previewSize;
-	leftCenter.y += previewSize;
+		drawStick(state.LeftStick, state.bitmask_buttons & SCE_BM_L3 ? true : false, scePadSettings.leftStickDeadzone, leftCenter);
 
-	drawStick(state.LeftStick, state.bitmask_buttons & SCE_BM_L3 ? true : false, scePadSettings.leftStickDeadzone, leftCenter);
+		ImVec2 rightCenter = leftCenter;
+		rightCenter.x += previewSize * 2.1f;
 
-	ImVec2 rightCenter = leftCenter;
-	rightCenter.x += previewSize * 2.1f;
+		drawStick(state.RightStick, state.bitmask_buttons & SCE_BM_R3 ? true : false, scePadSettings.rightStickDeadzone, rightCenter);
 
-	drawStick(state.RightStick, state.bitmask_buttons & SCE_BM_R3 ? true : false, scePadSettings.rightStickDeadzone, rightCenter);
-
-	ImGui::Dummy(ImVec2(1, previewSize * 2));
-	ImGui::SetNextItemWidth(400);
-	ImGui::SliderInt(str("L2Deadzone"), &scePadSettings.leftStickDeadzone, 0, 255);
-	ImGui::SetNextItemWidth(400);
-	ImGui::SliderInt(str("R2Deadzone"), &scePadSettings.rightStickDeadzone, 0, 255);
-
+		ImGui::Dummy(ImVec2(1, previewSize * 2));
+		ImGui::SetNextItemWidth(400);
+		ImGui::SliderInt(str("L2Deadzone"), &scePadSettings.leftStickDeadzone, 0, 127);
+		ImGui::SetNextItemWidth(400);
+		ImGui::SliderInt(str("R2Deadzone"), &scePadSettings.rightStickDeadzone, 0, 127);
+		ImGui::TreePop();
+	}
+	
 	return true;
 }
 
-bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettings) {
+bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state) {
 	ImGui::SeparatorText(str("EmulationHeader"));
 
 	if (!m_vigem.isVigemConnected()) {
@@ -525,19 +527,23 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 		m_vigem.plugControllerByIndex(currentController, scePadSettings.emulatedController);
 
 		ImGui::NewLine();
-		ImGui::Text("Real controller settings");
+		if (ImGui::TreeNodeEx("Real controller settings", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-		if (m_isAdminWindows) {
-			if (ImGui::Button("Hide")) {
-				hideController(scePadGetPath(g_scePad[currentController]));
+			if (m_isAdminWindows) {
+				if (ImGui::Button("Hide")) {
+					hideController(scePadGetPath(g_scePad[currentController]));
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Unhide")) {
+					unhideController(scePadGetPath(g_scePad[currentController]));
+				}
 			}
-			ImGui::SameLine();
-			if (ImGui::Button("Unhide")) {
-				unhideController(scePadGetPath(g_scePad[currentController]));
+			else {
+				ImGui::TextColored(ImVec4(1, 1, 0, 1), str("EmuFeaturesNonAdmin"));
 			}
-		}
-		else {
-			ImGui::TextColored(ImVec4(1, 1, 0, 1), str("EmuFeaturesNonAdmin"));
+
+			analogSticks(scePadSettings, state);
+			ImGui::TreePop();
 		}
 	}
 
@@ -560,12 +566,11 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	menuBar();
 	if (controllers(c, scePadSettings[c], scale)) {
 		udp(c, scale);
-		emulation(c, scePadSettings[c]);
+		emulation(c, scePadSettings[c], state);
 		led(scePadSettings[c], scale);
 		adaptiveTriggers(scePadSettings[c]);
 		audio(c, scePadSettings[c]);
 		keyboardAndMouseMapping(scePadSettings[c]);
-		analogSticks(scePadSettings[c], state);
 	}
 
 	m_selectedController = c;

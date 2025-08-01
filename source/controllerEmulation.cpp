@@ -193,6 +193,26 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 	state.L2_Analog = state.L2_Analog >= settings.leftTriggerThreshold ? state.L2_Analog : 0;
 	state.R2_Analog = state.R2_Analog >= settings.rightTriggerThreshold ? state.R2_Analog : 0;
 #pragma endregion
+
+#pragma region Analog deadzone
+	auto applyDeadzone = [&](int deadzone, s_SceStickData& stick) {
+		if (deadzone <= 0)
+			return;
+
+		float centerX = (stick.X - 128);
+		float centerY = (stick.Y - 128);
+		float magnitude = sqrt(centerX * centerX + centerY * centerY);
+
+		float deadzoneNorm = deadzone / 128;
+
+		stick.X = magnitude > deadzone ? stick.X : 128;
+		stick.Y = magnitude > deadzone ? stick.Y : 128;
+	};
+
+	applyDeadzone(settings.leftStickDeadzone, state.LeftStick);
+	applyDeadzone(settings.rightStickDeadzone, state.RightStick);
+
+#pragma endregion
 }
 
 void Vigem::emulatedControllerUpdate() {
