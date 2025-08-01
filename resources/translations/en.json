@@ -1,9 +1,9 @@
 {
   "Accelerometer": "Accelerometer",
   "Active": "Active",
-  "AdaptiveTriggers": "Adaptive Triggers",
+  "AdaptiveTriggers": "Adaptive triggers",
   "Amplitude": "Amplitude",
-  "AnalogSticks": "Analog Sticks",
+  "AnalogSticks": "Analog sticks",
   "AudioEngineNotInitializedError": "Audio engine wasn't initialized, haptic feedback not available",
   "AudioToLED": "Audio to LED",
   "BatteryLevel": "Battery level",
@@ -188,7 +188,7 @@
   "VigemInstallLink": "Install ViGEM Client",
   "None": "None",
   "VigemNotAvailablePlatform": "ViGEm Client is not available on this platform",
-  "EmuFeaturesNonAdmin": "Some emulation features are unavailable when not running as administrator",
+  "UnavailableInNonAdminMode": "This feature is only available when running as administrator",
   "TriggerMode": "Trigger mode",
   "MicrophoneGain": "Microphone gain",
   "AudioOutputPath": "Audio output path",
@@ -197,5 +197,9 @@
   "MonoLeftHeadsetAndSpeaker": "Mono left headset and speaker",
   "OnlySpeaker": "Only speaker",
   "KeyboardAndMouseMapping": "Keyboard and mouse mapping",
+  "HideRealController": "Hide real controller",
+  "Hide": "Hide",
+  "Unhide": "Unhide",
+  "ControllerSettings": "Controller settings",
   "About": "About"
 }

@@ -154,11 +154,13 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 		ImGui::SliderFloat(str("Haptics intensity"), &scePadSettings.hapticIntensity, 0.0f, 5.0f);
 	}
 
-	ImGui::Text(str("AudioOutputPath"));
-	ImGui::RadioButton(str("StereoHeadset"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_STEREO_HEADSET);
-	ImGui::RadioButton(str("MonoLeftHeadset"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET);
-	ImGui::RadioButton(str("MonoLeftHeadsetAndSpeaker"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET_AND_SPEAKER);
-	ImGui::RadioButton(str("OnlySpeaker"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_ONLY_SPEAKER);
+	if(ImGui::TreeNode(str("AudioOutputPath"))) {
+		ImGui::RadioButton(str("StereoHeadset"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_STEREO_HEADSET);
+		ImGui::RadioButton(str("MonoLeftHeadset"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET);
+		ImGui::RadioButton(str("MonoLeftHeadsetAndSpeaker"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET_AND_SPEAKER);
+		ImGui::RadioButton(str("OnlySpeaker"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_ONLY_SPEAKER);
+		ImGui::TreePop();
+	}
 
 	ImGui::SetNextItemWidth(400);
 	ImGui::SliderInt(str("SpeakerVolume"), &scePadSettings.speakerVolume, 0, 8, "%d");
@@ -527,19 +529,22 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 		m_vigem.plugControllerByIndex(currentController, scePadSettings.emulatedController);
 
 		ImGui::NewLine();
-		if (ImGui::TreeNodeEx("Real controller settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (ImGui::TreeNodeEx(str("ControllerSettings"), ImGuiTreeNodeFlags_DefaultOpen)) {
 
-			if (m_isAdminWindows) {
-				if (ImGui::Button("Hide")) {
-					hideController(scePadGetPath(g_scePad[currentController]));
+			if(ImGui::TreeNode(str("HideRealController"))) {
+				if (m_isAdminWindows) {
+					if (ImGui::Button(str("Hide"))) {
+						hideController(scePadGetPath(g_scePad[currentController]));
+					}
+					ImGui::SameLine();
+					if (ImGui::Button(str("Unhide"))) {
+						unhideController(scePadGetPath(g_scePad[currentController]));
+					}
 				}
-				ImGui::SameLine();
-				if (ImGui::Button("Unhide")) {
-					unhideController(scePadGetPath(g_scePad[currentController]));
+				else {
+					ImGui::TextColored(ImVec4(1, 1, 0, 1), str("UnavailableInNonAdminMode"));
 				}
-			}
-			else {
-				ImGui::TextColored(ImVec4(1, 1, 0, 1), str("EmuFeaturesNonAdmin"));
+				ImGui::TreePop();
 			}
 
 			analogSticks(scePadSettings, state);
