@@ -155,6 +155,14 @@ void Application::createWindow() {
 }
 
 Application::~Application() {
+	// Unhide controllers
+#if !defined(__linux__) || !defined(__APPLE__)
+	if (isRunningAsAdministratorWindows()) {
+		for(int i = 0;i<4;i++)
+			unhideController(scePadGetPath(g_scePad[i]));
+	}
+#endif
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

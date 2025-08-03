@@ -152,6 +152,18 @@ Vigem::~Vigem() {
 	if (m_vigemThread.joinable()) {
 		m_vigemThread.join();
 	}
+
+	for (uint32_t i = 0; i < 4; i++) {
+		vigem_target_x360_unregister_notification(m_360[i]);
+		vigem_target_remove(m_vigemClient, m_360[i]);
+		vigem_target_ds4_unregister_notification(m_ds4[i]);
+		vigem_target_remove(m_vigemClient, m_ds4[i]);
+		vigem_target_free(m_360[i]);
+		vigem_target_free(m_ds4[i]);
+	}
+
+	vigem_disconnect(m_vigemClient);
+	vigem_free(m_vigemClient);
 }
 
 void Vigem::plugControllerByIndex(uint32_t index, uint32_t controllerType) {
@@ -165,17 +177,20 @@ void Vigem::plugControllerByIndex(uint32_t index, uint32_t controllerType) {
 	}
 	else if ((EmulatedController)controllerType == EmulatedController::XBOX360 && (EmulatedController)lastEmulatedController[index] != EmulatedController::XBOX360) {
 		vigem_target_remove(m_vigemClient, m_ds4[index]);
+		vigem_target_ds4_unregister_notification(m_ds4[index]);
 		vigem_target_add(m_vigemClient, m_360[index]);
+		vigem_target_x360_register_notification(m_vigemClient, m_360[index], xbox360Notification, &m_userData[index]);
 		lastEmulatedController[index] = (uint32_t)EmulatedController::XBOX360;
 	}
 	else if ((EmulatedController)controllerType == EmulatedController::DUALSHOCK4 && (EmulatedController)lastEmulatedController[index] != EmulatedController::DUALSHOCK4) {
 		vigem_target_remove(m_vigemClient, m_360[index]);
+		vigem_target_x360_unregister_notification(m_360[index]);
 		vigem_target_add(m_vigemClient, m_ds4[index]);
+		vigem_target_ds4_register_notification(m_vigemClient, m_ds4[index], ds4Notification, &m_userData[index]);
 		lastEmulatedController[index] = (uint32_t)EmulatedController::DUALSHOCK4;
 	}
 #endif
 }
-
 
 void Vigem::setSelectedController(uint32_t selectedController) {
 	m_selectedController = selectedController;
@@ -208,7 +223,6 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 		stick.X = magnitude > deadzone ? stick.X : 128;
 		stick.Y = magnitude > deadzone ? stick.Y : 128;
 	};
-
 	applyDeadzone(settings.leftStickDeadzone, state.LeftStick);
 	applyDeadzone(settings.rightStickDeadzone, state.RightStick);
 
@@ -253,3 +267,22 @@ void Vigem::emulatedControllerUpdate() {
 	CloseHandle(hTimer);
 #endif
 }
+
+VOID Vigem::xbox360Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData) {
+	auto* data = static_cast<VigemUserData*>(UserData);
+	if (!data || !data->instance) return;
+	if (!data->instance->m_scePadSettings) return;
+
+	data->instance->m_scePadSettings[data->index].rumbleFromEmulatedController = {LargeMotor, SmallMotor};
+}
+
+VOID Vigem::ds4Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, DS4_LIGHTBAR_COLOR LightbarColor, LPVOID UserData) {
+	auto* data = static_cast<VigemUserData*>(UserData);
+	if (!data || !data->instance) return;
+	if (!data->instance->m_scePadSettings) return;
+
+	data->instance->m_scePadSettings[data->index].lightbarFromEmulatedController = { LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue };
+	data->instance->m_scePadSettings[data->index].rumbleFromEmulatedController = { LargeMotor, SmallMotor };
+}
+
+

@@ -22,6 +22,11 @@
 
 class Vigem {  
 private:  
+	struct VigemUserData {
+		int index;
+		Vigem* instance;
+	};
+
 #if !defined(__linux__) && !defined(__MACOS__)
    static PVIGEM_CLIENT m_vigemClient;  
    static inline bool m_vigemClientInitalized = false;  
@@ -35,10 +40,14 @@ private:
    s_scePadSettings* m_scePadSettings = nullptr;
    UDP& m_udp;
    std::atomic<uint32_t> m_selectedController = 0;
+   VigemUserData m_userData[4] = { {0,this},{1,this},{2,this},{3,this} };
    void update360ByIndex(uint32_t index, s_ScePadData& state);
    void updateDs4ByIndex(uint32_t index, s_ScePadData& state);
    void applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state);
    void emulatedControllerUpdate();
+
+   static VOID CALLBACK xbox360Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData);
+   static VOID CALLBACK ds4Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, DS4_LIGHTBAR_COLOR LightbarColor, LPVOID UserData);
 
 public: 
 	Vigem(s_scePadSettings* scePadSettings, UDP& udp);

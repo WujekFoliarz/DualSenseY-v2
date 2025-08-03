@@ -125,6 +125,10 @@ struct s_scePadSettings {
 	int emulatedController = (int)EmulatedController::NONE;
 	uint8_t leftTriggerThreshold = 0;
 	uint8_t rightTriggerThreshold = 0;
+	s_ScePadVibrationParam rumbleFromEmulatedController = { 0,0 };
+	bool useRumbleFromEmulatedController = true;
+	s_SceLightBar lightbarFromEmulatedController = { 0,0,0 };
+	bool useLightbarFromEmulatedController = true;
 
 	// Keyboard and mouse stuff
 	bool emulateAnalogWsad = false;

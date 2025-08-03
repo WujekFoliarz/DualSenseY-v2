@@ -151,10 +151,10 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 	}
 	else if (!failedToStart && scePadSettings.audioPassthrough) {
 		ImGui::SetNextItemWidth(400);
-		ImGui::SliderFloat(str("Haptics intensity"), &scePadSettings.hapticIntensity, 0.0f, 5.0f);
+		ImGui::SliderFloat(str("HapticsIntensity"), &scePadSettings.hapticIntensity, 0.0f, 5.0f);
 	}
 
-	if(ImGui::TreeNode(str("AudioOutputPath"))) {
+	if (ImGui::TreeNode(str("AudioOutputPath"))) {
 		ImGui::RadioButton(str("StereoHeadset"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_STEREO_HEADSET);
 		ImGui::RadioButton(str("MonoLeftHeadset"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET);
 		ImGui::RadioButton(str("MonoLeftHeadsetAndSpeaker"), &scePadSettings.audioPath, SCE_PAD_AUDIO_PATH_MONO_LEFT_HEADSET_AND_SPEAKER);
@@ -186,11 +186,11 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 	int currentlySelectedTrigger = scePadSettings.uiSelectedTrigger;
 	int currentTriggerFormat = scePadSettings.uiTriggerFormat[currentlySelectedTrigger];
 
-	static int currentSonyItem[TRIGGER_COUNT] = {0,0};
-	static int currentDSXItem[TRIGGER_COUNT] = {0,0};
+	static int currentSonyItem[TRIGGER_COUNT] = { 0,0 };
+	static int currentDSXItem[TRIGGER_COUNT] = { 0,0 };
 	static std::vector<std::string> sonyItems = { TriggerStringSony::OFF, TriggerStringSony::FEEDBACK, TriggerStringSony::WEAPON, TriggerStringSony::VIBRATION, TriggerStringSony::SLOPE_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_VIBRATION };
-	static std::vector<std::string> dsxItems = { TriggerStringDSX::Normal, TriggerStringDSX::GameCube, TriggerStringDSX::VerySoft, TriggerStringDSX::Soft, TriggerStringDSX::Medium, TriggerStringDSX::Hard, TriggerStringDSX::VeryHard , TriggerStringDSX::Hardest, TriggerStringDSX::VibrateTrigger, TriggerStringDSX::VibrateTriggerPulse, TriggerStringDSX::Choppy, TriggerStringDSX::CustomTriggerValue, TriggerStringDSX::Resistance,TriggerStringDSX::Bow,TriggerStringDSX::Galloping,TriggerStringDSX::SemiAutomaticGun, TriggerStringDSX::AutomaticGun, TriggerStringDSX::Machine, TriggerStringDSX::VIBRATE_TRIGGER_10Hz};
-	
+	static std::vector<std::string> dsxItems = { TriggerStringDSX::Normal, TriggerStringDSX::GameCube, TriggerStringDSX::VerySoft, TriggerStringDSX::Soft, TriggerStringDSX::Medium, TriggerStringDSX::Hard, TriggerStringDSX::VeryHard , TriggerStringDSX::Hardest, TriggerStringDSX::VibrateTrigger, TriggerStringDSX::VibrateTriggerPulse, TriggerStringDSX::Choppy, TriggerStringDSX::CustomTriggerValue, TriggerStringDSX::Resistance,TriggerStringDSX::Bow,TriggerStringDSX::Galloping,TriggerStringDSX::SemiAutomaticGun, TriggerStringDSX::AutomaticGun, TriggerStringDSX::Machine, TriggerStringDSX::VIBRATE_TRIGGER_10Hz };
+
 	ImGui::SetNextItemWidth(450);
 	if (ImGui::BeginCombo(str("TriggerMode"), currentTriggerFormat == SONY_FORMAT ? scePadSettings.uiSelectedSonyTriggerMode[currentlySelectedTrigger].c_str()
 		: scePadSettings.uiSelectedDSXTriggerMode[currentlySelectedTrigger].c_str())) {
@@ -217,9 +217,8 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 		scePadSettings.uiSelectedDSXTriggerMode[currentlySelectedTrigger] = dsxItems[currentDSXItem[currentlySelectedTrigger]];
 	}
 
-	if(scePadSettings.uiTriggerFormat[currentlySelectedTrigger] == SONY_FORMAT)
-	{
-		if (scePadSettings.uiSelectedSonyTriggerMode[currentlySelectedTrigger] == TriggerStringSony::FEEDBACK) {		
+	if (scePadSettings.uiTriggerFormat[currentlySelectedTrigger] == SONY_FORMAT) {
+		if (scePadSettings.uiSelectedSonyTriggerMode[currentlySelectedTrigger] == TriggerStringSony::FEEDBACK) {
 			int& position = scePadSettings.uiParameters[currentlySelectedTrigger][0];
 			int& strength = scePadSettings.uiParameters[currentlySelectedTrigger][1];
 
@@ -246,7 +245,7 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 			ImGui::SliderInt(str("StartPosition"), &startPosition, 2, 7); ImGui::SetNextItemWidth(450);
 			if (startPosition >= endPosition)
 				endPosition = startPosition + 1;
-			ImGui::SliderInt(str("EndPosition"), &endPosition, scePadSettings.uiParameters[currentlySelectedTrigger][0]+1, 8); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("EndPosition"), &endPosition, scePadSettings.uiParameters[currentlySelectedTrigger][0] + 1, 8); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("Strength"), &strength, 1, 8);
 		}
 		else if (scePadSettings.uiSelectedSonyTriggerMode[currentlySelectedTrigger] == TriggerStringSony::VIBRATION) {
@@ -280,8 +279,8 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 			if (endStrength > 8) endStrength = 8;
 
 			ImGui::SetNextItemWidth(450);
-			ImGui::SliderInt(str("StartPosition"), &startPosition, 1, endPosition-1); ImGui::SetNextItemWidth(450);
-			ImGui::SliderInt(str("EndPosition"), &endPosition, startPosition+1, 9); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("StartPosition"), &startPosition, 1, endPosition - 1); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("EndPosition"), &endPosition, startPosition + 1, 9); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("StartStrength"), &startStrength, 1, 8); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("EndStrength"), &endStrength, 1, 8);
 		}
@@ -308,7 +307,7 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 	}
 	else {
 		if (scePadSettings.uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::CustomTriggerValue) {
-			static const std::vector<std::string> customTriggerList = { "Off", "Rigid", "Rigid_A", "Rigid_B", "Rigid_AB", "Pulse", "Pulse_A", "Pulse_B", "Pulse_AB"};
+			static const std::vector<std::string> customTriggerList = { "Off", "Rigid", "Rigid_A", "Rigid_B", "Rigid_AB", "Pulse", "Pulse_A", "Pulse_B", "Pulse_AB" };
 			int& currentlySelectedCustomTrigger = scePadSettings.uiParameters[currentlySelectedTrigger][0];
 			if (currentlySelectedCustomTrigger > customTriggerList.size()) currentlySelectedCustomTrigger = customTriggerList.size() - 1;
 
@@ -355,7 +354,7 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 
 			ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("Start"), &start, 0, 7); ImGui::SetNextItemWidth(450);
-			ImGui::SliderInt(str("End"), &end, start+1, 8); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("End"), &end, start + 1, 8); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("Force"), &force, 0, 8); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("SnapForce"), &snapForce, 0, 8);
 		}
@@ -373,7 +372,7 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 			if (frequency < 1) frequency = 1;
 
 			ImGui::SetNextItemWidth(450);
-			ImGui::SliderInt(str("Start"), &start, 0, end-1); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 0, end - 1); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("End"), &end, start, 9); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("FirstFoot"), &firstFoot, 0, secondFoot); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("SecondFoot"), &secondFoot, firstFoot, 6); ImGui::SetNextItemWidth(450);
@@ -387,14 +386,14 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 			if (start < 2) start = 2;
 			if (start > 7) start = 7;
 			if (end > 8) end = 8;
-			if (end < start) end = start+1;
+			if (end < start) end = start + 1;
 			if (force > 8) force = 8;
 			if (force < 1) force = 1;
 
 			ImGui::SetNextItemWidth(450);
-			ImGui::SliderInt(str("Start"), &start, 2, end-1); ImGui::SetNextItemWidth(450);
+			ImGui::SliderInt(str("Start"), &start, 2, end - 1); ImGui::SetNextItemWidth(450);
 			ImGui::SliderInt(str("End"), &end, start, 8); ImGui::SetNextItemWidth(450);
-			ImGui::SliderInt(str("Force"), &force, 1, 8); 
+			ImGui::SliderInt(str("Force"), &force, 1, 8);
 		}
 		else if (scePadSettings.uiSelectedDSXTriggerMode[currentlySelectedTrigger] == TriggerStringDSX::AutomaticGun) {
 			int& start = scePadSettings.uiParameters[currentlySelectedTrigger][0];
@@ -449,8 +448,8 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 				it->second(scePadSettings, i, vec);
 		}
 		else {
-			if (auto it = dsxTriggerHandlers.find(dsxItems[currentDSXItem[i]]); it != dsxTriggerHandlers.end()) 
-				it->second(scePadSettings, i, vec);		
+			if (auto it = dsxTriggerHandlers.find(dsxItems[currentDSXItem[i]]); it != dsxTriggerHandlers.end())
+				it->second(scePadSettings, i, vec);
 		}
 	}
 
@@ -463,9 +462,26 @@ bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings) {
 	return true;
 }
 
-bool MainWindow::analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
-	if(ImGui::TreeNodeEx(str("AnalogSticks")))
-	{
+bool MainWindow::treeElement_lightbar(s_scePadSettings& scePadSettings) {
+	if (ImGui::TreeNodeEx(str("Lightbar"))) {
+		ImGui::Checkbox(str("UseEmulatedLightbar"), &scePadSettings.useLightbarFromEmulatedController);
+		ImGui::TreePop();
+	}
+
+	return true;
+}
+
+bool MainWindow::treeElement_vibration(s_scePadSettings& scePadSettings) {
+	if (ImGui::TreeNodeEx(str("Vibration"))) {
+		ImGui::Checkbox(str("UseEmulatedVibration"), &scePadSettings.useRumbleFromEmulatedController);
+		ImGui::TreePop();
+	}
+
+	return true;
+}
+
+bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
+	if (ImGui::TreeNodeEx(str("AnalogSticks"))) {
 		const int previewSize = 100;
 		const float radius = static_cast<float>(previewSize);
 		const ImU32 whiteColor = IM_COL32(255, 255, 255, 255);
@@ -507,7 +523,7 @@ bool MainWindow::analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& st
 		ImGui::SliderInt(str("R2Deadzone"), &scePadSettings.rightStickDeadzone, 0, 127);
 		ImGui::TreePop();
 	}
-	
+
 	return true;
 }
 
@@ -531,7 +547,7 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 		ImGui::NewLine();
 		if (ImGui::TreeNodeEx(str("ControllerSettings"), ImGuiTreeNodeFlags_DefaultOpen)) {
 
-			if(ImGui::TreeNode(str("HideRealController"))) {
+			if (ImGui::TreeNode(str("HideRealController"))) {
 				if (m_isAdminWindows) {
 					if (ImGui::Button(str("Hide"))) {
 						hideController(scePadGetPath(g_scePad[currentController]));
@@ -547,7 +563,10 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 				ImGui::TreePop();
 			}
 
-			analogSticks(scePadSettings, state);
+			treeElement_analogSticks(scePadSettings, state);
+			treeElement_lightbar(scePadSettings);
+			treeElement_vibration(scePadSettings);
+
 			ImGui::TreePop();
 		}
 	}

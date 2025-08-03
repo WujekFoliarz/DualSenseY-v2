@@ -201,5 +201,10 @@
   "Hide": "Hide",
   "Unhide": "Unhide",
   "ControllerSettings": "Controller settings",
+  "HapticsIntensity": "Haptics intensity",
+  "Lightbar": "Lightbar",
+  "UseEmulatedLightbar": "Use emulated lightbar",
+  "Vibration": "Vibration",
+  "UseEmulatedVibration": "Use emulated vibration",
   "About": "About"
 }
