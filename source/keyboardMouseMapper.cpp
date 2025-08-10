@@ -8,6 +8,8 @@
 #include "scePadHandle.hpp"
 #include <duaLib.h>
 
+
+#if !defined(__linux__) && !defined(__MACOS__)
 constexpr WORD SC_W = 0x11;
 constexpr WORD SC_A = 0x1E;
 constexpr WORD SC_S = 0x1F;
@@ -20,6 +22,8 @@ void sendKeyScan(WORD scancode, bool down) {
     input.ki.wScan = scancode;
     SendInput(1, &input, sizeof(INPUT));
 }
+#endif
+
 
 void KeyboardMouseMapper::thread() {
 #if !defined(__linux__) && !defined(__MACOS__)
@@ -43,6 +47,7 @@ void KeyboardMouseMapper::thread() {
             if (result != SCE_OK || m_scePadSettings == nullptr)
                 continue;
 
+        #if !defined(__linux__) && !defined(__MACOS__)
             if(m_scePadSettings[i].emulateAnalogWsad)
             {
                 int lx = state.LeftStick.X;
@@ -76,6 +81,7 @@ void KeyboardMouseMapper::thread() {
                     dHeld = dNow;
                 }
             }
+        #endif
         }
 
 	#if !defined(__linux__) && !defined(__MACOS__)

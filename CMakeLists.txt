@@ -1,9 +1,10 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
@@ -16,7 +17,7 @@ project (DualSenseY)
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
 
 if(WIN32)
-    add_executable(${PROJECT_NAME} WIN32 ${MY_SOURCES})
+    add_executable(${PROJECT_NAME} WIN32 ${MY_SOURCES} icon.rc)
 else()
     add_executable(${PROJECT_NAME} ${MY_SOURCES})
 endif()
@@ -39,6 +40,12 @@ else()
 	target_compile_definitions("${PROJECT_NAME}" PUBLIC DEVELOPLEMT_BUILD=1) 
 endif()
 
+if(MSVC)
+  target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(${PROJECT_NAME} PRIVATE -finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
+
 # Subdirectiories
 # add_subdirectory(thirdparty/)
 add_subdirectory(thirdparty/glfw)
@@ -49,9 +56,10 @@ add_subdirectory(thirdparty/json)
 add_subdirectory(thirdparty/miniaudio)
 add_subdirectory(thirdparty/ViGEmClient)
 add_subdirectory(thirdparty/asio-cmake)
+add_subdirectory(thirdparty/stb_image)
 
 # Linking libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio stb_image)
 
 # Copying DLLs to out folder
 #add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:duaLib> $<TARGET_FILE_DIR:${PROJECT_NAME}>)

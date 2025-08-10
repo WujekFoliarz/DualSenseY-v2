@@ -91,7 +91,7 @@
   "RightTrigger": "Right",
   "RightTriggerMode": "Right Trigger Mode",
   "RumbleReduction": "Rumble reduction",
-  "RumbleToAT": "Rumble To Adaptive Triggers",
+  "RumbleToAT": "Rumble to adaptive triggers",
   "RumbleToAT_RigidMode": "Rigid trigger mode",
   "RunAsAdmin": "Run as administrator",
   "RunAudioToHapticsOnStart": "Run audio to haptics on start",
@@ -113,6 +113,7 @@
   "StartAudioToHaptics": "Start [Audio To Haptics]",
   "StartPosition": "Start position",
   "StartStrength": "Start strength",
+  "Start": "Start",
   "StopEmuShortcut": "Down D-pad + Mic button = Stop emulation",
   "StopWriting": "Stop writing",
   "StopWritingShortcut": "Triangle + Mic button = Stop writing",
@@ -206,5 +207,8 @@
   "UseEmulatedLightbar": "Use emulated lightbar",
   "Vibration": "Vibration",
   "UseEmulatedVibration": "Use emulated vibration",
+  "DynamicTriggerSettings": "Dynamic trigger settings",
+  "StaticTriggerSettings": "Static trigger settings",
+  "ColorPicker": "Color picker",
   "About": "About"
 }

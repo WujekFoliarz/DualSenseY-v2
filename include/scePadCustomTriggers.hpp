@@ -41,6 +41,7 @@ void customTriggerGalloping(std::vector<uint8_t> param, uint8_t ffb[11]);
 void customTriggerSemiAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]);
 void customTriggerAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]);
 void customTriggerMachine(std::vector<uint8_t> param, uint8_t ffb[11]);
+void customTriggerBetterVibration(std::vector<uint8_t> param, uint8_t ffb[11]);
 void customTriggerVIBRATE_TRIGGER_10Hz(std::vector<uint8_t> param, uint8_t ffb[11]);
 void customTriggerOFF(uint8_t ffb[11]);
 

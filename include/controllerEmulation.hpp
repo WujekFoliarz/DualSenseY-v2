@@ -33,6 +33,9 @@ private:
 
    PVIGEM_TARGET m_360[4] = {};  
    PVIGEM_TARGET m_ds4[4] = {};
+
+   static VOID CALLBACK xbox360Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData);
+   static VOID CALLBACK ds4Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, DS4_LIGHTBAR_COLOR LightbarColor, LPVOID UserData);
 #endif
  
    std::thread m_vigemThread;
@@ -45,9 +48,6 @@ private:
    void updateDs4ByIndex(uint32_t index, s_ScePadData& state);
    void applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state);
    void emulatedControllerUpdate();
-
-   static VOID CALLBACK xbox360Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData);
-   static VOID CALLBACK ds4Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, DS4_LIGHTBAR_COLOR LightbarColor, LPVOID UserData);
 
 public: 
 	Vigem(s_scePadSettings* scePadSettings, UDP& udp);

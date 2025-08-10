@@ -28,6 +28,7 @@ private:
    bool treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state);
    bool treeElement_lightbar(s_scePadSettings& scePadSettings);
    bool treeElement_vibration(s_scePadSettings& scePadSettings);
+   bool treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
 public:  
    MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp)  
        : m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp) {}

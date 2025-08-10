@@ -358,6 +358,22 @@ void customTriggerMachine(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	}
 }
 
+void customTriggerBetterVibration(std::vector<uint8_t> param, uint8_t ffb[11]) {
+	if (param.size() < 3) return;
+
+	ffb[0] = DSXTriggerMode::Pulse_B;
+	ffb[1] = param[0];
+	ffb[2] = param[1];
+	ffb[3] = param[2];
+	ffb[4] = 0;
+	ffb[5] = 0;
+	ffb[6] = 0;
+	ffb[7] = 0;
+	ffb[8] = 0;
+	ffb[9] = 0;
+	ffb[10] = 0;
+}
+
 void customTriggerVIBRATE_TRIGGER_10Hz(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse_B;
 	ffb[1] = 10;

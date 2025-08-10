@@ -49,9 +49,32 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 
 	audio.setHapticIntensityByUserId(index + 1, settings.hapticIntensity);
 
-	settings.stockTriggerParam.triggerMask |= settings.isLeftUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2;
-	settings.stockTriggerParam.triggerMask |= settings.isRightUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
-	scePadSetTriggerEffect(g_scePad[index], &settings.stockTriggerParam);
+	if (settings.rumbleToAT) {
+		uint8_t leftTrigger[11] = {};
+		uint8_t rightTrigger[11] = {};
+
+		int l2Value = settings.rumbleFromEmulatedController.largeMotor;
+		std::vector<uint8_t> l2Param;
+		l2Param.push_back(std::min(l2Value, settings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]));
+		l2Param.push_back(std::min(l2Value, settings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]));
+		l2Param.push_back(40);
+
+		int r2Value = settings.rumbleFromEmulatedController.smallMotor;
+		std::vector<uint8_t> r2Param;
+		r2Param.push_back(std::min(r2Value, settings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2]));
+		r2Param.push_back(std::min(r2Value, settings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2]));
+		r2Param.push_back(40);
+
+		customTriggerBetterVibration(l2Param, leftTrigger);
+		customTriggerBetterVibration(r2Param, rightTrigger);
+
+		scePadSetTriggerEffectCustom(g_scePad[index], leftTrigger, rightTrigger, SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 | SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2);
+	}
+	else {
+		settings.stockTriggerParam.triggerMask |= settings.isLeftUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2;
+		settings.stockTriggerParam.triggerMask |= settings.isRightUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
+		scePadSetTriggerEffect(g_scePad[index], &settings.stockTriggerParam);
+	}
 
 	uint8_t triggerBitmask = 0;
 	triggerBitmask |= settings.isLeftUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 : 0;

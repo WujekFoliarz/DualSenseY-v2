@@ -148,6 +148,7 @@ Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_scePadSettings(sceP
 }
 
 Vigem::~Vigem() {
+#if !defined(__linux__) && !defined(__MACOS__)
 	m_vigemThreadRunning = false;
 	if (m_vigemThread.joinable()) {
 		m_vigemThread.join();
@@ -164,6 +165,7 @@ Vigem::~Vigem() {
 
 	vigem_disconnect(m_vigemClient);
 	vigem_free(m_vigemClient);
+#endif
 }
 
 void Vigem::plugControllerByIndex(uint32_t index, uint32_t controllerType) {
@@ -268,6 +270,7 @@ void Vigem::emulatedControllerUpdate() {
 #endif
 }
 
+#if !defined(__linux__) && !defined(__MACOS__)
 VOID Vigem::xbox360Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData) {
 	auto* data = static_cast<VigemUserData*>(UserData);
 	if (!data || !data->instance) return;
@@ -284,5 +287,5 @@ VOID Vigem::ds4Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR La
 	data->instance->m_scePadSettings[data->index].lightbarFromEmulatedController = { LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue };
 	data->instance->m_scePadSettings[data->index].rumbleFromEmulatedController = { LargeMotor, SmallMotor };
 }
-
+#endif
 

@@ -41,6 +41,7 @@ public:
 	
 	bool run();
 	void createWindow();
+	void setStyleAndColors();
 	Application() = default;
 	~Application();
 };

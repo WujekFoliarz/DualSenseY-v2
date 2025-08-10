@@ -1,7 +1,8 @@
 ﻿#include "led.hpp"
+#include <cmath>
 
 void getRainbowColor(float t, s_SceLightBar& led) {
-    t = fmod(t, 1.0f);
+    t = std::fmod(t, 1.0f);
     if (t < 0.0f) t += 1.0f;
 
     float segment = t * 6.0f;            
