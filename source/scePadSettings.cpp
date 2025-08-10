@@ -57,13 +57,13 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 		std::vector<uint8_t> l2Param;
 		l2Param.push_back(std::min(l2Value, settings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]));
 		l2Param.push_back(std::min(l2Value, settings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]));
-		l2Param.push_back(40);
+		l2Param.push_back(settings.rumbleToAt_position[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]);
 
 		int r2Value = settings.rumbleFromEmulatedController.smallMotor;
 		std::vector<uint8_t> r2Param;
 		r2Param.push_back(std::min(r2Value, settings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2]));
 		r2Param.push_back(std::min(r2Value, settings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2]));
-		r2Param.push_back(40);
+		r2Param.push_back(settings.rumbleToAt_position[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2]);
 
 		customTriggerBetterVibration(l2Param, leftTrigger);
 		customTriggerBetterVibration(r2Param, rightTrigger);
@@ -81,7 +81,7 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 	triggerBitmask |= settings.isRightUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2 : 0;
 	scePadSetTriggerEffectCustom(g_scePad[index], settings.leftCustomTrigger, settings.rightCustomTrigger, triggerBitmask);
 
-	if (settings.useRumbleFromEmulatedController && settings.emulatedController != (int)EmulatedController::NONE) {
+	if ((settings.useRumbleFromEmulatedController && settings.emulatedController != (int)EmulatedController::NONE) || settings.udpConfig) {
 
 		if(settings.rumbleFromEmulatedController.largeMotor > 0 || settings.rumbleFromEmulatedController.smallMotor > 0) {
 			scePadSetVibrationMode(g_scePad[index], SCE_PAD_RUMBLE_MODE);

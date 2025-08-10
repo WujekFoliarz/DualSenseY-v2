@@ -90,6 +90,8 @@ enum class EmulatedController {
 };
 
 struct s_scePadSettings {
+	bool udpConfig = false;
+
 	// LED Settings
 	float led[3] = { 0,0,0 };
 	bool audioToLed = false;
@@ -115,6 +117,7 @@ struct s_scePadSettings {
 	bool rumbleToAT = false;
 	int rumbleToAt_intensity[TRIGGER_COUNT] = {255,255};
 	int rumbleToAt_frequency[TRIGGER_COUNT] = {10,10};
+	int rumbleToAt_position[TRIGGER_COUNT] = { 0,0 };
 
 	// For DSX trigger format
 	bool isLeftUsingDsxTrigger = false;

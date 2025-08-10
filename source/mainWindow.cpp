@@ -498,14 +498,22 @@ bool MainWindow::treeElement_vibration(s_scePadSettings& scePadSettings) {
 bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(str("DynamicTriggerSettings"))) {
 		ImGui::Checkbox(str("RumbleToAT"), &scePadSettings.rumbleToAT);
-		ImGui::SetNextItemWidth(400);
-		ImGui::SliderInt(str("MaxLeftFrequency"), &scePadSettings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2], 0, 255);
-		ImGui::SetNextItemWidth(400);
-		ImGui::SliderInt(str("MaxLeftIntensity"), &scePadSettings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2], 0, 255);
-		ImGui::SetNextItemWidth(400);
-		ImGui::SliderInt(str("MaxRightFrequency"), &scePadSettings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2], 0, 255);
-		ImGui::SetNextItemWidth(400);
-		ImGui::SliderInt(str("MaxRightIntensity"), &scePadSettings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2], 0, 255);
+
+		static int selectedTrigger = SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2;
+		auto rumbleToAtSetting = [&](int& selectedTrigger) {
+			ImGui::SetNextItemWidth(400);
+			ImGui::SliderInt(str("MaxFrequency"), &scePadSettings.rumbleToAt_frequency[selectedTrigger], 0, 255);
+			ImGui::SetNextItemWidth(400);
+			ImGui::SliderInt(str("MaxIntensity"), &scePadSettings.rumbleToAt_intensity[selectedTrigger], 0, 255);
+			ImGui::SetNextItemWidth(400);
+			ImGui::SliderInt(str("Position"), &scePadSettings.rumbleToAt_position[selectedTrigger], 0, 139);
+		};
+
+		ImGui::RadioButton("L2", &selectedTrigger, 0);
+		ImGui::SameLine();
+		ImGui::RadioButton("R2", &selectedTrigger, 1);
+		rumbleToAtSetting(selectedTrigger);
+
 		ImGui::TreePop();
 	}
 	return true;
@@ -514,12 +522,12 @@ bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSet
 bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
 	if (ImGui::TreeNodeEx(str("AnalogSticks"))) {
 		const int previewSize = 100;
-		const float radius = static_cast<float>(previewSize);
 		const ImU32 whiteColor = IM_COL32(255, 255, 255, 255);
 		const ImU32 redColor = IM_COL32(255, 0, 0, 255);
 		const ImU32 greenColor = IM_COL32(0, 255, 0, 255);
 
-		auto drawStick = [&](const s_SceStickData& stick, bool isPressed, int deadzone, ImVec2 centerPos) {
+		auto drawStick = [](const s_SceStickData& stick, bool isPressed, int deadzone, ImVec2 centerPos) {		
+			const float radius = static_cast<float>(previewSize);
 			ImGui::GetWindowDrawList()->AddCircle(centerPos, radius, isPressed ? redColor : whiteColor, 32, 2.0f);
 			float normDeadzone = (deadzone * radius) / 128;
 			ImGui::GetWindowDrawList()->AddCircle(centerPos, normDeadzone, greenColor, 32, 2.0f);

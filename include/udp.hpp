@@ -225,6 +225,7 @@ private:
 public:
 	bool isActive();
 	s_scePadSettings getSettings();
+	void setVibrationToUdpConfig(s_ScePadVibrationParam vibration);
 	UDP();
 	~UDP();
 };

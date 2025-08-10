@@ -319,6 +319,11 @@ s_scePadSettings UDP::getSettings() {
 	return m_settings;
 }
 
+void UDP::setVibrationToUdpConfig(s_ScePadVibrationParam vibration) {
+	std::lock_guard<std::mutex> guard(m_settingsLock);
+	m_settings.rumbleFromEmulatedController = vibration;
+}
+
 UDP::UDP() : m_socket(m_ioContext) {
 	try {
 		m_socket.open(asio::ip::udp::v4());
@@ -336,6 +341,8 @@ UDP::UDP() : m_socket(m_ioContext) {
 	catch (...) {
 		LOGE("[UDP] Failed to start");
 	}
+
+	m_settings.udpConfig = true;
 }
 
 UDP::~UDP() {

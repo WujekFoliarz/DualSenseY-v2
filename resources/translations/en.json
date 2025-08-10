@@ -210,5 +210,7 @@
   "DynamicTriggerSettings": "Dynamic trigger settings",
   "StaticTriggerSettings": "Static trigger settings",
   "ColorPicker": "Color picker",
+  "MaxFrequency": "Max frequency",
+  "MaxIntensity": "Max intensity",
   "About": "About"
 }

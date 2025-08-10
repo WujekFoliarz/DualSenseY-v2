@@ -125,12 +125,14 @@ bool Application::run() {
 		io.FontGlobalScale = xscale + 0.5;
 		#pragma endregion
 
-		vigem.setSelectedController(main.getSelectedController());
+		int selectedController = main.getSelectedController();
+		vigem.setSelectedController(selectedController);
+		udp.setVibrationToUdpConfig(m_scePadSettings[selectedController].rumbleFromEmulatedController);
 		audio.validate();
 		main.show(m_scePadSettings, xscale);
 
 		for (int i = 0; i < 4; i++) {
-			applySettings(i, i == (main.getSelectedController()) && udp.isActive() ? udp.getSettings() : m_scePadSettings[i], audio);
+			applySettings(i, i == (selectedController) && udp.isActive() ? udp.getSettings() : m_scePadSettings[i], audio);
 		}
 
 		#pragma region ImGUI + GLFW
