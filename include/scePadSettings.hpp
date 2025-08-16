@@ -118,6 +118,7 @@ struct s_scePadSettings {
 	int rumbleToAt_intensity[TRIGGER_COUNT] = {255,255};
 	int rumbleToAt_frequency[TRIGGER_COUNT] = {10,10};
 	int rumbleToAt_position[TRIGGER_COUNT] = { 0,0 };
+	bool rumbleToAt_swapTriggers = false;
 
 	// For DSX trigger format
 	bool isLeftUsingDsxTrigger = false;

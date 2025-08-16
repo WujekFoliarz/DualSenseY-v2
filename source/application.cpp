@@ -97,6 +97,12 @@ bool Application::run() {
 
 	bool active = false;
 	uint32_t occasionalFrameWhenMinimized = 0;
+	
+#if !defined(__linux__) && !defined(__MACOS__)
+	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+	LARGE_INTEGER liDueTime;
+	liDueTime.QuadPart = -100000LL;
+#endif
 
 	while (!glfwWindowShouldClose(m_glfwWindow.get())) {
 
@@ -142,7 +148,8 @@ bool Application::run() {
 		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
 		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
 			ImGui::Render();
-			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			ImDrawData* drawData = ImGui::GetDrawData();
+			ImGui_ImplOpenGL3_RenderDrawData(drawData);
 			glfwSwapBuffers(m_glfwWindow.get());
 			occasionalFrameWhenMinimized = 0;
 		}
@@ -150,9 +157,17 @@ bool Application::run() {
 		ImGui::EndFrame();
 		#pragma endregion	
 
+	#if !defined(__linux__) && !defined(__MACOS__)
+		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
+		WaitForSingleObject(hTimer, INFINITE);
+	#else
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	#endif
 	}
 
+#if !defined(__linux__) && !defined(__MACOS__)
+	//CloseHandle(hTimer);
+#endif
 	return true;
 }
 

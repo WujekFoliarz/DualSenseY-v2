@@ -49,17 +49,17 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 
 	audio.setHapticIntensityByUserId(index + 1, settings.hapticIntensity);
 
+	int l2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.smallMotor : settings.rumbleFromEmulatedController.largeMotor;
+	int r2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.largeMotor : settings.rumbleFromEmulatedController.smallMotor;
 	if (settings.rumbleToAT) {
 		uint8_t leftTrigger[11] = {};
 		uint8_t rightTrigger[11] = {};
 
-		int l2Value = settings.rumbleFromEmulatedController.largeMotor;
 		std::vector<uint8_t> l2Param;
 		l2Param.push_back(std::min(l2Value, settings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]));
 		l2Param.push_back(std::min(l2Value, settings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]));
 		l2Param.push_back(settings.rumbleToAt_position[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2]);
 
-		int r2Value = settings.rumbleFromEmulatedController.smallMotor;
 		std::vector<uint8_t> r2Param;
 		r2Param.push_back(std::min(r2Value, settings.rumbleToAt_frequency[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2]));
 		r2Param.push_back(std::min(r2Value, settings.rumbleToAt_intensity[SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2]));

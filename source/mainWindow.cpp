@@ -51,6 +51,14 @@ bool MainWindow::menuBar() {
 			ImGui::EndMenu();
 		}
 
+		float textWidth = ImGui::CalcTextSize(std::string(strr("UDPStatus") + ":" + strr("Inactive")).c_str()).x + 10;
+		ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - textWidth);
+		ImGui::Text(std::string(strr("UDPStatus") + ":").c_str());
+		if (m_udp.isActive())
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), str("Active"));
+		else
+			ImGui::TextColored(ImVec4(1, 0, 0, 1), str("Inactive"));
+
 		ImGui::EndMainMenuBar();
 	}
 
@@ -107,18 +115,6 @@ bool MainWindow::led(s_scePadSettings& scePadSettings, float scale) {
 		ImGui::ColorPicker3(str("LightbarColor"), scePadSettings.led, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
 		ImGui::TreePop();
 	}
-
-	return true;
-}
-
-bool MainWindow::udp(int& currentController, float scale) {
-	ImGui::SeparatorText(str("DSX Mods/UDP"));
-	ImGui::Text(std::string(strr("Status") + ":").c_str()); ImGui::SameLine();
-
-	if (m_udp.isActive())
-		ImGui::TextColored(ImVec4(0, 1, 0, 1), m_strings.getString("Active").c_str());
-	else
-		ImGui::TextColored(ImVec4(1, 0, 0, 1), m_strings.getString("Inactive").c_str());
 
 	return true;
 }
@@ -498,6 +494,9 @@ bool MainWindow::treeElement_vibration(s_scePadSettings& scePadSettings) {
 bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(str("DynamicTriggerSettings"))) {
 		ImGui::Checkbox(str("RumbleToAT"), &scePadSettings.rumbleToAT);
+		if (scePadSettings.rumbleToAT) {
+			ImGui::Checkbox(str("SwapTriggersRumbleToAT"), &scePadSettings.rumbleToAt_swapTriggers);
+		}
 
 		static int selectedTrigger = SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2;
 		auto rumbleToAtSetting = [&](int& selectedTrigger) {
@@ -629,7 +628,6 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 
 	menuBar();
 	if (controllers(c, scePadSettings[c], scale)) {
-		udp(c, scale);
 		emulation(c, scePadSettings[c], state);
 		led(scePadSettings[c], scale);
 		adaptiveTriggers(scePadSettings[c]);

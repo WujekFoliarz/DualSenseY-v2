@@ -1962,11 +1962,9 @@ int scePadSetTriggerEffectCustom(int handle, uint8_t left[11], uint8_t right[11]
 		if (!controller.valid) return SCE_PAD_ERROR_DEVICE_NOT_CONNECTED;
 
 		if(left != nullptr && triggerBitmask & SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2) {
-			controller.triggerMask |= SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2;
 			std::memcpy(controller.L2.force, left, sizeof(controller.L2.force));
 		}
 		if(right != nullptr && triggerBitmask & SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2) {
-			controller.triggerMask |= SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
 			std::memcpy(controller.R2.force, right, sizeof(controller.R2.force));
 		}
 
