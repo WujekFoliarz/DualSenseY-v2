@@ -166,7 +166,7 @@ bool Application::run() {
 	}
 
 #if !defined(__linux__) && !defined(__MACOS__)
-	//CloseHandle(hTimer);
+	CloseHandle(hTimer);
 #endif
 	return true;
 }
