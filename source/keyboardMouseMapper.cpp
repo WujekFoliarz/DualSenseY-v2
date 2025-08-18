@@ -33,12 +33,19 @@ void KeyboardMouseMapper::thread() {
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
 	LARGE_INTEGER liDueTime;
 	liDueTime.QuadPart = -1000LL;
-#endif
+
+    std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
 
 	while (m_threadRunning) {
 
         static bool wHeld = false, aHeld = false, sHeld = false, dHeld = false;
+        static std::chrono::milliseconds time = std::chrono::milliseconds(100);
         const int DEADZONE = 20;
+
+        bool fire = false;
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastTime) > time) {
+            fire = true;
+        }
 
         for (int i = 0; i < 4; i++) {
             s_ScePadData state = {};
@@ -47,7 +54,6 @@ void KeyboardMouseMapper::thread() {
             if (result != SCE_OK || m_scePadSettings == nullptr)
                 continue;
 
-        #if !defined(__linux__) && !defined(__MACOS__)
             if(m_scePadSettings[i].emulateAnalogWsad)
             {
                 int lx = state.LeftStick.X;
@@ -80,28 +86,40 @@ void KeyboardMouseMapper::thread() {
                     sendKeyScan(SC_D, dNow);
                     dHeld = dNow;
                 }
+
+                if (wNow && dNow && fire) {
+                    sendKeyScan(SC_D, dNow);
+                }
+
+                if (wNow && aNow && fire) {
+                    sendKeyScan(SC_A, aNow);
+                }
             }
-        #endif
         }
 
-	#if !defined(__linux__) && !defined(__MACOS__)
+        if (fire) {
+            lastTime = std::chrono::steady_clock::now();
+        }
+
 		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
 		WaitForSingleObject(hTimer, INFINITE);
-	#else
-		std::this_thread::sleep_for(std::chrono::nanoseconds(300));
-	#endif
 	}
+#endif
 }
 
 KeyboardMouseMapper::KeyboardMouseMapper(s_scePadSettings* scePadSettings) : m_scePadSettings(scePadSettings) {
+#if !defined(__linux__) && !defined(__MACOS__)
 	m_thread = std::thread(&KeyboardMouseMapper::thread, this);
 	m_thread.detach();
+#endif
 }
 
 KeyboardMouseMapper::~KeyboardMouseMapper() {
+#if !defined(__linux__) && !defined(__MACOS__)
     m_threadRunning = false;
 
     if (m_thread.joinable()) {
         m_thread.join();
     }
+#endif
 }

@@ -24,6 +24,8 @@ private:
    bool emulation(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state);
    bool adaptiveTriggers(s_scePadSettings& scePadSettings);
    bool keyboardAndMouseMapping(s_scePadSettings& scePadSettings);
+   bool touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
+   bool treeElement_touchpadDiagnostics(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
    bool treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state);
    bool treeElement_lightbar(s_scePadSettings& scePadSettings);
    bool treeElement_vibration(s_scePadSettings& scePadSettings);

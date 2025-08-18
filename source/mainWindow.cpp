@@ -473,6 +473,51 @@ bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings) {
 	return true;
 }
 
+bool MainWindow::touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale) {
+	ImGui::SeparatorText(str("Touchpad"));
+
+	treeElement_touchpadDiagnostics(currentController, scePadSettings, state, scale);
+
+	return true;
+}
+
+bool MainWindow::treeElement_touchpadDiagnostics(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale) {
+
+	if (ImGui::TreeNodeEx(str("Diagnostics"))) {
+		ImVec2 touchpadSize(
+	1.160 * scale,
+	0.520 * scale);
+		ImGui::InvisibleButton("##touchpad_bg", touchpadSize);
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		ImVec2 touchpadPos = ImGui::GetItemRectMin();
+		drawList->AddRectFilled(touchpadPos,
+								ImVec2(touchpadPos.x + touchpadSize.x,
+								touchpadPos.y + touchpadSize.y),
+								IM_COL32(state.bitmask_buttons & SCE_BM_TOUCH ? 200 : 50, 50, 50, 255));
+
+		s_ScePadInfo info = {};
+		scePadGetControllerInformation(g_scePad[currentController], &info);
+
+		auto drawFinger = [&](float x, float y, int id, bool notTouching) {
+			if (!notTouching) {
+				float scaledX = touchpadPos.x + (x / (float)info.touchPadInfo.resolution.x) * touchpadSize.x;
+				float scaledY = touchpadPos.y + (y / (float)info.touchPadInfo.resolution.y) * touchpadSize.y;
+				drawList->AddCircleFilled(ImVec2(scaledX, scaledY), 0.02f * scale, IM_COL32(255, 0, 0, 255));
+
+				ImGui::GetWindowDrawList()->AddText(ImVec2(scaledX-20, scaledY), IM_COL32(255,255,255,255), std::to_string(id).c_str());
+				ImGui::GetWindowDrawList()->AddText(ImVec2(scaledX-50, scaledY-38), IM_COL32(255,255,255,255), std::string(std::to_string((int)x) + "," + std::to_string((int)y)).c_str());
+			}
+		};
+
+		drawFinger((float)state.touchData.touch[0].x, (float)state.touchData.touch[0].y, state.touchData.touch[0].id, state.touchData.touch[0].reserve[0]);
+		drawFinger((float)state.touchData.touch[1].x, (float)state.touchData.touch[1].y, state.touchData.touch[1].id, state.touchData.touch[1].reserve[0]);
+
+		ImGui::TreePop();
+	}
+
+	return true;
+}
+
 bool MainWindow::treeElement_lightbar(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(str("Lightbar"))) {
 		ImGui::Checkbox(str("UseEmulatedLightbar"), &scePadSettings.useLightbarFromEmulatedController);
@@ -632,6 +677,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 		led(scePadSettings[c], scale);
 		adaptiveTriggers(scePadSettings[c]);
 		audio(c, scePadSettings[c]);
+		touchpad(c, scePadSettings[c], state, scale);
 		keyboardAndMouseMapping(scePadSettings[c]);
 	}
 

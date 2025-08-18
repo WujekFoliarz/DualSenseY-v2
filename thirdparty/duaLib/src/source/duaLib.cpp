@@ -1179,10 +1179,12 @@ int scePadReadState(int handle, s_ScePadData* data) {
 			data->touchData.touch[0].id = controller.dualsenseCurInputState.touchData.Finger[0].Index;
 			data->touchData.touch[0].x = controller.dualsenseCurInputState.touchData.Finger[0].FingerX;
 			data->touchData.touch[0].y = controller.dualsenseCurInputState.touchData.Finger[0].FingerY;
+			data->touchData.touch[0].reserve[0] = controller.dualsenseCurInputState.touchData.Finger[0].NotTouching;
 
 			data->touchData.touch[1].id = controller.dualsenseCurInputState.touchData.Finger[1].Index;
 			data->touchData.touch[1].x = controller.dualsenseCurInputState.touchData.Finger[1].FingerX;
 			data->touchData.touch[1].y = controller.dualsenseCurInputState.touchData.Finger[1].FingerY;
+			data->touchData.touch[1].reserve[0] = controller.dualsenseCurInputState.touchData.Finger[1].NotTouching;
 		#pragma endregion
 
 		#pragma region misc
@@ -1299,10 +1301,12 @@ int scePadReadState(int handle, s_ScePadData* data) {
 			data->touchData.touch[0].id = controller.dualshock4CurInputState.Finger1ID;
 			data->touchData.touch[0].x = controller.dualshock4CurInputState.Finger1X;
 			data->touchData.touch[0].y = controller.dualshock4CurInputState.Finger1Y;
+			data->touchData.touch[0].reserve[0] = controller.dualshock4CurInputState.Finger1Active;
 
 			data->touchData.touch[1].id = controller.dualshock4CurInputState.Finger2ID;
 			data->touchData.touch[1].x = controller.dualshock4CurInputState.Finger2X;
 			data->touchData.touch[1].y = controller.dualshock4CurInputState.Finger2Y;
+			data->touchData.touch[1].reserve[0] = controller.dualshock4CurInputState.Finger2Active;
 		#pragma endregion
 
 		#pragma region misc

@@ -23,6 +23,7 @@ template<int N> struct BTCRC {
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
 namespace dualsenseData {
 	struct TouchFingerData {
 		uint32_t Index : 7;
@@ -36,7 +37,6 @@ namespace dualsenseData {
 		uint8_t Timestamp;
 	};
 
-#pragma pack(push, 1)
 	enum class PowerState : uint8_t {
 		Discharging = 0x00, // Use PowerPercent
 		Charging = 0x01, // Use PowerPercent
