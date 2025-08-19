@@ -476,6 +476,11 @@ bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings) {
 bool MainWindow::touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale) {
 	ImGui::SeparatorText(str("Touchpad"));
 
+	ImGui::Checkbox(str("TouchpadToMouse"), &scePadSettings.touchpadAsMouse);
+	if (scePadSettings.touchpadAsMouse) { 
+		ImGui::SetNextItemWidth(400);
+		ImGui::SliderFloat(str("Sensitivity"), &scePadSettings.touchpadAsMouse_sensitivity, 0.0f, 5.0f); 
+	}
 	treeElement_touchpadDiagnostics(currentController, scePadSettings, state, scale);
 
 	return true;

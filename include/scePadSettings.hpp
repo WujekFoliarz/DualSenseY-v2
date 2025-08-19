@@ -144,6 +144,12 @@ struct s_scePadSettings {
 	// Analog sticks
 	int leftStickDeadzone = 0;
 	int rightStickDeadzone = 0;
+
+	// Touchpad
+	bool touchpadAsMouse = false;
+	float touchpadAsMouse_sensitivity = 1.0f;
+	bool wasTouching = false;
+	s_ScePadTouchData lastTouchData = {};
 };
 
 

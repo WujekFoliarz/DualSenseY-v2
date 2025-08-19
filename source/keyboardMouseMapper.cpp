@@ -54,6 +54,29 @@ void KeyboardMouseMapper::thread() {
             if (result != SCE_OK || m_scePadSettings == nullptr)
                 continue;
 
+            if (m_scePadSettings[i].touchpadAsMouse && !state.touchData.touch[0].reserve[0]) {
+
+                if (!m_scePadSettings[i].wasTouching) {
+                    m_scePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
+                    m_scePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
+                }
+
+                int cursorX = state.touchData.touch[0].x - m_scePadSettings[i].lastTouchData.touch[0].x;
+                int cursorY = state.touchData.touch[0].y - m_scePadSettings[i].lastTouchData.touch[0].y;
+
+                float sensitivity = m_scePadSettings[i].touchpadAsMouse_sensitivity;
+                if (abs(cursorX) > 1 || abs(cursorY) > 1)
+                    moveCursor((float)cursorX * sensitivity, (float)cursorY * sensitivity);
+
+                m_scePadSettings[i].lastTouchData.touch[0].reserve[0] = state.touchData.touch[0].reserve[0];
+                m_scePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
+                m_scePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
+                m_scePadSettings[i].wasTouching = true;
+            }
+            else {
+                m_scePadSettings[i].wasTouching = false;
+            }
+
             if(m_scePadSettings[i].emulateAnalogWsad)
             {
                 int lx = state.LeftStick.X;
@@ -104,6 +127,18 @@ void KeyboardMouseMapper::thread() {
 		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
 		WaitForSingleObject(hTimer, INFINITE);
 	}
+#endif
+}
+
+void KeyboardMouseMapper::moveCursor(int x, int y) {
+#if !defined(__linux__) && !defined(__MACOS__)
+    INPUT input = { 0 };
+    input.type = INPUT_MOUSE;
+    input.mi.dwFlags = MOUSEEVENTF_MOVE;
+    input.mi.dx = x;
+    input.mi.dy = y;
+
+    SendInput(1, &input, sizeof(INPUT));
 #endif
 }
 

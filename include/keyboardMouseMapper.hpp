@@ -11,6 +11,7 @@ private:
 	std::atomic<bool> m_threadRunning = true;
 	std::thread m_thread;
 	void thread();
+	void moveCursor(int x, int y);
 public:
 	KeyboardMouseMapper(s_scePadSettings* scePadSettings);
 	~KeyboardMouseMapper();
