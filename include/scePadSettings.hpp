@@ -17,6 +17,7 @@
 #include <functional>
 #include <unordered_map>
 #include <atomic>
+#include <nlohmann/json.hpp>
 
 #define TRIGGER_COUNT 2
 #define SONY_FORMAT 0
@@ -115,8 +116,8 @@ struct s_scePadSettings {
 	std::string uiSelectedDSXTriggerMode[TRIGGER_COUNT] = { TriggerStringSony::OFF, TriggerStringSony::OFF };
 	bool xToAtFullyRetractWhenNoData = false;
 	bool rumbleToAT = false;
-	int rumbleToAt_intensity[TRIGGER_COUNT] = {255,255};
-	int rumbleToAt_frequency[TRIGGER_COUNT] = {10,10};
+	int rumbleToAt_intensity[TRIGGER_COUNT] = { 255,255 };
+	int rumbleToAt_frequency[TRIGGER_COUNT] = { 10,10 };
 	int rumbleToAt_position[TRIGGER_COUNT] = { 0,0 };
 	bool rumbleToAt_swapTriggers = false;
 
@@ -152,6 +153,50 @@ struct s_scePadSettings {
 	s_ScePadTouchData lastTouchData = {};
 };
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+	s_scePadSettings,
+	udpConfig,
+	led,
+	audioToLed,
+	brightness,
+	disablePlayerLed,
+	discoMode,
+	discoModeSpeed,
+	audioPassthrough,
+	speakerVolume,
+	micGain,
+	audioPath,
+	hapticIntensity,
+	uiSelectedTrigger,
+	uiParameters,
+	uiTriggerFormat,
+	uiSelectedSonyTriggerMode,
+	uiSelectedDSXTriggerMode,
+	xToAtFullyRetractWhenNoData,
+	rumbleToAT,
+	rumbleToAt_intensity,
+	rumbleToAt_frequency,
+	rumbleToAt_position,
+	rumbleToAt_swapTriggers,
+	isLeftUsingDsxTrigger,
+	isRightUsingDsxTrigger,
+	leftCustomTrigger,
+	rightCustomTrigger,
+	emulatedController,
+	leftTriggerThreshold,
+	rightTriggerThreshold,
+	useRumbleFromEmulatedController,
+	useLightbarFromEmulatedController,
+	emulateAnalogWsad,
+	leftStickDeadzone,
+	rightStickDeadzone,
+	touchpadAsMouse,
+	touchpadAsMouse_sensitivity,
+	wasTouching
+);
+
+void saveSettingsToFile(const s_scePadSettings& s, const std::string& filepath);
+void loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath);
 
 using TriggerHandler = std::function<void(s_scePadSettings&, int&, std::vector<uint8_t>&)>;
 

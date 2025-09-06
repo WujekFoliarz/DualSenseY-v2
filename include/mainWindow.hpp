@@ -17,7 +17,7 @@ class MainWindow {
 private:  
    int m_selectedController = 0;
    bool about(bool* open);  
-   bool menuBar();  
+   bool menuBar(s_scePadSettings& scePadSettings);
    bool controllers(int& currentController, s_scePadSettings& scePadSettings, float scale);
    bool led(s_scePadSettings& scePadSettings, float scale);
    bool audio(int currentController, s_scePadSettings& scePadSettings);

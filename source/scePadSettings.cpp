@@ -1,8 +1,23 @@
 #include "scePadSettings.hpp"
 #include "led.hpp"
 #include <algorithm>
+#include <fstream>
 
 static std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
+
+void saveSettingsToFile(const s_scePadSettings& s, const std::string& filepath) {
+	nlohmann::json j = s; // implicit conversion
+	std::ofstream(filepath) << j.dump(4); // pretty print with indent=4
+}
+
+void loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath) {
+	std::ifstream ifs(filepath);
+	if (!ifs) return;
+	nlohmann::json j;
+	ifs >> j;
+	*s = j.get<s_scePadSettings>();
+	return;
+}
 
 void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
 	auto now = std::chrono::steady_clock::now();

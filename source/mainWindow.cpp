@@ -8,13 +8,14 @@
 #include <duaLib.h>
 #include "scePadHandle.hpp"
 #include "utils.hpp"
+#include "nfd.h"
 
 #define str(string) m_strings.getString(string).c_str()
 #define strr(string) m_strings.getString(string)
 
 bool MainWindow::about(bool* open) {
 	ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); 
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 
 	if (!ImGui::Begin("About DualSenseY", open, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking)) {
 		ImGui::PopStyleColor(2);
@@ -35,11 +36,40 @@ bool MainWindow::about(bool* open) {
 	return true;
 }
 
-bool MainWindow::menuBar() {
+bool MainWindow::menuBar(s_scePadSettings& scePadSettings) {
 	static bool openAbout = false;
 
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu(str("File"))) {
+
+			if (ImGui::MenuItem("Save")) {
+				nfdchar_t* outPath = NULL;
+				nfdresult_t result = NFD_SaveDialog("dsy", NULL, &outPath);
+
+				if (result == NFD_OKAY) {
+					std::string outPathString(outPath);
+					if (outPathString.find(".dsy") == std::string::npos) {
+						outPathString += ".dsy";
+					}
+					saveSettingsToFile(scePadSettings, outPathString);
+					free(outPath);
+				}
+				else {
+					LOGE("Failed to open save dialog: %d", result);
+				}
+			}
+
+			if (ImGui::MenuItem("Load")) {
+
+				nfdchar_t* outPath = NULL;
+				nfdresult_t result = NFD_OpenDialog("dsy", NULL, &outPath);
+
+				if (result == NFD_OKAY) {
+					loadSettingsFromFile(&scePadSettings, outPath);
+					free(outPath);
+				}
+			}
+
 			ImGui::EndMenu();
 		}
 
@@ -131,21 +161,25 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 		return true;
 	}
 
-	if (ImGui::Checkbox(str("Audio passthrough"), &scePadSettings.audioPassthrough)) {
-		if (scePadSettings.audioPassthrough) {
-			if (!m_audio.startByUserId(currentController + 1)) {
-				LOGE("Failed to start audio passthrough");
-				scePadSettings.audioPassthrough = false;
-				failedToStart = true;
-			}
-			else {
-				failedToStart = false;
-			}
+	static bool wasChecked = false;
+	ImGui::Checkbox(str("Audio passthrough"), &scePadSettings.audioPassthrough);
+
+	if (!scePadSettings.audioPassthrough && wasChecked) {
+		wasChecked = false;
+		if (!m_audio.stopByUserId(currentController + 1)) {
+			LOGE("Failed to stop audio passthrough");
+		}
+	}
+
+	if (scePadSettings.audioPassthrough && !wasChecked) {
+		wasChecked = true;
+		if (!m_audio.startByUserId(currentController + 1)) {
+			LOGE("Failed to start audio passthrough");
+			scePadSettings.audioPassthrough = false;
+			failedToStart = true;
 		}
 		else {
-			if (!m_audio.stopByUserId(currentController + 1)) {
-				LOGE("Failed to stop audio passthrough");
-			}
+			failedToStart = false;
 		}
 	}
 
@@ -477,9 +511,9 @@ bool MainWindow::touchpad(int currentController, s_scePadSettings& scePadSetting
 	ImGui::SeparatorText(str("Touchpad"));
 
 	ImGui::Checkbox(str("TouchpadToMouse"), &scePadSettings.touchpadAsMouse);
-	if (scePadSettings.touchpadAsMouse) { 
+	if (scePadSettings.touchpadAsMouse) {
 		ImGui::SetNextItemWidth(400);
-		ImGui::SliderFloat(str("Sensitivity"), &scePadSettings.touchpadAsMouse_sensitivity, 0.0f, 5.0f); 
+		ImGui::SliderFloat(str("Sensitivity"), &scePadSettings.touchpadAsMouse_sensitivity, 0.0f, 5.0f);
 	}
 	treeElement_touchpadDiagnostics(currentController, scePadSettings, state, scale);
 
@@ -509,10 +543,10 @@ bool MainWindow::treeElement_touchpadDiagnostics(int currentController, s_scePad
 				float scaledY = touchpadPos.y + (y / (float)info.touchPadInfo.resolution.y) * touchpadSize.y;
 				drawList->AddCircleFilled(ImVec2(scaledX, scaledY), 0.02f * scale, IM_COL32(255, 0, 0, 255));
 
-				ImGui::GetWindowDrawList()->AddText(ImVec2(scaledX-20, scaledY), IM_COL32(255,255,255,255), std::to_string(id).c_str());
-				ImGui::GetWindowDrawList()->AddText(ImVec2(scaledX-50, scaledY-38), IM_COL32(255,255,255,255), std::string(std::to_string((int)x) + "," + std::to_string((int)y)).c_str());
+				ImGui::GetWindowDrawList()->AddText(ImVec2(scaledX - 20, scaledY), IM_COL32(255, 255, 255, 255), std::to_string(id).c_str());
+				ImGui::GetWindowDrawList()->AddText(ImVec2(scaledX - 50, scaledY - 38), IM_COL32(255, 255, 255, 255), std::string(std::to_string((int)x) + "," + std::to_string((int)y)).c_str());
 			}
-		};
+			};
 
 		drawFinger((float)state.touchData.touch[0].x, (float)state.touchData.touch[0].y, state.touchData.touch[0].id, state.touchData.touch[0].reserve[0]);
 		drawFinger((float)state.touchData.touch[1].x, (float)state.touchData.touch[1].y, state.touchData.touch[1].id, state.touchData.touch[1].reserve[0]);
@@ -556,7 +590,7 @@ bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSet
 			ImGui::SliderInt(str("MaxIntensity"), &scePadSettings.rumbleToAt_intensity[selectedTrigger], 0, 255);
 			ImGui::SetNextItemWidth(400);
 			ImGui::SliderInt(str("Position"), &scePadSettings.rumbleToAt_position[selectedTrigger], 0, 139);
-		};
+			};
 
 		ImGui::RadioButton("L2", &selectedTrigger, 0);
 		ImGui::SameLine();
@@ -575,7 +609,7 @@ bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_Sc
 		const ImU32 redColor = IM_COL32(255, 0, 0, 255);
 		const ImU32 greenColor = IM_COL32(0, 255, 0, 255);
 
-		auto drawStick = [](const s_SceStickData& stick, bool isPressed, int deadzone, ImVec2 centerPos) {		
+		auto drawStick = [](const s_SceStickData& stick, bool isPressed, int deadzone, ImVec2 centerPos) {
 			const float radius = static_cast<float>(previewSize);
 			ImGui::GetWindowDrawList()->AddCircle(centerPos, radius, isPressed ? redColor : whiteColor, 32, 2.0f);
 			float normDeadzone = (deadzone * radius) / 128;
@@ -591,7 +625,7 @@ bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_Sc
 			ImGui::GetWindowDrawList()->AddCircleFilled(stickPos, 5, redColor, 32);
 			ImGui::GetWindowDrawList()->AddText(ImVec2(stickPos.x, stickPos.y), whiteColor, std::to_string(stick.X).c_str());
 			ImGui::GetWindowDrawList()->AddText(ImVec2(stickPos.x - 19, stickPos.y - 40), whiteColor, std::to_string(stick.Y).c_str());
-		};
+			};
 
 		ImVec2 leftCenter = ImGui::GetCursorScreenPos();
 		leftCenter.x += previewSize;
@@ -606,9 +640,9 @@ bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_Sc
 
 		ImGui::Dummy(ImVec2(1, previewSize * 2));
 		ImGui::SetNextItemWidth(400);
-		ImGui::SliderInt(str("L2Deadzone"), &scePadSettings.leftStickDeadzone, 0, 127);
+		ImGui::SliderInt(str("LeftAnalogStickDeadZone"), &scePadSettings.leftStickDeadzone, 0, 127);
 		ImGui::SetNextItemWidth(400);
-		ImGui::SliderInt(str("R2Deadzone"), &scePadSettings.rightStickDeadzone, 0, 127);
+		ImGui::SliderInt(str("RightAnalogStickDeadZone"), &scePadSettings.rightStickDeadzone, 0, 127);
 		ImGui::TreePop();
 	}
 
@@ -676,7 +710,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	s_ScePadData state = {};
 	scePadReadState(g_scePad[c], &state);
 
-	menuBar();
+	menuBar(scePadSettings[c]);
 	if (controllers(c, scePadSettings[c], scale)) {
 		emulation(c, scePadSettings[c], state);
 		led(scePadSettings[c], scale);

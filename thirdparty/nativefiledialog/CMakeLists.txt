@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.8)
+project(nativefiledialog)
+
+add_library(nativefiledialog)
+if(WIN32)
+target_sources(nativefiledialog PRIVATE "src/nfd_win.cpp" "src/nfd_common.c")
+else(LINUX)
+target_sources(nativefiledialog PRIVATE "src/nfd_zenity.c" "src/nfd_common.c")
+endif()
+target_include_directories(nativefiledialog PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/include/")
+message(${CMAKE_CURRENT_SOURCE_DIR})
+message("kutas")

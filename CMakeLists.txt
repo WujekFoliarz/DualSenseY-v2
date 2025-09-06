@@ -57,9 +57,10 @@ add_subdirectory(thirdparty/miniaudio)
 add_subdirectory(thirdparty/ViGEmClient)
 add_subdirectory(thirdparty/asio-cmake)
 add_subdirectory(thirdparty/stb_image)
+add_subdirectory(thirdparty/nativefiledialog)
 
 # Linking libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio stb_image)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio stb_image nativefiledialog)
 
 # Copying DLLs to out folder
 #add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:duaLib> $<TARGET_FILE_DIR:${PROJECT_NAME}>)
