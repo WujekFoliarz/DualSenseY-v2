@@ -138,6 +138,7 @@ bool Application::run() {
 		main.show(m_scePadSettings, xscale);
 
 		for (int i = 0; i < 4; i++) {
+			loadDefaultConfigs(i, &m_scePadSettings[i]);
 			applySettings(i, i == (selectedController) && udp.isActive() ? udp.getSettings() : m_scePadSettings[i], audio);
 		}
 

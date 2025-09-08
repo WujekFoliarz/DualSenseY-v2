@@ -17,7 +17,7 @@ class MainWindow {
 private:  
    int m_selectedController = 0;
    bool about(bool* open);  
-   bool menuBar(s_scePadSettings& scePadSettings);
+   bool menuBar(int& currentController, s_scePadSettings& scePadSettings);
    bool controllers(int& currentController, s_scePadSettings& scePadSettings, float scale);
    bool led(s_scePadSettings& scePadSettings, float scale);
    bool audio(int currentController, s_scePadSettings& scePadSettings);
@@ -30,6 +30,7 @@ private:
    bool treeElement_lightbar(s_scePadSettings& scePadSettings);
    bool treeElement_vibration(s_scePadSettings& scePadSettings);
    bool treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
+   void errors();
 public:  
    MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp)  
        : m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp) {}

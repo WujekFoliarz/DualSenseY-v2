@@ -8,7 +8,10 @@
 #include <duaLib.h>
 #include "scePadHandle.hpp"
 #include "utils.hpp"
-#include "nfd.h"
+#include <nfd.h>
+#include <platform_folders.h>
+#include <filesystem>
+#include <fstream>
 
 #define str(string) m_strings.getString(string).c_str()
 #define strr(string) m_strings.getString(string)
@@ -36,13 +39,16 @@ bool MainWindow::about(bool* open) {
 	return true;
 }
 
-bool MainWindow::menuBar(s_scePadSettings& scePadSettings) {
+static bool showLoadFailedError = false;
+static bool showSetDefaultConfigSuccess = false;
+static bool showControllerNotConnectedError = false;
+bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSettings) {
 	static bool openAbout = false;
 
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu(str("File"))) {
 
-			if (ImGui::MenuItem("Save")) {
+			if (ImGui::MenuItem(str("Save"))) {
 				nfdchar_t* outPath = NULL;
 				nfdresult_t result = NFD_SaveDialog("dsy", NULL, &outPath);
 
@@ -59,13 +65,46 @@ bool MainWindow::menuBar(s_scePadSettings& scePadSettings) {
 				}
 			}
 
-			if (ImGui::MenuItem("Load")) {
+			if (ImGui::MenuItem(str("Load"))) {
 
 				nfdchar_t* outPath = NULL;
 				nfdresult_t result = NFD_OpenDialog("dsy", NULL, &outPath);
 
 				if (result == NFD_OKAY) {
-					loadSettingsFromFile(&scePadSettings, outPath);
+					if (!loadSettingsFromFile(&scePadSettings, outPath))
+						showLoadFailedError = true;
+
+					free(outPath);
+				}
+			}
+
+			if (ImGui::MenuItem(str("SetDefaultConfig"))) {
+				std::string pathToDSYSaves = sago::getDocumentsFolder() + "/DSY/DefaultConfigs/";
+				if (!std::filesystem::is_directory(pathToDSYSaves))
+					std::filesystem::create_directories(pathToDSYSaves);
+
+				nfdchar_t* outPath = NULL;
+				nfdresult_t result = NFD_OpenDialog("dsy", NULL, &outPath);
+				s_scePadSettings tempSettings = {};
+
+				if (result == NFD_OKAY) {
+					if (!loadSettingsFromFile(&tempSettings, outPath))
+						showLoadFailedError = true;
+
+					std::string macAddress = scePadGetMacAddress(g_scePad[currentController]);
+
+					if (macAddress == "")
+						showControllerNotConnectedError = true;
+
+					if (!showLoadFailedError && !showControllerNotConnectedError) {
+						std::string cleanMac = macAddress;
+						cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
+						std::filesystem::path filePath = std::filesystem::path(pathToDSYSaves) / cleanMac;
+						std::ofstream file(filePath);
+						file << outPath;
+						file.close();
+					}
+
 					free(outPath);
 				}
 			}
@@ -142,7 +181,7 @@ bool MainWindow::led(s_scePadSettings& scePadSettings, float scale) {
 
 	if (ImGui::TreeNode(str("ColorPicker"))) {
 		ImGui::SetNextItemWidth(scale);
-		ImGui::ColorPicker3(str("LightbarColor"), scePadSettings.led, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+		ImGui::ColorPicker3(str("LightbarColor"), scePadSettings.led.data(), ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
 		ImGui::TreePop();
 	}
 
@@ -211,6 +250,8 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 	return true;
 }
 
+static std::vector<std::string> sonyItems = { TriggerStringSony::OFF, TriggerStringSony::FEEDBACK, TriggerStringSony::WEAPON, TriggerStringSony::VIBRATION, TriggerStringSony::SLOPE_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_VIBRATION };
+static std::vector<std::string> dsxItems = { TriggerStringDSX::Normal, TriggerStringDSX::GameCube, TriggerStringDSX::VerySoft, TriggerStringDSX::Soft, TriggerStringDSX::Medium, TriggerStringDSX::Hard, TriggerStringDSX::VeryHard , TriggerStringDSX::Hardest, TriggerStringDSX::VibrateTrigger, TriggerStringDSX::VibrateTriggerPulse, TriggerStringDSX::Choppy, TriggerStringDSX::CustomTriggerValue, TriggerStringDSX::Resistance,TriggerStringDSX::Bow,TriggerStringDSX::Galloping,TriggerStringDSX::SemiAutomaticGun, TriggerStringDSX::AutomaticGun, TriggerStringDSX::Machine, TriggerStringDSX::VIBRATE_TRIGGER_10Hz };
 bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 	if (m_udp.isActive())
 		return false;
@@ -229,16 +270,11 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 		int currentlySelectedTrigger = scePadSettings.uiSelectedTrigger;
 		int currentTriggerFormat = scePadSettings.uiTriggerFormat[currentlySelectedTrigger];
 
-		static int currentSonyItem[TRIGGER_COUNT] = { 0,0 };
-		static int currentDSXItem[TRIGGER_COUNT] = { 0,0 };
-		static std::vector<std::string> sonyItems = { TriggerStringSony::OFF, TriggerStringSony::FEEDBACK, TriggerStringSony::WEAPON, TriggerStringSony::VIBRATION, TriggerStringSony::SLOPE_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_VIBRATION };
-		static std::vector<std::string> dsxItems = { TriggerStringDSX::Normal, TriggerStringDSX::GameCube, TriggerStringDSX::VerySoft, TriggerStringDSX::Soft, TriggerStringDSX::Medium, TriggerStringDSX::Hard, TriggerStringDSX::VeryHard , TriggerStringDSX::Hardest, TriggerStringDSX::VibrateTrigger, TriggerStringDSX::VibrateTriggerPulse, TriggerStringDSX::Choppy, TriggerStringDSX::CustomTriggerValue, TriggerStringDSX::Resistance,TriggerStringDSX::Bow,TriggerStringDSX::Galloping,TriggerStringDSX::SemiAutomaticGun, TriggerStringDSX::AutomaticGun, TriggerStringDSX::Machine, TriggerStringDSX::VIBRATE_TRIGGER_10Hz };
-
 		ImGui::SetNextItemWidth(450);
 		if (ImGui::BeginCombo(str("TriggerMode"), currentTriggerFormat == SONY_FORMAT ? scePadSettings.uiSelectedSonyTriggerMode[currentlySelectedTrigger].c_str()
 			: scePadSettings.uiSelectedDSXTriggerMode[currentlySelectedTrigger].c_str())) {
 			std::vector<std::string>& items = (currentTriggerFormat == SONY_FORMAT) ? sonyItems : dsxItems;
-			int& currentItem = (currentTriggerFormat == SONY_FORMAT) ? currentSonyItem[currentlySelectedTrigger] : currentDSXItem[currentlySelectedTrigger];
+			int& currentItem = (currentTriggerFormat == SONY_FORMAT) ? scePadSettings.currentSonyItem[currentlySelectedTrigger] : scePadSettings.currentDSXItem[currentlySelectedTrigger];
 
 			for (int i = 0; i < items.size(); i++) {
 				bool isSelected = (currentItem == i);
@@ -252,12 +288,12 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 		if (currentTriggerFormat == SONY_FORMAT) {
 			scePadSettings.isLeftUsingDsxTrigger = currentlySelectedTrigger == L2 ? false : scePadSettings.isLeftUsingDsxTrigger;
 			scePadSettings.isRightUsingDsxTrigger = currentlySelectedTrigger == R2 ? false : scePadSettings.isRightUsingDsxTrigger;
-			scePadSettings.uiSelectedSonyTriggerMode[currentlySelectedTrigger] = sonyItems[currentSonyItem[currentlySelectedTrigger]];
+			scePadSettings.uiSelectedSonyTriggerMode[currentlySelectedTrigger] = sonyItems[scePadSettings.currentSonyItem[currentlySelectedTrigger]];
 		}
 		else {
 			scePadSettings.isLeftUsingDsxTrigger = currentlySelectedTrigger == L2 ? true : scePadSettings.isLeftUsingDsxTrigger;
 			scePadSettings.isRightUsingDsxTrigger = currentlySelectedTrigger == R2 ? true : scePadSettings.isRightUsingDsxTrigger;
-			scePadSettings.uiSelectedDSXTriggerMode[currentlySelectedTrigger] = dsxItems[currentDSXItem[currentlySelectedTrigger]];
+			scePadSettings.uiSelectedDSXTriggerMode[currentlySelectedTrigger] = dsxItems[scePadSettings.currentDSXItem[currentlySelectedTrigger]];
 		}
 
 		if (scePadSettings.uiTriggerFormat[currentlySelectedTrigger] == SONY_FORMAT) {
@@ -479,23 +515,6 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 			}
 		}
 
-		for (int i = 0; i < TRIGGER_COUNT; i++) {
-			std::vector<uint8_t> vec;
-
-			for (int j = 0; j < MAX_PARAM_COUNT; j++) {
-				vec.push_back(scePadSettings.uiParameters[i][j]);
-			}
-
-			if (currentTriggerFormat == SONY_FORMAT) {
-				if (auto it = sonyTriggerHandlers.find(sonyItems[currentSonyItem[i]]); it != sonyTriggerHandlers.end())
-					it->second(scePadSettings, i, vec);
-			}
-			else {
-				if (auto it = dsxTriggerHandlers.find(dsxItems[currentDSXItem[i]]); it != dsxTriggerHandlers.end())
-					it->second(scePadSettings, i, vec);
-			}
-		}
-
 		ImGui::TreePop();
 	}
 	return true;
@@ -600,6 +619,24 @@ bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSet
 		ImGui::TreePop();
 	}
 	return true;
+}
+
+void MainWindow::errors() {
+	if (showLoadFailedError) {
+		ImGui::OpenPopup(str("Error"));
+	}
+
+	if (ImGui::BeginPopupModal(str("Error"), &showLoadFailedError, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text(str("ErrorLoadConfig"));
+		ImGui::Separator();
+
+		if (ImGui::Button("OK", ImVec2(120, 0))) {
+			ImGui::CloseCurrentPopup();
+			showLoadFailedError = false;
+		}
+
+		ImGui::EndPopup();
+	}
 }
 
 bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
@@ -710,7 +747,8 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	s_ScePadData state = {};
 	scePadReadState(g_scePad[c], &state);
 
-	menuBar(scePadSettings[c]);
+	errors();
+	menuBar(c, scePadSettings[c]);
 	if (controllers(c, scePadSettings[c], scale)) {
 		emulation(c, scePadSettings[c], state);
 		led(scePadSettings[c], scale);
@@ -718,6 +756,24 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 		audio(c, scePadSettings[c]);
 		touchpad(c, scePadSettings[c], state, scale);
 		keyboardAndMouseMapping(scePadSettings[c]);
+	}
+
+	// Apply triggers from UI
+	for (int i = 0; i < TRIGGER_COUNT; i++) {
+		std::vector<uint8_t> vec;
+
+		for (int j = 0; j < MAX_PARAM_COUNT; j++) {
+			vec.push_back(scePadSettings[c].uiParameters[i][j]);
+		}
+
+		if (scePadSettings[c].uiTriggerFormat[i] == SONY_FORMAT) {
+			if (auto it = sonyTriggerHandlers.find(sonyItems[scePadSettings[c].currentSonyItem[i]]); it != sonyTriggerHandlers.end())
+				it->second(scePadSettings[c], i, vec);
+		}
+		else {
+			if (auto it = dsxTriggerHandlers.find(dsxItems[scePadSettings[c].currentDSXItem[i]]); it != dsxTriggerHandlers.end())
+				it->second(scePadSettings[c], i, vec);
+		}
 	}
 
 	m_selectedController = c;

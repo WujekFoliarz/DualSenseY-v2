@@ -145,64 +145,64 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 
 	switch (triggerMode) {
 		case TriggerMode::Normal:
-			customTriggerNormal(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerNormal(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::GameCube:
-			customTriggerGamecube(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerGamecube(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VerySoft:
-			customTriggerVerySoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerVerySoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Soft:
-			customTriggerSoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerSoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Hard:
-			customTriggerHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VeryHard:
-			customTriggerVeryHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerVeryHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Hardest:
-			customTriggerHardest(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerHardest(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Rigid:
-			customTriggerRigid(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerRigid(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VibrateTrigger:
-			customTriggerVibrateTrigger(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerVibrateTrigger(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Choppy:
-			customTriggerChoppy(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerChoppy(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Medium:
-			customTriggerMedium(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerMedium(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VibrateTriggerPulse:
-			customTriggerVibrateTriggerPulse(trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerVibrateTriggerPulse(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::CustomTriggerValue:
-			customTriggerCustomTriggerValue(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerCustomTriggerValue(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Resistance:
-			customTriggerResistance(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerResistance(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Bow:
-			customTriggerBow(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerBow(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Galloping:
-			customTriggerGalloping(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerGalloping(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::SemiAutomaticGun:
-			customTriggerSemiAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerSemiAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::AutomaticGun:
-			customTriggerAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Machine:
-			customTriggerMachine(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerMachine(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VIBRATE_TRIGGER_10Hz:
-			customTriggerVIBRATE_TRIGGER_10Hz(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger : m_settings.rightCustomTrigger);
+			customTriggerVIBRATE_TRIGGER_10Hz(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
 			break;
 
 		// Sony triggers

@@ -2,6 +2,8 @@
 #include "led.hpp"
 #include <algorithm>
 #include <fstream>
+#include <imgui.h>
+#include <platform_folders.h>
 
 static std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 
@@ -10,13 +12,48 @@ void saveSettingsToFile(const s_scePadSettings& s, const std::string& filepath) 
 	std::ofstream(filepath) << j.dump(4); // pretty print with indent=4
 }
 
-void loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath) {
-	std::ifstream ifs(filepath);
-	if (!ifs) return;
-	nlohmann::json j;
-	ifs >> j;
-	*s = j.get<s_scePadSettings>();
-	return;
+bool loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath) {
+	try {
+		std::ifstream ifs(filepath);
+		if (!ifs) return false;
+		nlohmann::json j;
+		ifs >> j;
+		*s = j.get<s_scePadSettings>();
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
+}
+
+bool getDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s) {
+	std::string cleanMac = mac;
+	cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
+	std::filesystem::path filePath = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
+	
+	if (std::filesystem::exists(filePath)) {
+		std::ifstream file(filePath);
+		std::string configPath = "";
+		file >> configPath;
+		file.close();
+		loadSettingsFromFile(s, configPath);
+		return true;
+	}
+
+	return false;
+}
+
+void loadDefaultConfigs(int& currentController, s_scePadSettings* s) {
+	// <Mac address, was loaded>
+	static std::unordered_map<std::string, bool> loadList;
+
+	std::string macAddress = scePadGetMacAddress(g_scePad[currentController]);
+
+	if (macAddress != "" && !loadList[macAddress]) {
+		if (getDefaultConfigFromMac(macAddress, s)) {
+			loadList[macAddress] = true;
+		}	
+	}
 }
 
 void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
@@ -34,7 +71,7 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 	if (settings.useLightbarFromEmulatedController && settings.emulatedController == (int)EmulatedController::DUALSHOCK4) {
 		scePadSetLightBar(g_scePad[index], &settings.lightbarFromEmulatedController);
 	}
-	else if (settings.audioToLed && !settings.discoMode) {		
+	else if (settings.audioToLed && !settings.discoMode) {
 		s_SceLightBar lightbar = { audioPeakUint8, audioPeakUint8, audioPeakUint8 };
 		scePadSetLightBar(g_scePad[index], &lightbar);
 	}
@@ -66,7 +103,7 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 
 	int l2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.smallMotor : settings.rumbleFromEmulatedController.largeMotor;
 	int r2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.largeMotor : settings.rumbleFromEmulatedController.smallMotor;
-	if (settings.rumbleToAT) {
+	if (settings.rumbleToAT && settings.emulatedController != (int)EmulatedController::NONE) {
 		uint8_t leftTrigger[11] = {};
 		uint8_t rightTrigger[11] = {};
 
@@ -93,12 +130,12 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 		uint8_t triggerBitmask = 0;
 		triggerBitmask |= settings.isLeftUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 : 0;
 		triggerBitmask |= settings.isRightUsingDsxTrigger ? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2 : 0;
-		scePadSetTriggerEffectCustom(g_scePad[index], settings.leftCustomTrigger, settings.rightCustomTrigger, triggerBitmask);
+		scePadSetTriggerEffectCustom(g_scePad[index], settings.leftCustomTrigger.data(), settings.rightCustomTrigger.data(), triggerBitmask);
 	}
 
 	if ((settings.useRumbleFromEmulatedController && settings.emulatedController != (int)EmulatedController::NONE) || settings.udpConfig) {
 
-		if(settings.rumbleFromEmulatedController.largeMotor > 0 || settings.rumbleFromEmulatedController.smallMotor > 0) {
+		if (settings.rumbleFromEmulatedController.largeMotor > 0 || settings.rumbleFromEmulatedController.smallMotor > 0) {
 			scePadSetVibrationMode(g_scePad[index], SCE_PAD_RUMBLE_MODE);
 		}
 		else {

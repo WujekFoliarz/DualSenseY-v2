@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <atomic>
 #include <nlohmann/json.hpp>
+#include <array>
 
 #define TRIGGER_COUNT 2
 #define SONY_FORMAT 0
@@ -94,7 +95,7 @@ struct s_scePadSettings {
 	bool udpConfig = false;
 
 	// LED Settings
-	float led[3] = { 0,0,0 };
+	std::array<float,3> led = { 0,0,0 };
 	bool audioToLed = false;
 	int brightness = 0;
 	bool disablePlayerLed = false;
@@ -109,23 +110,25 @@ struct s_scePadSettings {
 	float hapticIntensity = 1.0f;
 
 	// Adaptive trigger ui section
+	std::array<int, TRIGGER_COUNT> currentSonyItem = { 0,0 };
+	std::array<int, TRIGGER_COUNT> currentDSXItem = { 0,0 };
 	int uiSelectedTrigger = L2;
-	int uiParameters[TRIGGER_COUNT][11] = { {0,0,0,0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0,0,0,0} };
-	int uiTriggerFormat[TRIGGER_COUNT] = { SONY_FORMAT, SONY_FORMAT };
-	std::string uiSelectedSonyTriggerMode[TRIGGER_COUNT] = { TriggerStringSony::OFF, TriggerStringSony::OFF };
-	std::string uiSelectedDSXTriggerMode[TRIGGER_COUNT] = { TriggerStringSony::OFF, TriggerStringSony::OFF };
+	std::array<std::array<int, 11>, TRIGGER_COUNT> uiParameters = { {{{0,0,0,0,0,0,0,0,0,0,0}},{{0,0,0,0,0,0,0,0,0,0,0}}}};
+	std::array<int, TRIGGER_COUNT> uiTriggerFormat = { SONY_FORMAT, SONY_FORMAT };
+	std::array<std::string, TRIGGER_COUNT> uiSelectedSonyTriggerMode = { TriggerStringSony::OFF, TriggerStringSony::OFF };
+	std::array<std::string, TRIGGER_COUNT> uiSelectedDSXTriggerMode = { TriggerStringSony::OFF, TriggerStringSony::OFF };
 	bool xToAtFullyRetractWhenNoData = false;
 	bool rumbleToAT = false;
-	int rumbleToAt_intensity[TRIGGER_COUNT] = { 255,255 };
-	int rumbleToAt_frequency[TRIGGER_COUNT] = { 10,10 };
-	int rumbleToAt_position[TRIGGER_COUNT] = { 0,0 };
+	std::array<int, TRIGGER_COUNT> rumbleToAt_intensity = { 255,255 };
+	std::array<int, TRIGGER_COUNT> rumbleToAt_frequency = { 10,10 };
+	std::array<int, TRIGGER_COUNT> rumbleToAt_position = { 0,0 };
 	bool rumbleToAt_swapTriggers = false;
 
 	// For DSX trigger format
 	bool isLeftUsingDsxTrigger = false;
 	bool isRightUsingDsxTrigger = false;
-	uint8_t leftCustomTrigger[11] = {};
-	uint8_t rightCustomTrigger[11] = {};
+	std::array<uint8_t, 11> leftCustomTrigger = { 0,0,0,0,0,0,0,0,0,0,0 };
+	std::array<uint8_t, 11> rightCustomTrigger = { 0,0,0,0,0,0,0,0,0,0,0 };
 
 	// For Sony trigger format
 	ScePadTriggerEffectParam stockTriggerParam = {};
@@ -153,7 +156,7 @@ struct s_scePadSettings {
 	s_ScePadTouchData lastTouchData = {};
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	s_scePadSettings,
 	udpConfig,
 	led,
@@ -167,6 +170,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 	micGain,
 	audioPath,
 	hapticIntensity,
+	currentSonyItem,
+	currentDSXItem,
 	uiSelectedTrigger,
 	uiParameters,
 	uiTriggerFormat,
@@ -191,12 +196,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 	leftStickDeadzone,
 	rightStickDeadzone,
 	touchpadAsMouse,
-	touchpadAsMouse_sensitivity,
-	wasTouching
+	touchpadAsMouse_sensitivity
 );
 
 void saveSettingsToFile(const s_scePadSettings& s, const std::string& filepath);
-void loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath);
+bool loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath);
+bool getDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s);
+void loadDefaultConfigs(int& currentController, s_scePadSettings* s);
 
 using TriggerHandler = std::function<void(s_scePadSettings&, int&, std::vector<uint8_t>&)>;
 
@@ -249,25 +255,25 @@ const std::unordered_map<std::string, TriggerHandler> sonyTriggerHandlers = {
 };
 
 const std::unordered_map<std::string, TriggerHandler> dsxTriggerHandlers = {
-	{TriggerStringDSX::Normal, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerNormal(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::GameCube, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerGamecube(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::VerySoft, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVerySoft(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Soft, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerSoft(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Medium, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerMedium(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Hard, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerHard(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::VeryHard, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVeryHard(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Hardest, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerHardest(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::VibrateTrigger, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVibrateTrigger(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::VibrateTriggerPulse, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVibrateTriggerPulse(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Choppy, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerChoppy(triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::CustomTriggerValue, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerCustomTriggerValue(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Resistance, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerResistance(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Bow, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerBow(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Galloping, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerGalloping(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::SemiAutomaticGun, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerSemiAutomaticGun(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::AutomaticGun, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerAutomaticGun(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::Machine, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerMachine(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
-	{TriggerStringDSX::VIBRATE_TRIGGER_10Hz, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVIBRATE_TRIGGER_10Hz(p, triggerIndex == L2 ? s.leftCustomTrigger : s.rightCustomTrigger); }},
+	{TriggerStringDSX::Normal, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerNormal(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::GameCube, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerGamecube(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::VerySoft, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVerySoft(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Soft, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerSoft(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Medium, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerMedium(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Hard, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerHard(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::VeryHard, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVeryHard(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Hardest, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerHardest(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::VibrateTrigger, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVibrateTrigger(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::VibrateTriggerPulse, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVibrateTriggerPulse(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Choppy, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerChoppy(triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::CustomTriggerValue, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerCustomTriggerValue(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Resistance, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerResistance(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Bow, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerBow(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Galloping, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerGalloping(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::SemiAutomaticGun, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerSemiAutomaticGun(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::AutomaticGun, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerAutomaticGun(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::Machine, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerMachine(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
+	{TriggerStringDSX::VIBRATE_TRIGGER_10Hz, [](s_scePadSettings& s, int& triggerIndex, const std::vector<uint8_t>& p) {customTriggerVIBRATE_TRIGGER_10Hz(p, triggerIndex == L2 ? s.leftCustomTrigger.data() : s.rightCustomTrigger.data()); }},
 };
 
 void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio);

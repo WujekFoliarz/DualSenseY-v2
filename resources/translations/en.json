@@ -213,5 +213,10 @@
   "MaxFrequency": "Max frequency",
   "MaxIntensity": "Max intensity",
   "Diagnostics": "Diagnostics",
+  "Error": "Error",
+  "ErrorLoadConfig": "Config file couldn't be loaded",
+  "SetDefaultConfig": "Set default for this controller",
+  "Save": "Save",
+  "Load": "Load",
   "About": "About"
 }
