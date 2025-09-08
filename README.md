@@ -95,6 +95,7 @@
   - [Crashlogs](https://github.com/TylerGlaiel/Crashlogs)
   - [hidapi](https://github.com/libusb/hidapi)
   - [nlohmann/json](https://github.com/nlohmann/json)
+  - [nativefiledialog](https://github.com/mlabbe/nativefiledialog)
 
 ## Usage
 
