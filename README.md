@@ -96,6 +96,7 @@
   - [hidapi](https://github.com/libusb/hidapi)
   - [nlohmann/json](https://github.com/nlohmann/json)
   - [nativefiledialog](https://github.com/mlabbe/nativefiledialog)
+  - [PlatformFolders](https://github.com/sago007/PlatformFolders)
 
 ## Usage
 
