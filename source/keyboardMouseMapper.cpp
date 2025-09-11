@@ -1,6 +1,6 @@
 #include "keyboardMouseMapper.hpp"
 
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 #include <Windows.h>
 #endif 
 
@@ -9,7 +9,7 @@
 #include <duaLib.h>
 
 
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 constexpr WORD SC_W = 0x11;
 constexpr WORD SC_A = 0x1E;
 constexpr WORD SC_S = 0x1F;
@@ -26,7 +26,7 @@ void sendKeyScan(WORD scancode, bool down) {
 
 
 void KeyboardMouseMapper::thread() {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
@@ -131,7 +131,7 @@ void KeyboardMouseMapper::thread() {
 }
 
 void KeyboardMouseMapper::moveCursor(int x, int y) {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
     INPUT input = { 0 };
     input.type = INPUT_MOUSE;
     input.mi.dwFlags = MOUSEEVENTF_MOVE;
@@ -143,14 +143,14 @@ void KeyboardMouseMapper::moveCursor(int x, int y) {
 }
 
 KeyboardMouseMapper::KeyboardMouseMapper(s_scePadSettings* scePadSettings) : m_scePadSettings(scePadSettings) {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	m_thread = std::thread(&KeyboardMouseMapper::thread, this);
 	m_thread.detach();
 #endif
 }
 
 KeyboardMouseMapper::~KeyboardMouseMapper() {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
     m_threadRunning = false;
 
     if (m_thread.joinable()) {

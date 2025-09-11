@@ -218,5 +218,6 @@
   "SetDefaultConfig": "Set default for this controller",
   "Save": "Save",
   "Load": "Load",
-  "About": "About"
+  "About": "About",
+  "Settings": "Settings"
 }

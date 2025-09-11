@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "scePadSettings.hpp"
+#include "appSettings.hpp"
 
 struct glfwDeleter {
 	void operator()(GLFWwindow* window) {
@@ -19,6 +20,7 @@ private:
 	s_scePadSettings m_scePadSettings[4] = {};
 	bool isMinimized();
 	void disableControllerInputIfMinimized();
+	AppSettings m_appSettings = {};
 public:
 	enum class Platform {
 		Windows,

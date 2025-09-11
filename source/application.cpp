@@ -90,15 +90,17 @@ bool Application::run() {
 	Strings strings = {};
 	KeyboardMouseMapper keyboardMouseMapper(m_scePadSettings);
 
+	loadAppSettings(&m_appSettings);
+
 	// Windows
-	MainWindow main(strings, audio, vigem, udp);
+	MainWindow main(strings, audio, vigem, udp, m_appSettings);
 
 	strings.readStringsFromJson(countryCodeToFile("en"));
 
 	bool active = false;
 	uint32_t occasionalFrameWhenMinimized = 0;
 	
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
 	LARGE_INTEGER liDueTime;
 	liDueTime.QuadPart = -100000LL;
@@ -136,7 +138,7 @@ bool Application::run() {
 		udp.setVibrationToUdpConfig(m_scePadSettings[selectedController].rumbleFromEmulatedController);
 		audio.validate();
 		main.show(m_scePadSettings, xscale);
-
+		
 		for (int i = 0; i < 4; i++) {
 			loadDefaultConfigs(i, &m_scePadSettings[i]);
 			applySettings(i, i == (selectedController) && udp.isActive() ? udp.getSettings() : m_scePadSettings[i], audio);
@@ -158,7 +160,7 @@ bool Application::run() {
 		ImGui::EndFrame();
 		#pragma endregion	
 
-	#if !defined(__linux__) && !defined(__MACOS__)
+	#ifdef WINDOWS
 		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
 		WaitForSingleObject(hTimer, INFINITE);
 	#else
@@ -166,7 +168,7 @@ bool Application::run() {
 	#endif
 	}
 
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	CloseHandle(hTimer);
 #endif
 	return true;
@@ -241,11 +243,12 @@ void Application::setStyleAndColors() {
 	style.FrameRounding = 10.0f;
 	style.GrabRounding = 10.0f;
 	style.TabRounding = 10.0f;
+	style.ScrollbarSize = 20.0f;
 
 	ImVec4* colors = style.Colors;
 	ImVec4 baseColor = ImVec4(0.369f, 0.075f, 0.929f, 1.0f);
 
-#if defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
+#ifdef WINDOWS
 	DWORD color = 0;
 	BOOL opaque = FALSE;
 
@@ -289,13 +292,17 @@ void Application::setStyleAndColors() {
 
 Application::~Application() {
 	// Unhide controllers
-#if !defined(__linux__) || !defined(__APPLE__)
+#ifdef WINDOWS
 	if (isRunningAsAdministratorWindows()) {
 		for(int i = 0;i<4;i++)
 			unhideController(scePadGetPath(g_scePad[i]));
 	}
-#endif
 
+	if (m_appSettings.DisableAllBluetoothControllersOnExit) {
+		for (int i = 0; i < 4; i++)
+			DisableBluetoothDevice(scePadGetMacAddress(g_scePad[i]));
+	}
+#endif
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

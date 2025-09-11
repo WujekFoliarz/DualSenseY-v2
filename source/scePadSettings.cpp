@@ -8,8 +8,8 @@
 static std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 
 void saveSettingsToFile(const s_scePadSettings& s, const std::string& filepath) {
-	nlohmann::json j = s; // implicit conversion
-	std::ofstream(filepath) << j.dump(4); // pretty print with indent=4
+	nlohmann::json j = s;
+	std::ofstream(filepath) << j.dump(4);
 }
 
 bool loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath) {
@@ -52,7 +52,7 @@ void loadDefaultConfigs(int& currentController, s_scePadSettings* s) {
 	if (macAddress != "" && !loadList[macAddress]) {
 		if (getDefaultConfigFromMac(macAddress, s)) {
 			loadList[macAddress] = true;
-		}	
+		}
 	}
 }
 

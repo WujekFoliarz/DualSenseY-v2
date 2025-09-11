@@ -11,12 +11,12 @@ int convertRange(int value, int oldMin, int oldMax, int newMin, int newMax) {
 	return std::clamp(static_cast<int>(scaledValue), newMin, newMax);
 }
 
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 PVIGEM_CLIENT Vigem::m_vigemClient;
 #endif
 
 void Vigem::update360ByIndex(uint32_t index, s_ScePadData& state) {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	XUSB_REPORT report = {};
 
 	report.wButtons |= (state.bitmask_buttons & SCE_BM_CROSS) ? XINPUT_GAMEPAD_A : 0;
@@ -51,7 +51,7 @@ void Vigem::update360ByIndex(uint32_t index, s_ScePadData& state) {
 }
 
 void Vigem::updateDs4ByIndex(uint32_t index, s_ScePadData& state) {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	DS4_REPORT_EX report{};
 	report.Report.bThumbLX = state.LeftStick.X;
 	report.Report.bThumbLY = state.LeftStick.Y;
@@ -123,7 +123,7 @@ void Vigem::updateDs4ByIndex(uint32_t index, s_ScePadData& state) {
 }
 
 Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_scePadSettings(scePadSettings), m_udp(udp) {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	if (!m_vigemClientInitalized) {
 		m_vigemClient = vigem_alloc();
 
@@ -148,7 +148,7 @@ Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_scePadSettings(sceP
 }
 
 Vigem::~Vigem() {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	m_vigemThreadRunning = false;
 	if (m_vigemThread.joinable()) {
 		m_vigemThread.join();
@@ -169,12 +169,14 @@ Vigem::~Vigem() {
 }
 
 void Vigem::plugControllerByIndex(uint32_t index, uint32_t controllerType) {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	static uint32_t lastEmulatedController[4] = {};
 
 	if ((EmulatedController)controllerType == EmulatedController::NONE && (EmulatedController)lastEmulatedController[index] != EmulatedController::NONE) {
 		vigem_target_remove(m_vigemClient, m_360[index]);
 		vigem_target_remove(m_vigemClient, m_ds4[index]);
+		vigem_target_x360_unregister_notification(m_360[index]);
+		vigem_target_ds4_unregister_notification(m_ds4[index]);
 		lastEmulatedController[index] = (uint32_t)EmulatedController::NONE;
 	}
 	else if ((EmulatedController)controllerType == EmulatedController::XBOX360 && (EmulatedController)lastEmulatedController[index] != EmulatedController::XBOX360) {
@@ -232,7 +234,7 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 }
 
 void Vigem::emulatedControllerUpdate() {
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
@@ -270,7 +272,7 @@ void Vigem::emulatedControllerUpdate() {
 #endif
 }
 
-#if !defined(__linux__) && !defined(__MACOS__)
+#ifdef WINDOWS
 VOID Vigem::xbox360Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData) {
 	auto* data = static_cast<VigemUserData*>(UserData);
 	if (!data || !data->instance) return;

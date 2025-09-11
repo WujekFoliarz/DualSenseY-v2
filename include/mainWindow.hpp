@@ -7,12 +7,14 @@
 #include "udp.hpp"
 #include "controllerEmulation.hpp"
 #include "utils.hpp"
+#include "appSettings.hpp"
 
 class MainWindow {  
    Strings& m_strings;  
    AudioPassthrough& m_audio;  
    Vigem& m_vigem;
    UDP& m_udp;
+   AppSettings& m_appSettings;
    bool m_isAdminWindows = isRunningAsAdministratorWindows();
 private:  
    int m_selectedController = 0;
@@ -32,8 +34,8 @@ private:
    bool treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
    void errors();
 public:  
-   MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp)  
-       : m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp) {}
+   MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp, AppSettings& appSettings)  
+       : m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp), m_appSettings(appSettings) {}
    void show(s_scePadSettings scePadSettings[4], float scale);
    int getSelectedController();
 };  

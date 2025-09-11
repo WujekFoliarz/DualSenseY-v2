@@ -112,6 +112,12 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu(str("Settings"))) {
+			if (ImGui::MenuItem(str("DisconnectAllBTDevicesOnExit"), NULL, &m_appSettings.DisableAllBluetoothControllersOnExit))
+				saveAppSettings(&m_appSettings);
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu(str("Help"))) {
 			ImGui::TextLinkOpenURL("Discord", "https://discord.gg/AFYvxf282U");
 			ImGui::TextLinkOpenURL("GitHub", "https://github.com/WujekFoliarz/DualSenseY-v2/issues");
@@ -224,7 +230,7 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 
 	if (failedToStart) {
 		ImGui::SameLine();
-	#if (!defined(__linux__)) && (!defined(__MACOS__))
+	#ifdef WINDOWS
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("Failed to start"));
 	#else
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("Audio passthrough is not available on this platform"));
