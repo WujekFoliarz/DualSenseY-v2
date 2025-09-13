@@ -109,6 +109,14 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 				}
 			}
 
+			if (ImGui::MenuItem(str("RemoveDefaultConfig"))) {
+				std::string macAddress = scePadGetMacAddress(g_scePad[currentController]);
+
+				if (macAddress != "") {
+					removeDefaultConfigByMac(macAddress);
+				}				
+			}
+
 			ImGui::EndMenu();
 		}
 

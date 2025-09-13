@@ -202,6 +202,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 void saveSettingsToFile(const s_scePadSettings& s, const std::string& filepath);
 bool loadSettingsFromFile(s_scePadSettings* s, const std::string& filepath);
 bool getDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s);
+bool removeDefaultConfigByMac(const std::string& mac);
 void loadDefaultConfigs(int& currentController, s_scePadSettings* s);
 
 using TriggerHandler = std::function<void(s_scePadSettings&, int&, std::vector<uint8_t>&)>;

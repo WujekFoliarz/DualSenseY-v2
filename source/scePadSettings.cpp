@@ -43,6 +43,21 @@ bool getDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s) {
 	return false;
 }
 
+bool removeDefaultConfigByMac(const std::string& mac) {
+	std::string cleanMac = mac;
+	cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
+	std::filesystem::path filePath = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
+
+	if (std::filesystem::exists(filePath)) {
+		std::filesystem::remove(filePath);
+		return true;
+	}
+
+	return false;
+}
+
+
+
 void loadDefaultConfigs(int& currentController, s_scePadSettings* s) {
 	// <Mac address, was loaded>
 	static std::unordered_map<std::string, bool> loadList;

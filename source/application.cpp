@@ -106,31 +106,34 @@ bool Application::run() {
 	liDueTime.QuadPart = -100000LL;
 #endif
 
+	int display_w, display_h = 0;
+	float xscale, yscale = 1;
 	while (!glfwWindowShouldClose(m_glfwWindow.get())) {
+		bool v_isMinimized = isMinimized();
+		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
 
 		#pragma region ImGUI
-		int display_w, display_h;
-		float xscale, yscale;
-		glClear(GL_COLOR_BUFFER_BIT);
-		glClearColor(0, 0, 0, 0);
-		glfwGetFramebufferSize(m_glfwWindow.get(), &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
-		glfwGetWindowContentScale(m_glfwWindow.get(), &xscale, &yscale);
+		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
+			glClear(GL_COLOR_BUFFER_BIT);
+			glClearColor(0, 0, 0, 0);
+			glfwGetFramebufferSize(m_glfwWindow.get(), &display_w, &display_h);
+			glViewport(0, 0, display_w, display_h);
+			glfwGetWindowContentScale(m_glfwWindow.get(), &xscale, &yscale);
 
-	#if !defined(__linux__) && !defined(__MACOS__)
-		if (colorsChanged) {
-			setStyleAndColors();
-			colorsChanged = false;
+		#if !defined(__linux__) && !defined(__MACOS__)
+			if (colorsChanged) {
+				setStyleAndColors();
+				colorsChanged = false;
+			}
+		#endif
+
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
+			ImGuiIO& io = ImGui::GetIO();
+			io.FontGlobalScale = xscale + 0.5;
 		}
-	#endif
-
-		bool v_isMinimized = isMinimized();
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
-		ImGuiIO& io = ImGui::GetIO();
-		io.FontGlobalScale = xscale + 0.5;
 		#pragma endregion
 
 		int selectedController = main.getSelectedController();
@@ -148,7 +151,6 @@ bool Application::run() {
 		disableControllerInputIfMinimized();
 		glfwPollEvents();
 
-		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
 		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
 			ImGui::Render();
 			ImDrawData* drawData = ImGui::GetDrawData();
