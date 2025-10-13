@@ -450,15 +450,15 @@ constexpr std::array<s_SceLightBar, 4> g_playerColors = { {
 
 int readFunc() {
 #if defined(_WIN32) || defined(_WIN64)
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 	timeBeginPeriod(1);
 
-	DWORD_PTR affinityMask = 1;
-	SetThreadAffinityMask(GetCurrentThread(), affinityMask);
+	EXECUTION_STATE prevState = SetThreadExecutionState(
+		ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED
+	);
 
-	SetThreadIdealProcessor(GetCurrentThread(), 0);
-
-	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+	HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 	LARGE_INTEGER liDueTime;
 #endif
 
@@ -1129,13 +1129,13 @@ int scePadReadState(int handle, s_ScePadData* data) {
 				controller.deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(now - controller.lastUpdate).count() / 1000000.0f;
 				controller.lastUpdate = now;
 
-				data->acceleration.x = to_mpss((float)controller.dualsenseCurInputState.AccelerometerX);
-				data->acceleration.y = to_mpss((float)controller.dualsenseCurInputState.AccelerometerY);
-				data->acceleration.z = to_mpss((float)controller.dualsenseCurInputState.AccelerometerZ);
+				data->acceleration.x = (float)controller.dualsenseCurInputState.AccelerometerX;
+				data->acceleration.y = (float)controller.dualsenseCurInputState.AccelerometerY;
+				data->acceleration.z = (float)controller.dualsenseCurInputState.AccelerometerZ;
 
-				data->angularVelocity.x = to_radps((float)controller.dualsenseCurInputState.AngularVelocityX);
-				data->angularVelocity.y = to_radps((float)controller.dualsenseCurInputState.AngularVelocityY);
-				data->angularVelocity.z = to_radps((float)controller.dualsenseCurInputState.AngularVelocityZ);
+				data->angularVelocity.x = (float)controller.dualsenseCurInputState.AngularVelocityX;
+				data->angularVelocity.y = (float)controller.dualsenseCurInputState.AngularVelocityY;
+				data->angularVelocity.z = (float)controller.dualsenseCurInputState.AngularVelocityZ;
 
 				data->angularVelocity.x = controller.velocityDeadband == true && (data->angularVelocity.x < ANGULAR_VELOCITY_DEADBAND_MIN && data->angularVelocity.x > -ANGULAR_VELOCITY_DEADBAND_MIN) ? 0 : data->angularVelocity.x;
 				data->angularVelocity.y = controller.velocityDeadband == true && (data->angularVelocity.y < ANGULAR_VELOCITY_DEADBAND_MIN && data->angularVelocity.y > -ANGULAR_VELOCITY_DEADBAND_MIN) ? 0 : data->angularVelocity.y;
@@ -1253,13 +1253,13 @@ int scePadReadState(int handle, s_ScePadData* data) {
 				controller.deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(now - controller.lastUpdate).count() / 1000000.0f;
 				controller.lastUpdate = now;
 
-				data->acceleration.x = to_mpss((float)controller.dualshock4CurInputState.AccelerometerX);
-				data->acceleration.y = to_mpss((float)controller.dualshock4CurInputState.AccelerometerY);
-				data->acceleration.z = to_mpss((float)controller.dualshock4CurInputState.AccelerometerZ);
+				data->acceleration.x = (float)controller.dualshock4CurInputState.AccelerometerX;
+				data->acceleration.y = (float)controller.dualshock4CurInputState.AccelerometerY;
+				data->acceleration.z = (float)controller.dualshock4CurInputState.AccelerometerZ;
 
-				data->angularVelocity.x = to_radps((float)controller.dualshock4CurInputState.AngularVelocityX);
-				data->angularVelocity.y = to_radps((float)controller.dualshock4CurInputState.AngularVelocityY);
-				data->angularVelocity.z = to_radps((float)controller.dualshock4CurInputState.AngularVelocityZ);
+				data->angularVelocity.x = (float)controller.dualshock4CurInputState.AngularVelocityX;
+				data->angularVelocity.y = (float)controller.dualshock4CurInputState.AngularVelocityY;
+				data->angularVelocity.z = (float)controller.dualshock4CurInputState.AngularVelocityZ;
 
 				data->angularVelocity.x = controller.velocityDeadband == true && (data->angularVelocity.x < ANGULAR_VELOCITY_DEADBAND_MIN && data->angularVelocity.x > -ANGULAR_VELOCITY_DEADBAND_MIN) ? 0 : data->angularVelocity.x;
 				data->angularVelocity.y = controller.velocityDeadband == true && (data->angularVelocity.y < ANGULAR_VELOCITY_DEADBAND_MIN && data->angularVelocity.y > -ANGULAR_VELOCITY_DEADBAND_MIN) ? 0 : data->angularVelocity.y;

@@ -96,27 +96,33 @@ void Vigem::updateDs4ByIndex(uint32_t index, s_ScePadData& state) {
 	report.Report.bTriggerR = state.R2_Analog;
 	report.Report.bBatteryLvl = 100;
 
-	//DS4_TOUCH touch;
-	//touch.bPacketCounter = state.touchData.touchNum;
-	//report.Report.bTouchPacketsN = state.touchData.touchNum;
-	//touch.bIsUpTrackingNum1 = state.touchData.touch[0].id;
-	//touch.bTouchData1[0] = state.touchData.touch[];
-	//touch.bTouchData1[1] = state.trackPadTouch0.X >> 8 & 0x0F | state.trackPadTouch0.Y << 4 & 0xF0;
-	//touch.bTouchData1[2] = state.trackPadTouch0.Y >> 4;
+	report.Report.sPreviousTouch[0] = report.Report.sCurrentTouch;
 
-	//touch.bIsUpTrackingNum2 = state.trackPadTouch1.RawTrackingNum;
-	//touch.bTouchData2[0] = state.trackPadTouch1.X & 0xFF;
-	//touch.bTouchData2[1] = state.trackPadTouch1.X >> 8 & 0x0F | state.trackPadTouch1.Y << 4 & 0xF0;
-	//touch.bTouchData2[2] = state.trackPadTouch1.Y >> 4;
-	//report.Report.sCurrentTouch = touch;
+	static int packetNum = 0;
+	packetNum++;
+	if (packetNum > 255) packetNum = 0;
 
-	//report.Report.wAccelX = state.gyro.X;
-	//report.Report.wAccelY = state.gyro.Y;
-	//report.Report.wAccelZ = state.gyro.Z;
-	//report.Report.wGyroX = state.accelerometer.X;
-	//report.Report.wGyroY = state.accelerometer.Y;
-	//report.Report.wGyroZ = state.accelerometer.Z;
-	//report.Report.wTimestamp = state.accelerometer.SensorTimestamp != 0 ? state.accelerometer.SensorTimestamp / 16 : 0;
+	DS4_TOUCH touch{};
+	touch.bPacketCounter = packetNum;
+
+	touch.bIsUpTrackingNum1 = state.touchData.touch[0].reserve[0] == 0 ? state.touchData.touch[0].id : (state.touchData.touch[0].id | 0x80);
+	touch.bTouchData1[0] = state.touchData.touch[0].x & 0xFF;
+	touch.bTouchData1[1] = state.touchData.touch[0].x >> 8 & 0x0F | state.touchData.touch[0].y << 4 & 0xF0;
+	touch.bTouchData1[2] = state.touchData.touch[0].y >> 4;
+
+	touch.bIsUpTrackingNum2 = state.touchData.touch[1].reserve[0] == 0 ? state.touchData.touch[1].id : (state.touchData.touch[1].id | 0x80);
+	touch.bTouchData2[0] = state.touchData.touch[1].x & 0xFF;
+	touch.bTouchData2[1] = state.touchData.touch[1].x >> 8 & 0x0F | state.touchData.touch[1].y << 4 & 0xF0;
+	touch.bTouchData2[2] = state.touchData.touch[1].y >> 4;
+	report.Report.sCurrentTouch = touch;
+
+	report.Report.wAccelX = state.acceleration.x;
+	report.Report.wAccelY = state.acceleration.y;
+	report.Report.wAccelZ = state.acceleration.z;
+	report.Report.wGyroX = state.angularVelocity.x;
+	report.Report.wGyroY = state.angularVelocity.y;
+	report.Report.wGyroZ = state.angularVelocity.z;
+	report.Report.wTimestamp = state.timestamp / 16;
 
 	vigem_target_ds4_update_ex(m_vigemClient, m_ds4[index], report);
 #endif
