@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
@@ -64,9 +63,10 @@ add_subdirectory(thirdparty/asio-cmake)
 add_subdirectory(thirdparty/stb_image)
 add_subdirectory(thirdparty/nativefiledialog)
 add_subdirectory(thirdparty/PlatformFolders)
+add_subdirectory(thirdparty/miniupnp/miniupnpc)
 
 # Linking libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio stb_image nativefiledialog sago::platform_folders)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio stb_image nativefiledialog sago::platform_folders libminiupnpc-static)
 
 # Copying DLLs to out folder
 #add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:duaLib> $<TARGET_FILE_DIR:${PROJECT_NAME}>)

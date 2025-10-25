@@ -83,7 +83,7 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 	float audioPeak = audio.getCurrentCapturePeak();
 	uint8_t audioPeakUint8 = (uint8_t)scaleFloatToInt(audioPeak, 1.0);
 
-	if (settings.useLightbarFromEmulatedController && settings.emulatedController == (int)EmulatedController::DUALSHOCK4) {
+	if (settings.useLightbarFromEmulatedController && (settings.emulatedController == (int)EmulatedController::DUALSHOCK4 || settings.usingPeerController)) {
 		scePadSetLightBar(g_scePad[index], &settings.lightbarFromEmulatedController);
 	}
 	else if (settings.audioToLed && !settings.discoMode) {
@@ -118,7 +118,7 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 
 	int l2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.smallMotor : settings.rumbleFromEmulatedController.largeMotor;
 	int r2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.largeMotor : settings.rumbleFromEmulatedController.smallMotor;
-	if (settings.rumbleToAT && settings.emulatedController != (int)EmulatedController::NONE) {
+	if (settings.rumbleToAT && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE )) {
 		uint8_t leftTrigger[11] = {};
 		uint8_t rightTrigger[11] = {};
 
@@ -148,8 +148,7 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 		scePadSetTriggerEffectCustom(g_scePad[index], settings.leftCustomTrigger.data(), settings.rightCustomTrigger.data(), triggerBitmask);
 	}
 
-	if ((settings.useRumbleFromEmulatedController && settings.emulatedController != (int)EmulatedController::NONE) || settings.udpConfig) {
-
+	if (settings.useRumbleFromEmulatedController || settings.udpConfig) {
 		if (settings.rumbleFromEmulatedController.largeMotor > 0 || settings.rumbleFromEmulatedController.smallMotor > 0) {
 			scePadSetVibrationMode(g_scePad[index], SCE_PAD_RUMBLE_MODE);
 		}

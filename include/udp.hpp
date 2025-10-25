@@ -208,6 +208,7 @@ public:
 	}
 };
 
+// Maybe swap ASIO with ENet
 class UDP {
 private:
 	asio::io_context m_ioContext;

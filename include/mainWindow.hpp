@@ -8,36 +8,42 @@
 #include "controllerEmulation.hpp"
 #include "utils.hpp"
 #include "appSettings.hpp"
+#include "client.hpp"
 
-class MainWindow {  
-   Strings& m_strings;  
-   AudioPassthrough& m_audio;  
-   Vigem& m_vigem;
-   UDP& m_udp;
-   AppSettings& m_appSettings;
-   bool m_isAdminWindows = isRunningAsAdministratorWindows();
-private:  
-   int m_selectedController = 0;
-   bool about(bool* open);  
-   bool menuBar(int& currentController, s_scePadSettings& scePadSettings);
-   bool controllers(int& currentController, s_scePadSettings& scePadSettings, float scale);
-   bool led(s_scePadSettings& scePadSettings, float scale);
-   bool audio(int currentController, s_scePadSettings& scePadSettings);
-   bool emulation(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state);
-   bool adaptiveTriggers(s_scePadSettings& scePadSettings);
-   bool keyboardAndMouseMapping(s_scePadSettings& scePadSettings);
-   bool touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
-   bool treeElement_touchpadDiagnostics(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
-   bool treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state);
-   bool treeElement_lightbar(s_scePadSettings& scePadSettings);
-   bool treeElement_vibration(s_scePadSettings& scePadSettings);
-   bool treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
-   void errors();
-public:  
-   MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp, AppSettings& appSettings)  
-       : m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp), m_appSettings(appSettings) {}
-   void show(s_scePadSettings scePadSettings[4], float scale);
-   int getSelectedController();
-};  
+class MainWindow {
+	Strings& m_strings;
+	AudioPassthrough& m_audio;
+	Vigem& m_vigem;
+	UDP& m_udp;
+	AppSettings& m_appSettings;
+	Client& m_client;
+	bool m_isAdminWindows = isRunningAsAdministratorWindows();
+private:
+	int m_selectedController = 0;
+	bool about(bool* open);
+	bool menuBar(int& currentController, s_scePadSettings& scePadSettings);
+	bool controllers(int& currentController, s_scePadSettings& scePadSettings, float scale);
+	bool led(s_scePadSettings& scePadSettings, float scale);
+	bool audio(int currentController, s_scePadSettings& scePadSettings);
+	bool emulation(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state);
+	bool adaptiveTriggers(s_scePadSettings& scePadSettings);
+	bool keyboardAndMouseMapping(s_scePadSettings& scePadSettings);
+	bool touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
+	bool treeElement_touchpadDiagnostics(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
+	bool treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state);
+	bool treeElement_lightbar(s_scePadSettings& scePadSettings);
+	bool treeElement_vibration(s_scePadSettings& scePadSettings);
+	bool treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
+	bool online();
+	bool messageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response);
+	bool screenBlock(bool* open, const char* Message);
+	void errors();
+public:
+	MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp, AppSettings& appSettings, Client& client)
+		: m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp), m_appSettings(appSettings), m_client(client) {
+	}
+	void show(s_scePadSettings scePadSettings[4], float scale);
+	int getSelectedController();
+};
 
 #endif // MAINWINDOW_H

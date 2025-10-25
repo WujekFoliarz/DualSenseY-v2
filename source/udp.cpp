@@ -5,6 +5,9 @@
 #include "scePadHandle.hpp"
 #include "scePadCustomTriggers.hpp"
 
+// If you're wondering why I use ASIO for the mods and ENet for the other features I literally just forgot
+// Maybe I'll replace it later but I'm a lazy bum
+
 std::string getFormattedDateTime() {
 	auto now = std::chrono::system_clock::now();
 	std::time_t now_time = std::chrono::system_clock::to_time_t(now);

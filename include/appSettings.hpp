@@ -5,11 +5,13 @@
 
 struct AppSettings {
 	bool DisableAllBluetoothControllersOnExit = false;
+	bool DontConnectToServerOnStart = false;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	AppSettings,
-	DisableAllBluetoothControllersOnExit
+	DisableAllBluetoothControllersOnExit,
+	DontConnectToServerOnStart
 );
 
 void saveAppSettings(AppSettings* appSettings);

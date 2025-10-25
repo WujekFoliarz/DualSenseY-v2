@@ -1,4 +1,5 @@
-﻿#include "application.hpp"
+﻿
+#include "application.hpp"
 #include "log.hpp"
 
 #if defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
@@ -27,6 +28,7 @@
 #include "controllerEmulation.hpp"
 #include "scePadHandle.hpp"
 #include "keyboardMouseMapper.hpp"
+#include "client.hpp"
 
 #if !defined(__linux__) && !defined(__MACOS__)
 bool colorsChanged = false;
@@ -89,17 +91,24 @@ bool Application::run() {
 	Vigem vigem(m_scePadSettings, udp);
 	Strings strings = {};
 	KeyboardMouseMapper keyboardMouseMapper(m_scePadSettings);
+	Client client(m_scePadSettings);
 
 	loadAppSettings(&m_appSettings);
 
+	client.Start();
+	if(!m_appSettings.DontConnectToServerOnStart) client.Connect();
+	client.AllowedToHostController = vigem.isVigemConnected();
+	vigem.SetPeerControllerDataPointer(client.GetActivePeerControllerMap());
+
 	// Windows
-	MainWindow main(strings, audio, vigem, udp, m_appSettings);
+	MainWindow main(strings, audio, vigem, udp, m_appSettings, client);
 
 	strings.readStringsFromJson(countryCodeToFile("en"));
 
 	bool active = false;
 	uint32_t occasionalFrameWhenMinimized = 0;
 	
+
 #ifdef WINDOWS
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
 	LARGE_INTEGER liDueTime;
@@ -113,6 +122,7 @@ bool Application::run() {
 		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
 
 		#pragma region ImGUI
+		bool finishFrame = false;
 		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
 			glClear(GL_COLOR_BUFFER_BIT);
 			glClearColor(0, 0, 0, 0);
@@ -133,14 +143,15 @@ bool Application::run() {
 
 			ImGuiIO& io = ImGui::GetIO();
 			io.FontGlobalScale = xscale + 0.5;
+			finishFrame = true;
 		}
 		#pragma endregion
 
 		int selectedController = main.getSelectedController();
 		vigem.setSelectedController(selectedController);
+		client.SetSelectedController(selectedController);
 		udp.setVibrationToUdpConfig(m_scePadSettings[selectedController].rumbleFromEmulatedController);
-		audio.validate();
-		main.show(m_scePadSettings, xscale);
+		audio.validate();	
 		
 		for (int i = 0; i < 4; i++) {
 			loadDefaultConfigs(i, &m_scePadSettings[i]);
@@ -151,15 +162,16 @@ bool Application::run() {
 		disableControllerInputIfMinimized();
 		glfwPollEvents();
 
-		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
+		if (finishFrame) {
+			main.show(m_scePadSettings, xscale);
 			ImGui::Render();
 			ImDrawData* drawData = ImGui::GetDrawData();
 			ImGui_ImplOpenGL3_RenderDrawData(drawData);
 			glfwSwapBuffers(m_glfwWindow.get());
 			occasionalFrameWhenMinimized = 0;
+			ImGui::EndFrame();
 		}
 
-		ImGui::EndFrame();
 		#pragma endregion	
 
 	#ifdef WINDOWS

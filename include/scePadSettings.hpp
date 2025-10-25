@@ -154,7 +154,23 @@ struct s_scePadSettings {
 	float touchpadAsMouse_sensitivity = 1.0f;
 	bool wasTouching = false;
 	s_ScePadTouchData lastTouchData = {};
+
+	// Online
+	bool usingPeerController = false;
 };
+
+#pragma pack(push, 1)
+// For online, only plain controller settings.
+struct s_ScePadSettingsSimple {
+	// Emulation
+	uint8_t leftTriggerThreshold = 0;
+	uint8_t rightTriggerThreshold = 0;
+
+	// Analog sticks
+	int leftStickDeadzone = 0;
+	int rightStickDeadzone = 0;
+};
+#pragma pack(pop)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	s_scePadSettings,

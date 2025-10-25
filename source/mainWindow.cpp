@@ -114,7 +114,7 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 
 				if (macAddress != "") {
 					removeDefaultConfigByMac(macAddress);
-				}				
+				}
 			}
 
 			ImGui::EndMenu();
@@ -122,6 +122,8 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 
 		if (ImGui::BeginMenu(str("Settings"))) {
 			if (ImGui::MenuItem(str("DisconnectAllBTDevicesOnExit"), NULL, &m_appSettings.DisableAllBluetoothControllersOnExit))
+				saveAppSettings(&m_appSettings);
+			if (ImGui::MenuItem(str("DontConnectToServerOnStart"), NULL, &m_appSettings.DontConnectToServerOnStart))
 				saveAppSettings(&m_appSettings);
 			ImGui::EndMenu();
 		}
@@ -635,6 +637,191 @@ bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSet
 	return true;
 }
 
+bool MainWindow::online() {
+	static bool showMsgFromServer = false;
+	SCMD::CMD_CODE_RESPONSE currentResponse = m_client.GetLastResponseInQueue();
+
+	if (!m_client.IsResponseQueueEmpty() && currentResponse.Code != RESPONSE_CODE::E_SUCCESS) {
+		showMsgFromServer = true;
+
+		if (messageFromServer(&showMsgFromServer, &currentResponse)) {
+			m_client.PopBackResponseQueue();
+		}
+	}
+	else {
+		showMsgFromServer = false;
+	}
+
+	bool fetchingData = m_client.IsFetchingDataFromServer();
+	screenBlock(&fetchingData, str("FetchingFromServer"));
+
+	fetchingData = m_client.IsFetchingDataFromPeer();
+	screenBlock(&fetchingData, str("FetchingFromPeer"));
+
+	ImGui::SeparatorText(str("Online"));
+
+	if (m_client.IsConnectionOccupied()) {
+		ImGui::Text(str("FailedToCreateHost"));
+		return false;
+	}
+
+	if (!m_client.IsConnected()) {
+		if (m_client.IsConnecting())
+			ImGui::Text(str("ConnectingToServer"));
+		else if (ImGui::Button(str("ConnectOnline")))
+			m_client.Connect();
+	}
+	else {
+
+		ImGui::Text("%s: %d", str("UsersOnline"), (int)m_client.GetGlobalPeerCount());
+
+		if (!m_client.IsInRoom()) {
+			static char buf[MAX_ROOM_NAME_SIZE] = { 0 };
+			ImGui::SetNextItemWidth(250);
+			ImGui::InputText(str("RoomName"), buf, MAX_ROOM_NAME_SIZE);
+			std::string roomName = std::string(buf, strnlen(buf, MAX_ROOM_NAME_SIZE));
+
+			if (ImGui::Button(str("CreateRoom"))) {
+				m_client.CMD_OPEN_ROOM(roomName.c_str());
+			}
+			ImGui::SameLine();
+			if (ImGui::Button(str("JoinRoom"))) {
+				m_client.CMD_JOIN_ROOM(roomName.c_str());
+			}
+
+		}
+		else {
+			static bool showRoomName = false;
+			if (showRoomName)
+				ImGui::Text("%s: %s", str("Room"), m_client.GetRoomName().c_str());
+			else if (ImGui::Button(str("ShowRoomName")))
+				showRoomName = true;
+
+			ImGui::SameLine();
+			if (ImGui::Button(str("LeaveRoom"))) {
+				m_client.CMD_LEAVE_ROOM();
+			}
+
+			auto peers = m_client.GetPeerList();
+			if (!peers.empty()) {
+				for (auto& peer : peers) {
+					ImGui::Text("[%d] %s - %d ms", peer.first, peer.second.c_str(), m_client.GetPingFromPeer(peer.first));
+					ImGui::SameLine();
+
+					auto requestStatus = m_client.GetRequestStatus(peer.first);
+
+					if (requestStatus == PEER_REQUEST_STATUS::PEER_WAITING_FOR_MY_RESPONSE) {
+						ImGui::Text("[%s]", str("NewControllerRequest"));
+						ImGui::SameLine();
+						if (ImGui::SmallButton(str("Accept"))) {
+							m_client.AcceptPeerRequest(peer.first);
+						}
+						ImGui::SameLine();
+						if (ImGui::SmallButton(str("Decline"))) {
+							m_client.DeclinePeerRequest(peer.first);
+						}
+					}
+					else if (requestStatus == PEER_REQUEST_STATUS::WAITING_FOR_PEER_RESPONSE) {
+						ImGui::Text(str("WaitingForPeerResponse"));
+					}
+					else if (requestStatus == PEER_REQUEST_STATUS::ME_TRANSMITTING_TO_PEER) {
+						ImGui::TextColored(ImVec4(0, 1, 0, 1), str("TransmitingToPeer"));
+						ImGui::SameLine();
+						if (ImGui::SmallButton(str("Abort")))
+							m_client.CMD_PEER_ABORT_VIGEM(peer.first);
+					}
+					else if (requestStatus == PEER_REQUEST_STATUS::PEER_TRANSMITING_TO_ME) {
+						ImGui::TextColored(ImVec4(0, 1, 0, 1), str("PeerTransmitingToYou"));
+						ImGui::SameLine();
+						if (ImGui::SmallButton(str("Abort")))
+							m_client.CMD_PEER_ABORT_VIGEM(peer.first);
+					}
+					else {
+						if (requestStatus == PEER_REQUEST_STATUS::PEER_DECLINED) {
+							ImGui::TextColored(ImVec4(1, 0, 0, 1), str("PeerDeclined"));
+						}
+						ImGui::SameLine();
+
+						if (ImGui::SmallButton(str("RequestX360"))) {
+							m_client.CMD_PEER_REQUEST_VIGEM(peer.first, CONTROLLER::XBOX360);
+						}
+						ImGui::SameLine();
+						if (ImGui::SmallButton(str("RequestDS4"))) {
+							m_client.CMD_PEER_REQUEST_VIGEM(peer.first, CONTROLLER::DUALSHOCK4);
+						}
+					}
+				}
+			}
+			else {
+				ImGui::Text(str("AwaitingForPeerToJoin"));
+			}
+		}
+	}
+
+	return true;
+}
+
+bool MainWindow::messageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response) {
+
+	if (open) {
+		ImGui::OpenPopup(str("MessageFromServer"));
+	}
+
+	std::string message = strr("UnknownResponse");
+
+	if (Response->Cmd == CMD::CMD_OPEN_ROOM && Response->Code == RESPONSE_CODE::E_ROOM_ALREADY_EXISTS) {
+		message = strr("ThisRoomAlreadyExists");
+	}
+	else if (Response->Cmd == CMD::CMD_OPEN_ROOM && Response->Code == RESPONSE_CODE::E_PEER_ALREADY_IN_ROOM) {
+		message = strr("YoureAlreadyInARoom");
+	}
+	else if (Response->Cmd == CMD::CMD_OPEN_ROOM && Response->Code == RESPONSE_CODE::E_ROOM_NAME_EMPTY) {
+		message = strr("TheRoomNameIsEmpty");
+	}
+
+	if (Response->Cmd == CMD::CMD_JOIN_ROOM && Response->Code == RESPONSE_CODE::E_ROOM_FULL) {
+		message = strr("ThisRoomIsFull");
+	}
+	else if (Response->Cmd == CMD::CMD_JOIN_ROOM && Response->Code == RESPONSE_CODE::E_ROOM_DOESNT_EXIST) {
+		message = strr("ThisRoomDoesntExist");
+	}
+	else if (Response->Cmd == CMD::CMD_JOIN_ROOM && Response->Code == RESPONSE_CODE::E_ROOM_NAME_EMPTY) {
+		message = strr("TheRoomNameIsEmpty");
+	}
+
+	if (Response->Cmd == CMD::CMD_PEER_REQUEST_VIGEM && Response->Code == RESPONSE_CODE::E_PEER_CANT_EMULATE) {
+		message = strr("PeerNoVigem");
+	}
+	else if (Response->Cmd == CMD::CMD_PEER_REQUEST_VIGEM && Response->Code == RESPONSE_CODE::E_PEER_DECLINE) {
+		message = strr("PeerDeclinedRequest");
+	}
+
+	bool clicked = false;
+	if (ImGui::BeginPopupModal(str("MessageFromServer"), open, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text(message.c_str());
+		if (ImGui::Button("OK")) {
+			*open = false;
+			ImGui::CloseCurrentPopup();
+			clicked = true;
+		}
+		ImGui::EndPopup();
+	}
+
+	return clicked;
+}
+
+bool MainWindow::screenBlock(bool* open, const char* Message) {
+	if (*open) {
+		ImGui::OpenPopup("Block");
+
+		if (ImGui::BeginPopupModal("Block", open, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs)) {
+			ImGui::Text(Message);
+			ImGui::EndPopup();
+		}
+	}
+	return true;
+}
+
 void MainWindow::errors() {
 	if (showLoadFailedError) {
 		ImGui::OpenPopup(str("Error"));
@@ -771,6 +958,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 		touchpad(c, scePadSettings[c], state, scale);
 		keyboardAndMouseMapping(scePadSettings[c]);
 	}
+	online();
 
 	// Apply triggers from UI
 	for (int i = 0; i < TRIGGER_COUNT; i++) {
