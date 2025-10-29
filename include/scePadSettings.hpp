@@ -141,6 +141,10 @@ struct s_scePadSettings {
 	bool useRumbleFromEmulatedController = true;
 	s_SceLightBar lightbarFromEmulatedController = { 0,0,0 };
 	bool useLightbarFromEmulatedController = true;
+	bool gyroToRightStick = false;
+	uint32_t gyroToRightStickActivationButton = SCE_BM_L2;
+	float gyroToRightStickSensitivity = 20.0f;
+	int gyroToRightStickDeadzone = 0;
 
 	// Keyboard and mouse stuff
 	bool emulateAnalogWsad = false;
@@ -169,6 +173,12 @@ struct s_ScePadSettingsSimple {
 	// Analog sticks
 	int leftStickDeadzone = 0;
 	int rightStickDeadzone = 0;
+
+	// Motion
+	bool gyroToRightStick = false;
+	uint32_t gyroToRightStickActivationButton = SCE_BM_L2;
+	float gyroToRightStickSensitivity = 20.0f;
+	int gyroToRightStickDeadzone = 0;
 };
 #pragma pack(pop)
 
@@ -208,6 +218,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	rightTriggerThreshold,
 	useRumbleFromEmulatedController,
 	useLightbarFromEmulatedController,
+	gyroToRightStick,
+	gyroToRightStickActivationButton,
+	gyroToRightStickSensitivity,
+	gyroToRightStickDeadzone,
 	emulateAnalogWsad,
 	leftStickDeadzone,
 	rightStickDeadzone,

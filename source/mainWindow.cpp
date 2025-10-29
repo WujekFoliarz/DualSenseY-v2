@@ -12,6 +12,7 @@
 #include <platform_folders.h>
 #include <filesystem>
 #include <fstream>
+#include "controllerHotkey.hpp"
 
 #define str(string) m_strings.getString(string).c_str()
 #define strr(string) m_strings.getString(string)
@@ -637,6 +638,43 @@ bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSet
 	return true;
 }
 
+bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadData& state) {
+	static std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now() - std::chrono::seconds(3);
+	auto now = std::chrono::steady_clock::now();
+	static bool wasClicked = false;
+
+	if (ImGui::TreeNodeEx(str("Motion"))) {
+		ImGui::Checkbox("Gyro to left stick", &scePadSettings.gyroToRightStick);
+
+		ImGui::Text("Set activation button: ");
+		ImGui::SameLine();
+
+		bool isHotkeyOpen = false;
+		if (ImGui::Button(GetFormattedActiveButtonNames(scePadSettings.gyroToRightStickActivationButton).c_str())) {
+			time = now;
+			wasClicked = true;
+		}
+
+		auto remainingTime = now - time;
+		if (remainingTime < std::chrono::seconds(3)) {
+			isHotkeyOpen = true;
+		}
+		else if (remainingTime > std::chrono::seconds(3) && wasClicked) {
+			wasClicked = false;
+			if(state.bitmask_buttons != 0)
+				scePadSettings.gyroToRightStickActivationButton = state.bitmask_buttons;
+		}
+
+		getHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
+
+		ImGui::SliderFloat("Sensitivity", &scePadSettings.gyroToRightStickSensitivity, 0, 100);
+		ImGui::SliderInt("Deadzone", &scePadSettings.gyroToRightStickDeadzone, 0, 255);
+
+		ImGui::TreePop();
+	}
+	return true;
+}
+
 bool MainWindow::online() {
 	static bool showMsgFromServer = false;
 	SCMD::CMD_CODE_RESPONSE currentResponse = m_client.GetLastResponseInQueue();
@@ -763,7 +801,9 @@ bool MainWindow::online() {
 
 bool MainWindow::messageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response) {
 
-	if (open) {
+	if (*open) {
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 		ImGui::OpenPopup(str("MessageFromServer"));
 	}
 
@@ -812,6 +852,8 @@ bool MainWindow::messageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response
 
 bool MainWindow::screenBlock(bool* open, const char* Message) {
 	if (*open) {
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 		ImGui::OpenPopup("Block");
 
 		if (ImGui::BeginPopupModal("Block", open, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs)) {
@@ -824,20 +866,40 @@ bool MainWindow::screenBlock(bool* open, const char* Message) {
 
 void MainWindow::errors() {
 	if (showLoadFailedError) {
+
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 		ImGui::OpenPopup(str("Error"));
-	}
 
-	if (ImGui::BeginPopupModal(str("Error"), &showLoadFailedError, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::Text(str("ErrorLoadConfig"));
-		ImGui::Separator();
+		if (ImGui::BeginPopupModal(str("Error"), &showLoadFailedError, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::Text(str("ErrorLoadConfig"));
+			ImGui::Separator();
 
-		if (ImGui::Button("OK", ImVec2(120, 0))) {
-			ImGui::CloseCurrentPopup();
-			showLoadFailedError = false;
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+				showLoadFailedError = false;
+			}
+
+			ImGui::EndPopup();
 		}
-
-		ImGui::EndPopup();
 	}
+}
+
+bool MainWindow::getHotkeyFromControllerScreen(bool* open, int countdown, int expectedCountdownLength) {
+
+	if (*open) {
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		ImGui::OpenPopup("Hotkey");
+
+		if (ImGui::BeginPopupModal("Hotkey", open, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs)) {
+			ImGui::Text("Please hold the buttons you want to bind until the countdown is over");
+			ImGui::Text("%d", abs(countdown - 3));
+			ImGui::EndPopup();
+		}
+	}
+
+	return true;
 }
 
 bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
@@ -927,6 +989,7 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 			treeElement_lightbar(scePadSettings);
 			treeElement_vibration(scePadSettings);
 			treeElement_dynamicAdaptiveTriggers(scePadSettings);
+			treeElement_motion(scePadSettings, state);
 
 			ImGui::TreePop();
 		}

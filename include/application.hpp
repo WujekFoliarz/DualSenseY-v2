@@ -8,6 +8,8 @@
 #include "scePadSettings.hpp"
 #include "appSettings.hpp"
 
+constexpr auto WIN32_MSG_WINDOW_MUTEX = "DSYMSG";
+
 struct glfwDeleter {
 	void operator()(GLFWwindow* window) {
 		glfwDestroyWindow(window);

@@ -34,10 +34,12 @@ private:
 	bool treeElement_lightbar(s_scePadSettings& scePadSettings);
 	bool treeElement_vibration(s_scePadSettings& scePadSettings);
 	bool treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
+	bool treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadData& state);
 	bool online();
 	bool messageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response);
 	bool screenBlock(bool* open, const char* Message);
 	void errors();
+	bool getHotkeyFromControllerScreen(bool* open, int countdown, int expectedCountdownLength);
 public:
 	MainWindow(Strings& strings, AudioPassthrough& audio, Vigem& vigem, UDP& udp, AppSettings& appSettings, Client& client)
 		: m_strings(strings), m_audio(audio), m_vigem(vigem), m_udp(udp), m_appSettings(appSettings), m_client(client) {

@@ -1,6 +1,8 @@
 #include "controllerEmulation.hpp"
 #include "log.hpp"
 #include "scePadSettings.hpp"
+#include "controllerHotkey.hpp"
+#include <cmath>
 
 int convertRange(int value, int oldMin, int oldMax, int newMin, int newMax) {
 	if (oldMin == oldMax) {
@@ -240,6 +242,26 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 	applyDeadzone(settings.leftStickDeadzone, state.LeftStick);
 	applyDeadzone(settings.rightStickDeadzone, state.RightStick);
 
+#pragma endregion
+
+#pragma region Gyro to right stick
+	if (settings.gyroToRightStick && IsHotkeyActive(settings.gyroToRightStickActivationButton, state.bitmask_buttons)) {
+		if (abs(state.RightStick.X - 128) <= 80 &&
+		    abs(state.RightStick.Y - 128) <= 80) {
+
+			const float maxVelValue = 1000.0f;
+
+			float normalizedVelX = state.angularVelocity.x / maxVelValue;
+			float normalizedVelY = state.angularVelocity.z / maxVelValue;
+
+			float adjustedX = -normalizedVelX * settings.gyroToRightStickSensitivity;
+			float adjustedY = -normalizedVelY * settings.gyroToRightStickSensitivity;
+
+			state.RightStick.X = static_cast<int>((adjustedY) - 127);
+			state.RightStick.Y = static_cast<int>((adjustedX) - 127);
+			applyDeadzone(settings.gyroToRightStickDeadzone, state.RightStick);
+		}
+	}
 #pragma endregion
 }
 

@@ -535,11 +535,17 @@ void Client::HostService() {
 							if ((*m_PeerControllers)[peerId].AllowedToReceive) {
 								SCMD::CMD_PEER_SETTINGS_STATE command = {};
 								std::memcpy(&command, evt.packet->data, sizeof(command));
-								(*m_PeerControllers)[peerId].SimpleSettings = command.Settings;
-								(*m_PeerControllers)[peerId].Settings.leftStickDeadzone = (*m_PeerControllers)[peerId].SimpleSettings.leftStickDeadzone;
-								(*m_PeerControllers)[peerId].Settings.rightStickDeadzone = (*m_PeerControllers)[peerId].SimpleSettings.rightStickDeadzone;
-								(*m_PeerControllers)[peerId].Settings.leftTriggerThreshold = (*m_PeerControllers)[peerId].SimpleSettings.leftTriggerThreshold;
-								(*m_PeerControllers)[peerId].Settings.rightTriggerThreshold = (*m_PeerControllers)[peerId].SimpleSettings.rightTriggerThreshold;
+								auto& simpleSettings = (*m_PeerControllers)[peerId].SimpleSettings;
+								auto& settings = (*m_PeerControllers)[peerId].Settings;
+								simpleSettings = command.Settings;
+								settings.leftStickDeadzone = simpleSettings.leftStickDeadzone;
+								settings.rightStickDeadzone = simpleSettings.rightStickDeadzone;
+								settings.leftTriggerThreshold = simpleSettings.leftTriggerThreshold;
+								settings.rightTriggerThreshold = simpleSettings.rightTriggerThreshold;
+								settings.gyroToRightStick = simpleSettings.gyroToRightStick;
+								settings.gyroToRightStickActivationButton = simpleSettings.gyroToRightStickActivationButton;
+								settings.gyroToRightStickDeadzone = simpleSettings.gyroToRightStickDeadzone;
+								settings.gyroToRightStickSensitivity = simpleSettings.gyroToRightStickSensitivity;
 							}
 							break;
 						}
@@ -602,10 +608,16 @@ void Client::InputStateSendoutService() {
 			if (it.second.AllowedToSend) {
 				CMD_PEER_INPUT_STATE(it.first, InputState);
 
-				it.second.SimpleSettings.leftStickDeadzone = m_ScePadSettings[m_SelectedController].leftStickDeadzone;
-				it.second.SimpleSettings.rightStickDeadzone = m_ScePadSettings[m_SelectedController].rightStickDeadzone;
-				it.second.SimpleSettings.leftTriggerThreshold = m_ScePadSettings[m_SelectedController].leftStickDeadzone;
-				it.second.SimpleSettings.rightTriggerThreshold = m_ScePadSettings[m_SelectedController].rightStickDeadzone;
+				auto& simpleSettings = it.second.SimpleSettings;
+				auto& settings = m_ScePadSettings[m_SelectedController];
+				simpleSettings.leftStickDeadzone = settings.leftStickDeadzone;
+				simpleSettings.rightStickDeadzone = settings.rightStickDeadzone;
+				simpleSettings.leftTriggerThreshold = settings.leftStickDeadzone;
+				simpleSettings.rightTriggerThreshold = settings.rightStickDeadzone;
+				simpleSettings.gyroToRightStick = settings.gyroToRightStick;
+				simpleSettings.gyroToRightStickActivationButton = settings.gyroToRightStickActivationButton;
+				simpleSettings.gyroToRightStickDeadzone = settings.gyroToRightStickDeadzone;
+				simpleSettings.gyroToRightStickSensitivity = settings.gyroToRightStickSensitivity;
 				if ((now - it.second.LastTimeSettingsSent) > std::chrono::seconds(1) && std::memcmp(&it.second.SimpleSettings, &it.second.PrevSimpleSettings, sizeof(s_ScePadSettingsSimple)) != 0) {
 
 					CMD_PEER_SETTINGS_STATE(it.first, it.second.SimpleSettings);

@@ -20,6 +20,17 @@ void sendKeyScan(WORD scancode, bool down) {
     input.type = INPUT_KEYBOARD;
     input.ki.dwFlags = KEYEVENTF_SCANCODE | (down ? 0 : KEYEVENTF_KEYUP);
     input.ki.wScan = scancode;
+   
+    SendInput(1, &input, sizeof(INPUT));
+}
+
+void MouseClick(DWORD flag, DWORD mouseData = 0) {
+    INPUT input;
+    input.type = INPUT_MOUSE;
+    input.mi.mouseData = mouseData;
+    input.mi.dwFlags = flag;
+    input.mi.time = 0;
+    input.mi.dwExtraInfo = 0;
     SendInput(1, &input, sizeof(INPUT));
 }
 #endif
@@ -27,12 +38,16 @@ void sendKeyScan(WORD scancode, bool down) {
 
 void KeyboardMouseMapper::thread() {
 #ifdef WINDOWS
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 
-	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
-	LARGE_INTEGER liDueTime;
-	liDueTime.QuadPart = -1000LL;
+    EXECUTION_STATE prevState = SetThreadExecutionState(
+        ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED
+    );
+
+    HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+    LARGE_INTEGER liDueTime;
+	liDueTime.QuadPart = -10000LL;
 
     std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
 
@@ -54,6 +69,7 @@ void KeyboardMouseMapper::thread() {
             if (result != SCE_OK || m_scePadSettings == nullptr)
                 continue;
 
+        #pragma region Touchpad as mouse
             if (m_scePadSettings[i].touchpadAsMouse && !state.touchData.touch[0].reserve[0]) {
 
                 if (!m_scePadSettings[i].wasTouching) {
@@ -65,18 +81,44 @@ void KeyboardMouseMapper::thread() {
                 int cursorY = state.touchData.touch[0].y - m_scePadSettings[i].lastTouchData.touch[0].y;
 
                 float sensitivity = m_scePadSettings[i].touchpadAsMouse_sensitivity;
-                if (abs(cursorX) > 1 || abs(cursorY) > 1)
+                if (state.touchData.touch[1].reserve[0] && (abs(cursorX) > 3 || abs(cursorY) > 3))
                     moveCursor((float)cursorX * sensitivity, (float)cursorY * sensitivity);
 
                 m_scePadSettings[i].lastTouchData.touch[0].reserve[0] = state.touchData.touch[0].reserve[0];
                 m_scePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
                 m_scePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
                 m_scePadSettings[i].wasTouching = true;
+
+                if (!state.touchData.touch[1].reserve[0] && fabs(cursorY) > 5.0f) {
+                    MouseClick(MOUSEEVENTF_WHEEL, static_cast<int>(-cursorY * 2));
+                }
             }
-            else {
+            else if (m_scePadSettings[i].touchpadAsMouse && state.touchData.touch[0].reserve[0]) {            
                 m_scePadSettings[i].wasTouching = false;
             }
 
+            static bool wasLeftMousePressed = false;
+            static bool wasRightMousePressed = false;
+            if (m_scePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x < 1000 && state.bitmask_buttons & SCE_BM_TOUCH) {
+                MouseClick(MOUSEEVENTF_LEFTDOWN);
+                wasLeftMousePressed = true;
+            }
+            else if (m_scePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x > 1000 && state.bitmask_buttons & SCE_BM_TOUCH) {
+                wasRightMousePressed = true;
+                MouseClick(MOUSEEVENTF_RIGHTDOWN);
+            }
+
+            if (m_scePadSettings[i].touchpadAsMouse && wasLeftMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH)) {
+                MouseClick(MOUSEEVENTF_LEFTUP);
+                wasLeftMousePressed = false;
+            }
+            if (m_scePadSettings[i].touchpadAsMouse && wasRightMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH)) {
+                MouseClick(MOUSEEVENTF_RIGHTUP);
+                wasRightMousePressed = false;
+            }
+        #pragma endregion
+
+        #pragma region Emulate analog wsad
             if(m_scePadSettings[i].emulateAnalogWsad)
             {
                 int lx = state.LeftStick.X;
@@ -118,6 +160,7 @@ void KeyboardMouseMapper::thread() {
                     sendKeyScan(SC_A, aNow);
                 }
             }
+        #pragma endregion
         }
 
         if (fire) {
