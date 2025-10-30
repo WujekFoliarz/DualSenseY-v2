@@ -328,6 +328,7 @@ enum s_SceControllerType {
 #define SCE_BM_TOUCH    0x00100000
 #define SCE_BM_SHARE    0x00000001
 #define SCE_BM_PSBTN    0x00010000
+#define SCE_BM_MICBUTTON 0x00020000
 
 // Errors
 #define SCE_PAD_ERROR_INVALID_ARG              0x80920001

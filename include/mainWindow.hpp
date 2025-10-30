@@ -27,7 +27,7 @@ private:
 	bool audio(int currentController, s_scePadSettings& scePadSettings);
 	bool emulation(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state);
 	bool adaptiveTriggers(s_scePadSettings& scePadSettings);
-	bool keyboardAndMouseMapping(s_scePadSettings& scePadSettings);
+	bool keyboardAndMouseMapping(s_scePadSettings& scePadSettings, s_ScePadData& state);
 	bool touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
 	bool treeElement_touchpadDiagnostics(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale);
 	bool treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state);

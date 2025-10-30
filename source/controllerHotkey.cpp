@@ -25,6 +25,7 @@ std::vector<std::string> GetActiveButtonNames(uint32_t ActiveButtons) {
     {SCE_BM_S_DPAD, "Dpad Down"},
     {SCE_BM_W_DPAD, "Dpad Left"},
     {SCE_BM_E_DPAD, "Dpad Right"},
+    {SCE_BM_MICBUTTON, "Mic button"},
     };
 
     std::vector<std::string> ActiveNames;

@@ -1102,6 +1102,7 @@ int scePadReadState(int handle, s_ScePadData* data) {
 			if (controller.dualsenseCurInputState.ButtonOptions) bitmaskButtons |= SCE_BM_OPTIONS;
 
 			if (controller.dualsenseCurInputState.ButtonPad) bitmaskButtons |= SCE_BM_TOUCH;
+			if (controller.dualsenseCurInputState.ButtonMute) bitmaskButtons |= SCE_BM_MICBUTTON;
 
 			if (g_particularMode) {
 				if (controller.dualsenseCurInputState.ButtonCreate) bitmaskButtons |= SCE_BM_SHARE;

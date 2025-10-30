@@ -537,9 +537,40 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 	return true;
 }
 
-bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings) {
+bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings, s_ScePadData& state) {
+	static std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now() - std::chrono::seconds(3);
+	auto now = std::chrono::steady_clock::now();
+	static bool wasClicked = false;
+
+	bool isHotkeyOpen = false;
+
+	auto remainingTime = now - time;
+	if (remainingTime < std::chrono::seconds(3)) {
+		isHotkeyOpen = true;
+	}
+	else if (remainingTime > std::chrono::seconds(3) && wasClicked) {
+		wasClicked = false;
+		if (state.bitmask_buttons != 0)
+			scePadSettings.mouse1Hotkey = state.bitmask_buttons;
+	}
+
 	ImGui::SeparatorText(str("KeyboardAndMouseMapping"));
 	ImGui::Checkbox("Analog WSAD emulation", &scePadSettings.emulateAnalogWsad);
+
+	ImGui::Checkbox("Gyro to mouse", &scePadSettings.gyroToMouse);
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(350);
+	ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotomouse").c_str(), &scePadSettings.gyroToMouseSensitivity, 0, 2);
+
+	ImGui::Checkbox("Left mouse hotkey", &scePadSettings.useMouse1Hotkey);
+	ImGui::SameLine();
+	if (ImGui::Button(std::string(GetFormattedActiveButtonNames(scePadSettings.mouse1Hotkey) + "##kb").c_str())) {
+		time = now;
+		wasClicked = true;
+	}
+
+	getHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
+
 	return true;
 }
 
@@ -549,7 +580,7 @@ bool MainWindow::touchpad(int currentController, s_scePadSettings& scePadSetting
 	ImGui::Checkbox(str("TouchpadToMouse"), &scePadSettings.touchpadAsMouse);
 	if (scePadSettings.touchpadAsMouse) {
 		ImGui::SetNextItemWidth(400);
-		ImGui::SliderFloat(str("Sensitivity"), &scePadSettings.touchpadAsMouse_sensitivity, 0.0f, 5.0f);
+		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##touchpad").c_str(), &scePadSettings.touchpadAsMouse_sensitivity, 0.0f, 5.0f);
 	}
 	treeElement_touchpadDiagnostics(currentController, scePadSettings, state, scale);
 
@@ -667,7 +698,9 @@ bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 
 		getHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
 
-		ImGui::SliderFloat("Sensitivity", &scePadSettings.gyroToRightStickSensitivity, 0, 100);
+		ImGui::SetNextItemWidth(350);
+		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotorightstick").c_str(), &scePadSettings.gyroToRightStickSensitivity, 0, 100);
+		ImGui::SetNextItemWidth(350);
 		ImGui::SliderInt("Deadzone", &scePadSettings.gyroToRightStickDeadzone, 0, 255);
 
 		ImGui::TreePop();
@@ -1019,7 +1052,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 		adaptiveTriggers(scePadSettings[c]);
 		audio(c, scePadSettings[c]);
 		touchpad(c, scePadSettings[c], state, scale);
-		keyboardAndMouseMapping(scePadSettings[c]);
+		keyboardAndMouseMapping(scePadSettings[c], state);
 	}
 	online();
 
