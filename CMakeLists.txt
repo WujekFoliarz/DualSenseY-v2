@@ -11,7 +11,7 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-set(PRODUCTION_BUILD OFF CACHE BOOL "Make this a production build" FORCE)
+set(PRODUCTION_BUILD ON CACHE BOOL "Make this a production build" FORCE)
 project (DualSenseY)
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
 
@@ -64,9 +64,9 @@ add_subdirectory(thirdparty/stb_image)
 add_subdirectory(thirdparty/nativefiledialog)
 add_subdirectory(thirdparty/PlatformFolders)
 add_subdirectory(thirdparty/miniupnp/miniupnpc)
+add_subdirectory(thirdparty/Updater)
 
 # Linking libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio stb_image nativefiledialog sago::platform_folders libminiupnpc-static)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad imgui duaLib nlohmann_json miniaudio ViGEmClient asio stb_image nativefiledialog sago::platform_folders libminiupnpc-static tiny-process-library)
 
-# Copying DLLs to out folder
-#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:duaLib> $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Updater> $<TARGET_FILE_DIR:${PROJECT_NAME}>)

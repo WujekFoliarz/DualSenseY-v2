@@ -267,12 +267,17 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 
 #ifdef WINDOWS
 void Vigem::emulatedControllerUpdate() {
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	timeBeginPeriod(1);
 
-	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+	EXECUTION_STATE prevState = SetThreadExecutionState(
+		ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED
+	);
+
+	HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 	LARGE_INTEGER liDueTime;
-	liDueTime.QuadPart = -1000LL;
+	liDueTime.QuadPart = -5000LL;
 
 	while (m_vigemThreadRunning) {
 		for (uint32_t i = 0; i < 4; i++) {

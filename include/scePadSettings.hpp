@@ -230,7 +230,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	leftStickDeadzone,
 	rightStickDeadzone,
 	touchpadAsMouse,
-	touchpadAsMouse_sensitivity
+	touchpadAsMouse_sensitivity,
+	useMouse1Hotkey,
+	mouse1Hotkey,
+	gyroToMouse,
+	gyroToMouseSensitivity
 );
 
 void saveSettingsToFile(const s_scePadSettings& s, const std::string& filepath);

@@ -5,6 +5,7 @@
 #include "upnp.hpp"
 #include "scePadHandle.hpp"
 #include <algorithm>
+#include "applicationVersion.hpp"
 
 Client::Client(s_scePadSettings* ScePadSettings) {
 	enet_initialize();
@@ -84,6 +85,19 @@ bool Client::IsFetchingDataFromServer() {
 
 bool Client::IsFetchingDataFromPeer() {
 	return m_AwaitingPeerResponseCount > 0;
+}
+
+uint32_t Client::GetAppVersion() {
+	return m_ServerAppVersion;
+}
+
+bool Client::IsUpToDate() {
+	if (m_ServerAppVersion == 0) return true;
+	return g_LocalAppVersion >= m_ServerAppVersion;
+}
+
+std::string Client::GetUpdateUrl() {
+	return m_UpdateUrl;
 }
 
 void Client::CMD_CHANGE_NICKNAME(SCMD::CMD_CHANGE_NICKNAME* Command) {
@@ -352,6 +366,8 @@ void Client::HostService() {
 			if (evt.type == ENET_EVENT_TYPE_CONNECT) {
 				if (evt.peer == m_ServerPeer) {
 
+					CMD_GET_APP_VERSION();
+
 					if (!sentLocalIp) {
 						CMD_SEND_LOCAL_IPANDPORT();
 						sentLocalIp = true;
@@ -447,6 +463,21 @@ void Client::HostService() {
 							std::memcpy(&command, evt.packet->data, sizeof(command));
 							m_GlobalPeerCount = command.Count;
 							LOGI("Received response for command CMD_GET_PEER_COUNT");
+							break;
+						}
+
+						case CMD::CMD_GET_APP_VERSION:
+						{
+							SCMD::CMD_GET_APP_VERSION command = {};
+							std::memcpy(&command, evt.packet->data, sizeof(command));
+							m_ServerAppVersion = command.Version;
+							m_UpdateUrl = std::string(command.UpdateUrl, strnlen(command.UpdateUrl, MAX_URL_SIZE));
+							LOGI("Received response for command CMD_GET_APP_VERSION");
+
+							if (!IsUpToDate()) {
+								LOGI("Application is out of date, disconnecting from server");
+								enet_peer_disconnect(m_ServerPeer, 0);
+							}
 							break;
 						}
 					}
@@ -721,6 +752,17 @@ void Client::CMD_GET_PEER_COUNT() {
 	command.Cmd = CMD::CMD_GET_PEER_COUNT;
 
 	LOGI("Sending request for command CMD_GET_PEER_COUNT");
+	ENetPacket* packet = enet_packet_create(&command, sizeof(command), ENET_PACKET_FLAG_RELIABLE);
+	enet_peer_send(m_ServerPeer, CHANNEL_REQUEST_RESPONSE, packet);
+}
+
+void Client::CMD_GET_APP_VERSION() {
+	if (!m_ServerPeer) return;
+
+	SCMD::CMD_UNK command = {};
+	command.Cmd = CMD::CMD_GET_APP_VERSION;
+
+	LOGI("Sending request for command CMD_GET_APP_VERSION");
 	ENetPacket* packet = enet_packet_create(&command, sizeof(command), ENET_PACKET_FLAG_RELIABLE);
 	enet_peer_send(m_ServerPeer, CHANNEL_REQUEST_RESPONSE, packet);
 }

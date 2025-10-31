@@ -325,14 +325,8 @@ namespace duaLibUtils {
 
 	bool isValid(hid_device* handle) {
 		if (!handle) return false;
-
-		std::string address;
-		hid_device_info* info = hid_get_device_info(handle);
-		bool res = getMacAddress(handle, address, info->product_id, info->bus_type);
-		if (res) {
-			return true;
-		}
-		return false;
+		unsigned char buf[1] = {};
+		return hid_read(handle, buf, 1) != -1;
 	}
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -451,7 +445,7 @@ constexpr std::array<s_SceLightBar, 4> g_playerColors = { {
 int readFunc() {
 #if defined(_WIN32) || defined(_WIN64)
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	timeBeginPeriod(1);
 
 	EXECUTION_STATE prevState = SetThreadExecutionState(
@@ -460,9 +454,8 @@ int readFunc() {
 
 	HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 	LARGE_INTEGER liDueTime;
+	liDueTime.QuadPart = -5000LL;
 #endif
-
-	auto start = std::chrono::high_resolution_clock::now();
 
 	while (g_threadRunning) {
 		bool allInvalid = true;		
@@ -751,7 +744,6 @@ int readFunc() {
 		}
 
 	#if defined(_WIN32) || defined(_WIN64)
-		liDueTime.QuadPart = -1000LL;
 		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
 		WaitForSingleObject(hTimer, INFINITE);
 	#else
@@ -791,6 +783,7 @@ int watchFunc() {
 				if (!handle) continue;
 
 				if (duaLibUtils::getMacAddress(handle, newMac, g_deviceList.devices[j].Device, info->bus_type)) {
+					
 					// Ignore ViGEm controllers
 					if (newMac.rfind("C0:13:37") != std::string::npos) {
 						hid_close(handle);

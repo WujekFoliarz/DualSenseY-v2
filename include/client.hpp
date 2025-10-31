@@ -18,6 +18,7 @@ static inline uint16_t g_PORT = 30151;
 constexpr auto MAX_ROOM_NAME_SIZE = 16;
 constexpr auto MAX_NICKNAME_SIZE = 16;
 constexpr auto MAX_IP_ADDRESS_STRING_SIZE = 40;
+constexpr auto MAX_URL_SIZE = 2048;
 
 constexpr auto CHANNEL_REQUEST_RESPONSE = 0; // Reliable
 constexpr auto CHANNEL_INPUT = 1; // Unreliable
@@ -45,6 +46,7 @@ enum class CMD : uint8_t {
 	CMD_PEER_INPUT_STATE,
 	CMD_PEER_GIMMICK_STATE,
 	CMD_PEER_SETTINGS_STATE,
+	CMD_GET_APP_VERSION,
 };
 
 inline static std::string CMDToString(CMD cmd) {
@@ -88,6 +90,8 @@ enum class RESPONSE_CODE : uint8_t {
 	E_ROOM_DOESNT_EXIST,
 	E_ROOM_ALREADY_EXISTS,
 	E_ROOM_NAME_EMPTY,
+
+	E_SERVER_ERROR,
 };
 
 enum class PEER_REQUEST_STATUS : uint8_t {
@@ -185,6 +189,12 @@ namespace SCMD {
 		CMD Cmd = CMD::CMD_GET_PEER_COUNT;
 		uint32_t Count = 0;
 	};
+
+	struct CMD_GET_APP_VERSION {
+		CMD Cmd = CMD::CMD_GET_APP_VERSION;
+		uint32_t Version = 0;
+		char UpdateUrl[MAX_URL_SIZE] = { 0 };
+	};
 #pragma pack(pop)
 }
 
@@ -260,6 +270,9 @@ public:
 	std::string GetExternalIP();
 	PEER_REQUEST_STATUS GetRequestStatus(uint32_t PeerId);
 	uint32_t GetGlobalPeerCount(); // This returns count of people connected to the central server, not the room that you're in.
+	uint32_t GetAppVersion();
+	bool IsUpToDate(); // Returns true if we haven't fetched server app version yet
+	std::string GetUpdateUrl();
 
 	std::vector<uint32_t> GetConnectedPeers();
 	std::vector<std::pair<uint32_t, std::string>> GetPeerList();
@@ -275,6 +288,7 @@ private:
 	void CMD_PEER_GIMMICK_STATE(uint32_t PeerId, s_ScePadVibrationParam VibrationParam, s_SceLightBar Lightbar);
 	void CMD_PEER_SETTINGS_STATE(uint32_t PeerId, s_ScePadSettingsSimple Settings);
 	void CMD_GET_PEER_COUNT(); // Central server peer count
+	void CMD_GET_APP_VERSION();
 
 	void RemovePeerControllerData(uint32_t PeerId);
 
@@ -294,8 +308,10 @@ private:
 	bool m_ConnectionOccupied = false;
 	uint32_t m_SelectedController = 0;
 	std::string m_LocalIp = "127.0.0.1";
-	s_scePadSettings* m_ScePadSettings = nullptr; 
+	s_scePadSettings* m_ScePadSettings = nullptr;
 	uint32_t m_GlobalPeerCount = 0;
+	uint32_t m_ServerAppVersion = 0;
+	std::string m_UpdateUrl = "";
 
 	std::thread m_ServiceThread;
 	std::thread m_InputStateSendoutThread;

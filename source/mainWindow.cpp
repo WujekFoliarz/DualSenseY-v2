@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include "controllerHotkey.hpp"
+#include <process.hpp>
 
 #define str(string) m_strings.getString(string).c_str()
 #define strr(string) m_strings.getString(string)
@@ -737,13 +738,24 @@ bool MainWindow::online() {
 	}
 
 	if (!m_client.IsConnected()) {
+
 		if (m_client.IsConnecting())
 			ImGui::Text(str("ConnectingToServer"));
+		else if (!m_client.IsUpToDate()) {
+			ImGui::Text("You need to update the application to connect");
+			if (ImGui::Button("Update")) {
+				std::string updateUrl = m_client.GetUpdateUrl();
+				std::filesystem::path filePath("Updater.exe");
+				if (std::filesystem::exists(filePath) && updateUrl != "") {
+					TinyProcessLib::Process process("Updater.exe --" + updateUrl + " update.zip");
+				}
+				std::exit(0);
+			}
+		}
 		else if (ImGui::Button(str("ConnectOnline")))
 			m_client.Connect();
 	}
 	else {
-
 		ImGui::Text("%s: %d", str("UsersOnline"), (int)m_client.GetGlobalPeerCount());
 
 		if (!m_client.IsInRoom()) {
@@ -1040,7 +1052,7 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	ImGui::SetNextWindowSize(viewport->WorkSize);
 
 	ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
-	ImGui::TextColored(ImVec4(1, 0, 0, 1), "Work in progress. Older build at v2 branch on GitHub");
+	//ImGui::TextColored(ImVec4(1, 0, 0, 1), "Work in progress. Older build at v2 branch on GitHub");
 	s_ScePadData state = {};
 	scePadReadState(g_scePad[c], &state);
 

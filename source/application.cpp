@@ -66,6 +66,9 @@ void Application::disableControllerInputIfMinimized() {
 }
 
 bool Application::run() {
+	// Delete update.zip if present
+	remove("update.zip");
+
 	Platform platform = Application::getPlatform();
 	#pragma region Initialize duaLib
 	s_ScePadInitParam initParam = {};

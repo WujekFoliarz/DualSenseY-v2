@@ -47,7 +47,7 @@ void KeyboardMouseMapper::thread() {
 
 	HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
 	LARGE_INTEGER liDueTime;
-	liDueTime.QuadPart = -10000LL;
+	liDueTime.QuadPart = -5000LL;
 
 	std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
 
