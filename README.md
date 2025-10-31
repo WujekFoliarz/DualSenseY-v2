@@ -6,7 +6,7 @@ Simple and lightweight program for DualSense and DualShock 4 controllers
 
 ## Installation
 
-Go to [releases](https://github.com/WujekFoliarz/DualSenseY-v2/releases) and download the lastest Release.zip, unpack and run DualSenseY.exe
+Go to [releases](https://github.com/WujekFoliarz/DualSenseY-v2/releases) and download the latest release zip, unpack and run DualSenseY.exe
 
     
 ## Features
