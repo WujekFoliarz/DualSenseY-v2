@@ -124,6 +124,36 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 		}
 
 		if (ImGui::BeginMenu(str("Settings"))) {
+
+			ImGui::SetNextItemWidth(300);
+			if (ImGui::BeginCombo(str("Language"), g_LanguageName[m_appSettings.SelectedLanguage].c_str())) {
+				int currentItem = 0;
+				int index = 0;
+
+				ImGuiIO& io = ImGui::GetIO();
+				bool isSelected = (currentItem == index);
+				for (auto& [code, name] : g_LanguageName) {
+
+					int fontIndex = g_FontIndex[code];
+					if (fontIndex != 0) ImGui::PushFont(io.Fonts->Fonts[fontIndex]);
+
+					if (ImGui::Selectable(name.c_str(), isSelected)) {
+						currentItem = index;
+						m_appSettings.SelectedLanguage = code;
+						saveAppSettings(&m_appSettings);
+						io.FontDefault = io.Fonts->Fonts[fontIndex];
+						m_strings.readStringsFromJson(countryCodeToFile(code));
+					}
+
+					if (fontIndex != 0)
+						ImGui::PopFont();
+
+					index++;
+				}
+
+				ImGui::EndCombo();
+			}
+
 			if (ImGui::MenuItem(str("DisconnectAllBTDevicesOnExit"), NULL, &m_appSettings.DisableAllBluetoothControllersOnExit))
 				saveAppSettings(&m_appSettings);
 			if (ImGui::MenuItem(str("DontConnectToServerOnStart"), NULL, &m_appSettings.DontConnectToServerOnStart))
@@ -215,7 +245,7 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 	ImGui::SeparatorText(str("Audio"));
 
 	if (busType == SCE_PAD_BUSTYPE_BT) {
-		ImGui::TextColored(ImVec4(1, 0, 0, 1), "Bluetooth");
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("HapticsUnavailable"));
 		return true;
 	}
 
@@ -557,14 +587,14 @@ bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings, s_Sce
 	}
 
 	ImGui::SeparatorText(str("KeyboardAndMouseMapping"));
-	ImGui::Checkbox("Analog WSAD emulation", &scePadSettings.emulateAnalogWsad);
+	ImGui::Checkbox(str("AnalogWsadEmulation"), &scePadSettings.emulateAnalogWsad);
 
-	ImGui::Checkbox("Gyro to mouse", &scePadSettings.gyroToMouse);
+	ImGui::Checkbox(str("GyroToMouse"), &scePadSettings.gyroToMouse);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(350);
 	ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotomouse").c_str(), &scePadSettings.gyroToMouseSensitivity, 0, 2);
 
-	ImGui::Checkbox("Left mouse hotkey", &scePadSettings.useMouse1Hotkey);
+	ImGui::Checkbox(str("LeftMouseHotkey"), &scePadSettings.useMouse1Hotkey);
 	ImGui::SameLine();
 	if (ImGui::Button(std::string(GetFormattedActiveButtonNames(scePadSettings.mouse1Hotkey) + "##kb").c_str())) {
 		time = now;
@@ -677,9 +707,9 @@ bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 	static bool wasClicked = false;
 
 	if (ImGui::TreeNodeEx(str("Motion"))) {
-		ImGui::Checkbox("Gyro to left stick", &scePadSettings.gyroToRightStick);
+		ImGui::Checkbox(str("GyroToLeftStick"), &scePadSettings.gyroToRightStick);
 
-		ImGui::Text("Set activation button: ");
+		ImGui::Text(std::string(strr("SetActivationButton") + ": ").c_str());
 		ImGui::SameLine();
 
 		bool isHotkeyOpen = false;
@@ -694,7 +724,7 @@ bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 		}
 		else if (remainingTime > std::chrono::seconds(3) && wasClicked) {
 			wasClicked = false;
-			if(state.bitmask_buttons != 0)
+			if (state.bitmask_buttons != 0)
 				scePadSettings.gyroToRightStickActivationButton = state.bitmask_buttons;
 		}
 
@@ -703,7 +733,7 @@ bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 		ImGui::SetNextItemWidth(350);
 		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotorightstick").c_str(), &scePadSettings.gyroToRightStickSensitivity, 0, 100);
 		ImGui::SetNextItemWidth(350);
-		ImGui::SliderInt("Deadzone", &scePadSettings.gyroToRightStickDeadzone, 0, 255);
+		ImGui::SliderInt(str("Deadzone"), &scePadSettings.gyroToRightStickDeadzone, 0, 255);
 
 		ImGui::TreePop();
 	}
@@ -743,8 +773,8 @@ bool MainWindow::online() {
 		if (m_client.IsConnecting())
 			ImGui::Text(str("ConnectingToServer"));
 		else if (!m_client.IsUpToDate()) {
-			ImGui::Text("You need to update the application to connect");
-			if (ImGui::Button("Update")) {
+			ImGui::Text(str("UpdateRequiredToConnectMsg"));
+			if (ImGui::Button(str("Update"))) {
 				std::string updateUrl = m_client.GetUpdateUrl();
 				std::filesystem::path filePath("Updater.exe");
 				if (std::filesystem::exists(filePath) && updateUrl != "") {
@@ -939,7 +969,7 @@ bool MainWindow::getHotkeyFromControllerScreen(bool* open, int countdown, int ex
 		ImGui::OpenPopup("Hotkey");
 
 		if (ImGui::BeginPopupModal("Hotkey", open, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs)) {
-			ImGui::Text("Please hold the buttons you want to bind until the countdown is over");
+			ImGui::Text(str("HotkeyHoldMsg"));
 			ImGui::Text("%d", abs(countdown - 3));
 			ImGui::EndPopup();
 		}

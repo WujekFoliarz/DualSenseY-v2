@@ -89,6 +89,7 @@ bool Application::run() {
 	#endif
 
 	createWindow();
+	ImGuiIO& io = ImGui::GetIO();
 	AudioPassthrough audio = {};
 	UDP udp = {};
 	Vigem vigem(m_scePadSettings, udp);
@@ -97,6 +98,7 @@ bool Application::run() {
 	Client client(m_scePadSettings);
 
 	loadAppSettings(&m_appSettings);
+	io.FontDefault = io.Fonts->Fonts[g_FontIndex[m_appSettings.SelectedLanguage]];
 
 	client.Start();
 	if(!m_appSettings.DontConnectToServerOnStart) client.Connect();
@@ -106,7 +108,7 @@ bool Application::run() {
 	// Windows
 	MainWindow main(strings, audio, vigem, udp, m_appSettings, client);
 
-	strings.readStringsFromJson(countryCodeToFile("en"));
+	strings.readStringsFromJson(countryCodeToFile(m_appSettings.SelectedLanguage));
 
 	bool active = false;
 	uint32_t occasionalFrameWhenMinimized = 0;
@@ -144,7 +146,6 @@ bool Application::run() {
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
-			ImGuiIO& io = ImGui::GetIO();
 			io.FontGlobalScale = xscale + 0.5;
 			finishFrame = true;
 		}
@@ -236,11 +237,13 @@ void Application::createWindow() {
 	builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
 	builder.BuildRanges(&ranges);
 
+	// Font index in appSettings.hpp
 	ImFont* regular = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Saira_Expanded-MediumItalic.ttf", 20, nullptr, ranges.Data);
 	ImFont* japaneseAndCyrillic = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Murecho-Regular.ttf", 20, nullptr, ranges.Data);
 	ImFont* korean = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/AstaSans-Light.ttf", 20, nullptr, ranges.Data);
 	ImFont* thai = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Kanit-LightItalic.ttf", 20, nullptr, ranges.Data);
-
+	ImFont* chineseSimplified = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansSC-Regular.ttf", 20, nullptr, ranges.Data);
+	
 	GLFWimage image;
 	image.pixels = stbi_load(RESOURCES_PATH "images/iconWhite.png", &image.width, &image.height, 0, 4); // RGBA
 	if (image.pixels) {
