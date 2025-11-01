@@ -41,3 +41,4 @@ All you need to do is run a game with dualsense mod installed, it will turn to a
 - [Discord server](https://www.github.com/octokatherine)
 - Discord user wujek_foliarz
 
+## [Translations](https://crowdin.com/project/dualsensey)
