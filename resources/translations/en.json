@@ -119,6 +119,7 @@
   "HotkeyHoldMsg": "Please hold the buttons you want to bind until the countdown is over",
   "SetActivationButton": "Set activation button",
   "Deadzone": "Deadzone",
+  "GyroToRightStick": "Gyro to right stick",
   "GyroToLeftStick": "Gyro to left stick",
   "UpdateRequiredToConnectMsg": "You need to update the application to connect",
   "AnalogWsadEmulation": "Analog WSAD emulation",

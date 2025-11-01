@@ -707,7 +707,7 @@ bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 	static bool wasClicked = false;
 
 	if (ImGui::TreeNodeEx(str("Motion"))) {
-		ImGui::Checkbox(str("GyroToLeftStick"), &scePadSettings.gyroToRightStick);
+		ImGui::Checkbox(str("GyroToRightStick"), &scePadSettings.gyroToRightStick);
 
 		ImGui::Text(std::string(strr("SetActivationButton") + ": ").c_str());
 		ImGui::SameLine();

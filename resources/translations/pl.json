@@ -119,6 +119,7 @@
   "HotkeyHoldMsg": "Przytrzymaj przyciski, które chcesz zbindować do czasu zakończenia odliczania",
   "SetActivationButton": "Ustaw przycisk aktywacji",
   "Deadzone": "Martwa strefa",
+  "GyroToRightStick": "Żyroskop do prawej gałki",
   "GyroToLeftStick": "Żyroskop do lewej gałki",
   "UpdateRequiredToConnectMsg": "Musisz zaktualizować aplikację aby się połączyć",
   "AnalogWsadEmulation": "Analogowa emulacja WSAD",
