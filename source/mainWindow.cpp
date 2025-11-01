@@ -14,6 +14,7 @@
 #include <fstream>
 #include "controllerHotkey.hpp"
 #include <process.hpp>
+#include "applicationVersion.hpp"
 
 #define str(string) m_strings.getString(string).c_str()
 #define strr(string) m_strings.getString(string)
@@ -28,7 +29,7 @@ bool MainWindow::about(bool* open) {
 		return false;
 	}
 
-	ImGui::Text("Version 46");
+	ImGui::Text("Version %d", g_LocalAppVersion);
 	ImGui::Text("Made by Wujek_Foliarz");
 	ImGui::Text("DualSenseY is licensed under the MIT License,");
 	ImGui::Text("see LICENSE for more information.");

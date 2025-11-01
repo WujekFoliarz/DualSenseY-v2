@@ -120,8 +120,8 @@ void Vigem::updateDs4ByTarget(PVIGEM_TARGET Target, s_ScePadData& state) {
 	report.Report.wAccelY = state.acceleration.y;
 	report.Report.wAccelZ = state.acceleration.z;
 	report.Report.wGyroX = state.angularVelocity.x;
-	report.Report.wGyroY = state.angularVelocity.y;
-	report.Report.wGyroZ = state.angularVelocity.z;
+	report.Report.wGyroY = state.angularVelocity.z; // needs to be swapped for some reason
+	report.Report.wGyroZ = state.angularVelocity.y;
 	report.Report.wTimestamp = state.timestamp / 16;
 
 	vigem_target_ds4_update_ex(m_vigemClient, Target, report);
