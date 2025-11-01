@@ -1,0 +1,11 @@
+include README
+include VERSION
+include LICENSE
+include DESCRIPTION
+include src/miniupnpcmodule.c
+include setup.py
+include Makefile
+include src/*.[ch]
+include include/*.h
+include *.h.in
+include *.sh
