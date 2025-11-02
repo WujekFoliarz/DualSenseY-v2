@@ -1,6 +1,6 @@
 
 # DualSenseY
-
+<img src="https://img.shields.io/github/downloads/WujekFoliarz/DualSenseY-v2/total">
 Simple and lightweight program for DualSense and DualShock 4 controllers
 
 
