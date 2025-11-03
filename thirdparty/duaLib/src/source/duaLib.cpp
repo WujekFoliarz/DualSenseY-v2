@@ -826,6 +826,7 @@ int watchFunc() {
 								controller.failedReadCount = 0;
 								controller.lastPath = info->path;
 								controller.productID = g_deviceList.devices[j].Device;
+								hid_set_nonblocking(controller.handle, true);
 
 								const char* id = {};
 								uint32_t size = 0;
