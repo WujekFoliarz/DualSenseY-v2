@@ -23,6 +23,8 @@ static std::unordered_map<std::string, std::string> g_LanguageName = {
 	//{"ru", "Русский"},
 	//{"es-ES", "Español"},
 	{"tr", "Türkçe"},
+	{"es", "Español"},
+	//{"tr", "Türkçe"},
 	//{"uk", "Українська"},
 	//{"vi", "Tiếng Việt"},
 };
