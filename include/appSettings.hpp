@@ -42,13 +42,17 @@ struct AppSettings {
 	bool DisableAllBluetoothControllersOnExit = false;
 	bool DontConnectToServerOnStart = false;
 	std::string SelectedLanguage = "en";
+	bool HideToTrayOnMinimize = false;
+	bool HideToTrayOnStart = false;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	AppSettings,
 	DisableAllBluetoothControllersOnExit,
 	DontConnectToServerOnStart,
-	SelectedLanguage
+	SelectedLanguage,
+	HideToTrayOnMinimize,
+	HideToTrayOnStart
 );
 
 void SaveAppSettings(AppSettings* appSettings);

@@ -62,7 +62,14 @@ void Application::DisableControllerInputIfMinimized() {
 		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
 	}
 	else {
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+	}
+}
+
+void Application::IconifyCallback(GLFWwindow* window, int iconified) {
+	Application* application = static_cast<Application*>(glfwGetWindowUserPointer(window));
+	if (application->m_AppSettings.HideToTrayOnMinimize && iconified) {
+		application->HideWindowToTray();
 	}
 }
 
@@ -71,7 +78,7 @@ bool Application::Run() {
 	remove("update.zip");
 
 	Platform platform = Application::GetPlatform();
-	#pragma region Initialize duaLib
+#pragma region Initialize duaLib
 	s_ScePadInitParam initParam = {};
 	initParam.allowBT = true;
 	scePadInit3(&initParam);
@@ -81,16 +88,17 @@ bool Application::Run() {
 	g_ScePad[3] = scePadOpen(4, 0, 0);
 	scePadSetParticularMode(true);
 #pragma endregion
-	#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
+#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
 	AllocConsole();
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);
 	freopen_s(&fp, "CONO UT$", "w", stderr);
 	freopen_s(&fp, "CONIN$", "r", stdin);
-	#endif
+#endif
 
-
+	SetupTray();
 	InitializeWindow();
+
 	ImGuiIO& io = ImGui::GetIO();
 	AudioPassthrough audio = {};
 	UDP udp = {};
@@ -100,10 +108,11 @@ bool Application::Run() {
 	Client client(m_ScePadSettings);
 
 	LoadAppSettings(&m_AppSettings);
+	if (m_AppSettings.HideToTrayOnStart) HideWindowToTray();
 	io.FontDefault = io.Fonts->Fonts[g_FontIndex[m_AppSettings.SelectedLanguage]];
 
 	client.Start();
-	if(!m_AppSettings.DontConnectToServerOnStart) client.Connect();
+	if (!m_AppSettings.DontConnectToServerOnStart) client.Connect();
 	client.AllowedToHostController = vigem.IsVigemConnected();
 	vigem.SetPeerControllerDataPointer(client.GetActivePeerControllerMap());
 
@@ -114,7 +123,7 @@ bool Application::Run() {
 
 	bool active = false;
 	uint32_t occasionalFrameWhenMinimized = 0;
-	
+
 
 #ifdef WINDOWS
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
@@ -128,7 +137,7 @@ bool Application::Run() {
 		bool v_isMinimized = IsMinimized();
 		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
 
-		#pragma region ImGUI
+	#pragma region ImGUI
 		bool finishFrame = false;
 		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -151,20 +160,20 @@ bool Application::Run() {
 			io.FontGlobalScale = xscale + 0.5;
 			finishFrame = true;
 		}
-		#pragma endregion
+	#pragma endregion
 
 		int selectedController = main.GetSelectedController();
 		vigem.SetSelectedController(selectedController);
 		client.SetSelectedController(selectedController);
 		udp.SetVibrationToUdpConfig(m_ScePadSettings[selectedController].rumbleFromEmulatedController);
-		audio.Validate();	
-		
+		audio.Validate();
+
 		for (int i = 0; i < 4; i++) {
 			LoadDefaultConfigs(i, &m_ScePadSettings[i]);
 			applySettings(i, i == (selectedController) && udp.IsActive() ? udp.GetSettings() : m_ScePadSettings[i], audio);
 		}
 
-		#pragma region ImGUI + GLFW
+	#pragma region ImGUI + GLFW
 		DisableControllerInputIfMinimized();
 		glfwPollEvents();
 
@@ -178,7 +187,7 @@ bool Application::Run() {
 			ImGui::EndFrame();
 		}
 
-		#pragma endregion	
+	#pragma endregion	
 
 	#ifdef WINDOWS
 		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
@@ -207,7 +216,10 @@ void Application::InitializeWindow() {
 	glfwSetWindowCloseCallback(m_GlfwWindow.get(), [](GLFWwindow* window) {
 		glfwSetWindowShouldClose(window, true);
 	});
-	
+
+	glfwSetWindowUserPointer(m_GlfwWindow.get(), this);
+	glfwSetWindowIconifyCallback(m_GlfwWindow.get(), IconifyCallback);
+
 	ImGui::CreateContext();
 
 	glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
@@ -245,7 +257,7 @@ void Application::InitializeWindow() {
 	ImFont* korean = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/AstaSans-Light.ttf", 20, nullptr, ranges.Data);
 	ImFont* thai = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Kanit-LightItalic.ttf", 20, nullptr, ranges.Data);
 	ImFont* chineseSimplified = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansSC-Regular.ttf", 20, nullptr, ranges.Data);
-	
+
 	GLFWimage image;
 	image.pixels = stbi_load(RESOURCES_PATH "images/iconWhite.png", &image.width, &image.height, 0, 4); // RGBA
 	if (image.pixels) {
@@ -313,17 +325,43 @@ void Application::SetStyleAndColors() {
 }
 
 void Application::SetupTray() {
-	Tray::Tray tray("DualSenseY", RESOURCES_PATH "images/icon.ico");
-	tray.addEntry(Tray::Button("Exit", [&] {
-		tray.exit();
-	}));
+	std::thread trayThread([&]{
+		Tray::Tray tray("DualSenseY", RESOURCES_PATH "images/icon.ico");
+		tray.addEntry(Tray::Button("Show window", [&] {
+			RestoreWindowFromTray();
+		}));
+
+		tray.addEntry(Tray::Button("Hide to tray", [&] {
+			HideWindowToTray();
+		}));
+
+		tray.addEntry(Tray::Separator());
+
+		tray.addEntry(Tray::Button("Exit", [&] {
+			tray.exit();
+			std::exit(0);
+		}));
+
+		tray.run();
+	});
+	trayThread.detach();
+}
+
+void Application::HideWindowToTray() {
+	glfwHideWindow(m_GlfwWindow.get());
+}
+
+void Application::RestoreWindowFromTray() {
+	glfwShowWindow(m_GlfwWindow.get());
+	glfwRestoreWindow(m_GlfwWindow.get());
+	glfwFocusWindow(m_GlfwWindow.get());
 }
 
 Application::~Application() {
 	// Unhide controllers
 #ifdef WINDOWS
 	if (IsRunningAsAdministratorWindows()) {
-		for(int i = 0;i<4;i++)
+		for (int i = 0; i < 4; i++)
 			UnhideController(scePadGetPath(g_ScePad[i]));
 	}
 

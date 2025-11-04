@@ -154,6 +154,10 @@ bool MainWindow::MenuBar(int& currentController, s_scePadSettings& scePadSetting
 				ImGui::EndCombo();
 			}
 
+			if (ImGui::MenuItem(str("HideToTrayOnMinimize"), NULL, &m_AppSettings.HideToTrayOnMinimize))
+				SaveAppSettings(&m_AppSettings);
+			if (ImGui::MenuItem(str("HideToTrayOnStart"), NULL, &m_AppSettings.HideToTrayOnStart))
+				SaveAppSettings(&m_AppSettings);
 			if (ImGui::MenuItem(str("DisconnectAllBTDevicesOnExit"), NULL, &m_AppSettings.DisableAllBluetoothControllersOnExit))
 				SaveAppSettings(&m_AppSettings);
 			if (ImGui::MenuItem(str("DontConnectToServerOnStart"), NULL, &m_AppSettings.DontConnectToServerOnStart))

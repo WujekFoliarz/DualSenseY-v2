@@ -128,5 +128,7 @@
   "RemoveDefaultConfig": "Remove default config",
   "SelectedTrigger": "Selected trigger",
   "NoControllersConnected": "No controllers connected",
-  "Controller": "Controller"
+  "Controller": "Controller",
+  "HideToTrayOnMinimize": "Hide to tray on minimize",
+  "HideToTrayOnStart": "Hide to tray on start"
 }

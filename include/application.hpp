@@ -23,6 +23,7 @@ private:
 	bool IsMinimized();
 	void DisableControllerInputIfMinimized();
 	AppSettings m_AppSettings = {};
+	static void IconifyCallback(GLFWwindow* window, int iconified);
 public:
 	enum class Platform {
 		Windows,
@@ -47,6 +48,8 @@ public:
 	void InitializeWindow();
 	void SetStyleAndColors();
 	void SetupTray();
+	void HideWindowToTray();
+	void RestoreWindowFromTray();
 	Application() = default;
 	~Application();
 };
