@@ -6,7 +6,7 @@
 static inline std::filesystem::path directory = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/");
 static inline std::filesystem::path filePath = directory / "Config.json";
 
-void saveAppSettings(AppSettings* appSettings) {
+void SaveAppSettings(AppSettings* appSettings) {
 	nlohmann::json j = *appSettings;
 
 	if (!std::filesystem::is_directory(directory))
@@ -15,7 +15,7 @@ void saveAppSettings(AppSettings* appSettings) {
 	std::ofstream(filePath) << j.dump(4);
 }
 
-void loadAppSettings(AppSettings* appSettings) {
+void LoadAppSettings(AppSettings* appSettings) {
 	if (std::filesystem::exists(filePath)) {
 		std::ifstream ifs(filePath);
 		if (!ifs) return;

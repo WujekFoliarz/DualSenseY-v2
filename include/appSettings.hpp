@@ -51,7 +51,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	SelectedLanguage
 );
 
-void saveAppSettings(AppSettings* appSettings);
-void loadAppSettings(AppSettings* appSettings);
+void SaveAppSettings(AppSettings* appSettings);
+void LoadAppSettings(AppSettings* appSettings);
 
 #endif

@@ -632,7 +632,7 @@ void Client::InputStateSendoutService() {
 		s_ScePadData InputState = { };
 		InputState.LeftStick.X = 128; InputState.LeftStick.Y = 128;
 		InputState.RightStick.X = 128; InputState.RightStick.Y = 128;
-		int result = scePadReadState(g_scePad[m_SelectedController], &InputState);
+		int result = scePadReadState(g_ScePad[m_SelectedController], &InputState);
 
 		for (auto& it : *m_PeerControllers) {
 			auto now = std::chrono::steady_clock::now();

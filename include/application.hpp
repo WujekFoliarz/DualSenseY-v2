@@ -18,11 +18,11 @@ struct glfwDeleter {
 
 class Application {
 private:
-	std::unique_ptr<GLFWwindow, glfwDeleter> m_glfwWindow;
-	s_scePadSettings m_scePadSettings[4] = {};
-	bool isMinimized();
-	void disableControllerInputIfMinimized();
-	AppSettings m_appSettings = {};
+	std::unique_ptr<GLFWwindow, glfwDeleter> m_GlfwWindow;
+	s_scePadSettings m_ScePadSettings[4] = {};
+	bool IsMinimized();
+	void DisableControllerInputIfMinimized();
+	AppSettings m_AppSettings = {};
 public:
 	enum class Platform {
 		Windows,
@@ -31,7 +31,7 @@ public:
 		Unknown
 	};
 
-	inline Platform getPlatform() {
+	inline Platform GetPlatform() {
 	#if defined(__linux__)
 		return Platform::Linux;
 	#elif defined(__ANDROID__)
@@ -43,9 +43,10 @@ public:
 	#endif
 	}
 	
-	bool run();
-	void createWindow();
-	void setStyleAndColors();
+	bool Run();
+	void InitializeWindow();
+	void SetStyleAndColors();
+	void SetupTray();
 	Application() = default;
 	~Application();
 };

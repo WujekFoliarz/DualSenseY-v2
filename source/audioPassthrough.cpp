@@ -104,29 +104,29 @@ bool isMaDeviceWorking(ma_device* device) {
 	return true;
 }
 
-ma_device AudioPassthrough::m_captureDevice;
+ma_device AudioPassthrough::m_CaptureDevice;
 ma_context g_context;
 std::mutex g_contextLock;
 
-void captureDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
+void CaptureDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
 	using namespace std;
 	const float* inputF32 = static_cast<const float*>(pInput);
 	const uint32_t numChannels = 2;  // Assuming stereo
 	AudioPassthrough* userData = (AudioPassthrough*)pDevice->pUserData;
 	float localPeak = 0.0f;
 
-	std::lock_guard<std::mutex> lock(userData->m_bufferMutex);
+	std::lock_guard<std::mutex> lock(userData->m_BufferMutex);
 
 	for (uint32_t frame = 0; frame < frameCount; ++frame) {
 		float sampleL = inputF32[frame * numChannels + 0];
 		float sampleR = inputF32[frame * numChannels + 1];
 
 		for (uint32_t i = 0; i < 4; ++i) {
-			userData->m_audioBuffer[i].push_back(sampleL);
-			userData->m_audioBuffer[i].push_back(sampleR);
+			userData->m_AudioBuffer[i].push_back(sampleL);
+			userData->m_AudioBuffer[i].push_back(sampleR);
 
-			if (userData->m_audioBuffer[i].size() > 48000 * numChannels) {
-				userData->m_audioBuffer[i].clear();
+			if (userData->m_AudioBuffer[i].size() > 48000 * numChannels) {
+				userData->m_AudioBuffer[i].clear();
 			}
 		}
 
@@ -138,33 +138,33 @@ void captureDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, 
 		}
 	}
 
-	userData->m_currentCapturePeak = localPeak;
+	userData->m_CurrentCapturePeak = localPeak;
 }
 
-void playbackDualsenseDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
+void PlaybackDualsenseDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
     float* out = (float*)pOutput;
 	AudioPassthrough* userData = (AudioPassthrough*)pDevice->pUserData;
-    std::lock_guard<std::mutex> lock(userData->m_bufferMutex);
+    std::lock_guard<std::mutex> lock(userData->m_BufferMutex);
 
 	uint32_t index = 0;
 	for (uint32_t i = 0; i < 4; i++) {
-		if (&userData->m_controller[i] == pDevice) {
+		if (&userData->m_Controller[i] == pDevice) {
 			index = i;
 			break;
 		}
 	}
 
-    size_t availableFrames = userData->m_audioBuffer[index].size() / 2;
+    size_t availableFrames = userData->m_AudioBuffer[index].size() / 2;
     size_t framesToWrite = std::min<size_t>(frameCount, availableFrames);
 
     for (size_t i = 0; i < framesToWrite; ++i) {
-        float inL = userData->m_audioBuffer[index][i * 2 + 0];
-        float inR = userData->m_audioBuffer[index][i * 2 + 1];
+        float inL = userData->m_AudioBuffer[index][i * 2 + 0];
+        float inR = userData->m_AudioBuffer[index][i * 2 + 1];
 
         out[i * 4 + 0] = 0.0f;
         out[i * 4 + 1] = std::clamp(inL, -1.0f, 1.0f);
-        out[i * 4 + 2] = std::clamp(inL * userData->m_hapticIntensity[index], -1.0f, 1.0f);
-        out[i * 4 + 3] = std::clamp(inR * userData->m_hapticIntensity[index], -1.0f, 1.0f);
+        out[i * 4 + 2] = std::clamp(inL * userData->m_HapticIntensity[index], -1.0f, 1.0f);
+        out[i * 4 + 3] = std::clamp(inR * userData->m_HapticIntensity[index], -1.0f, 1.0f);
     }
 
     for (size_t i = framesToWrite; i < frameCount; ++i) {
@@ -174,27 +174,27 @@ void playbackDualsenseDataCallback(ma_device* pDevice, void* pOutput, const void
         out[i * 4 + 3] = 0.0f;
     }
 
-	userData->m_audioBuffer[index].erase(userData->m_audioBuffer[index].begin(), userData->m_audioBuffer[index].begin() + framesToWrite * 2);
+	userData->m_AudioBuffer[index].erase(userData->m_AudioBuffer[index].begin(), userData->m_AudioBuffer[index].begin() + framesToWrite * 2);
 }
 
-void playbackDualshock4DataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
+void PlaybackDualshock4DataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
 	float* out = (float*)pOutput;
 	AudioPassthrough* userData = (AudioPassthrough*)pDevice->pUserData;
-	std::lock_guard<std::mutex> lock(userData->m_bufferMutex);
+	std::lock_guard<std::mutex> lock(userData->m_BufferMutex);
 
 	uint32_t index = 0;
 	for (uint32_t i = 0; i < 4; i++) {
-		if (&userData->m_controller[i] == pDevice) {
+		if (&userData->m_Controller[i] == pDevice) {
 			index = i;
 		}
 	}
 
-	size_t availableFrames = userData->m_audioBuffer[index].size() / 2;
+	size_t availableFrames = userData->m_AudioBuffer[index].size() / 2;
 	size_t framesToWrite = std::min<size_t>(frameCount, availableFrames);
 
 	for (size_t i = 0; i < framesToWrite; ++i) {
-		float inL = userData->m_audioBuffer[index][i * 2 + 0];
-		float inR = userData->m_audioBuffer[index][i * 2 + 1];
+		float inL = userData->m_AudioBuffer[index][i * 2 + 0];
+		float inR = userData->m_AudioBuffer[index][i * 2 + 1];
 
 		out[i * 2 + 0] = 0.0f;     
 		out[i * 2 + 1] = std::clamp(inL, -1.0f, 1.0f);
@@ -205,17 +205,17 @@ void playbackDualshock4DataCallback(ma_device* pDevice, void* pOutput, const voi
 		out[i * 2 + 1] = 0.0f;
 	}
 
-	userData->m_audioBuffer[index].erase(userData->m_audioBuffer[index].begin(), userData->m_audioBuffer[index].begin() + framesToWrite * 2);
+	userData->m_AudioBuffer[index].erase(userData->m_AudioBuffer[index].begin(), userData->m_AudioBuffer[index].begin() + framesToWrite * 2);
 }
 
-void AudioPassthrough::startCaptureDevice(ma_device* pDevice) {
+void AudioPassthrough::StartCaptureDevice(ma_device* pDevice) {
 	if (isMaDeviceWorking(pDevice)) return;
 
 	ma_device_config captureConfig = ma_device_config_init(ma_device_type_loopback);
 	captureConfig.capture.format = ma_format_f32;
 	captureConfig.capture.channels = 2;
 	captureConfig.sampleRate = 48000;
-	captureConfig.dataCallback = captureDataCallback;
+	captureConfig.dataCallback = CaptureDataCallback;
 	captureConfig.periodSizeInFrames = 128;
 	captureConfig.periods = 2;
 	captureConfig.pUserData = this;
@@ -231,70 +231,70 @@ void AudioPassthrough::startCaptureDevice(ma_device* pDevice) {
 
 AudioPassthrough::AudioPassthrough() {
 	if (ma_context_init(NULL, 0, NULL, &g_context) != MA_SUCCESS) return;
-	lastTimeValidated = std::chrono::steady_clock::now();
+	m_LastTimeValidated = std::chrono::steady_clock::now();
 }
 
 AudioPassthrough::~AudioPassthrough() {
-	ma_device_uninit(&m_captureDevice);
+	ma_device_uninit(&m_CaptureDevice);
 
 	for (uint32_t i = 0; i < 4; i++) {
-		if(isMaDeviceWorking(&m_controller[i]))
-			ma_device_uninit(&m_controller[i]);
+		if(isMaDeviceWorking(&m_Controller[i]))
+			ma_device_uninit(&m_Controller[i]);
 	}
 
-	std::lock_guard<std::mutex> lock(m_bufferMutex);
+	std::lock_guard<std::mutex> lock(m_BufferMutex);
 	ma_context_uninit(&g_context);
 }
 
-void AudioPassthrough::validate() {
+void AudioPassthrough::Validate() {
 	auto now = std::chrono::steady_clock::now();
-	auto timeSinceLastRetry = std::chrono::duration_cast<std::chrono::seconds>(now - lastTimeValidated);
+	auto m_TimeSinceLastRetry = std::chrono::duration_cast<std::chrono::seconds>(now - m_LastTimeValidated);
 
-	if (timeSinceLastRetry < std::chrono::seconds(5)) 
+	if (m_TimeSinceLastRetry < std::chrono::seconds(5)) 
 		return;
 
-	if (!isMaDeviceWorking(&m_captureDevice)) {
-		ma_device_uninit(&m_captureDevice);
+	if (!isMaDeviceWorking(&m_CaptureDevice)) {
+		ma_device_uninit(&m_CaptureDevice);
 
 		{
-			std::lock_guard<std::mutex> lock(m_bufferMutex);
+			std::lock_guard<std::mutex> lock(m_BufferMutex);
 			for (uint32_t i = 0; i < 4; i++) {
-				m_audioBuffer[i].clear();
-				m_audioBuffer[i].shrink_to_fit();
+				m_AudioBuffer[i].clear();
+				m_AudioBuffer[i].shrink_to_fit();
 			}	
 		}
 
-		startCaptureDevice(&m_captureDevice);
+		StartCaptureDevice(&m_CaptureDevice);
 	}
 
 	for (uint32_t i = 0; i < 4; i++) {
-		if (m_active[i] && !isMaDeviceWorking(&m_controller[i])) {
-			startByUserId(i + 1);
+		if (m_Active[i] && !isMaDeviceWorking(&m_Controller[i])) {
+			StartByUserId(i + 1);
 		}
 	}
 
-	lastTimeValidated = std::chrono::steady_clock::now();
+	m_LastTimeValidated = std::chrono::steady_clock::now();
 }
 
-bool AudioPassthrough::startByUserId(uint32_t userId) {
+bool AudioPassthrough::StartByUserId(uint32_t userId) {
 #if (!defined(__linux__)) && (!defined(__MACOS__))
 	assert(userId >= 1 && userId <= 4);
 
 	uint32_t index = userId - 1;
 
-	if (m_active[index] && isMaDeviceWorking(&m_controller[index])) { 
+	if (m_Active[index] && isMaDeviceWorking(&m_Controller[index])) { 
 		return false; 
 	}
-	else if (m_active[index] && !isMaDeviceWorking(&m_controller[index])) {
-		ma_device_uninit(&m_controller[index]);
+	else if (m_Active[index] && !isMaDeviceWorking(&m_Controller[index])) {
+		ma_device_uninit(&m_Controller[index]);
 	}
 	
 	uint32_t handle = scePadGetHandle(userId, 0, 0);
 	
 	{
-		std::lock_guard<std::mutex> lock(m_bufferMutex);
+		std::lock_guard<std::mutex> lock(m_BufferMutex);
 		for (uint32_t i = 0; i < 4; i++) {
-			m_audioBuffer[i].clear();
+			m_AudioBuffer[i].clear();
 		}
 	}
 
@@ -311,7 +311,7 @@ bool AudioPassthrough::startByUserId(uint32_t userId) {
 
 	{
 		std::lock_guard<std::mutex> guard(g_contextLock);
-		result = FindDeviceByContainerIdWindows(&g_context, targetContainerId, &m_controllerId[index]);
+		result = FindDeviceByContainerIdWindows(&g_context, targetContainerId, &m_ControllerId[index]);
 		if (result != MA_SUCCESS) return false;
 	}
 
@@ -322,58 +322,58 @@ bool AudioPassthrough::startByUserId(uint32_t userId) {
     playbackConfig.playback.format = ma_format_f32;
     playbackConfig.playback.channels = 0;
     playbackConfig.sampleRate = 48000;
-    playbackConfig.dataCallback = controllerType == s_SceControllerType::DUALSENSE ? playbackDualsenseDataCallback : playbackDualshock4DataCallback;
-	playbackConfig.playback.pDeviceID = &m_controllerId[index];
+    playbackConfig.dataCallback = controllerType == s_SceControllerType::DUALSENSE ? PlaybackDualsenseDataCallback : PlaybackDualshock4DataCallback;
+	playbackConfig.playback.pDeviceID = &m_ControllerId[index];
 	playbackConfig.periodSizeInFrames = 128;
 	playbackConfig.periods = 2;
 	playbackConfig.pUserData = this;
 
-    result = ma_device_init(NULL, &playbackConfig, &m_controller[index]);
+    result = ma_device_init(NULL, &playbackConfig, &m_Controller[index]);
     if (result != MA_SUCCESS) {
 		LOGE("Failed to open playback device.");
-        ma_device_uninit(&m_controller[index]);
+        ma_device_uninit(&m_Controller[index]);
         return false;
     }
 
-	if (ma_device_start(&m_controller[index]) != MA_SUCCESS) {
+	if (ma_device_start(&m_Controller[index]) != MA_SUCCESS) {
 		LOGE("Failed to start controller audio device.");
 	}
 
-	m_active[index] = true;
+	m_Active[index] = true;
 	return true;
 #endif
 	return false;
 }
 
-bool AudioPassthrough::stopByUserId(uint32_t userId) {
+bool AudioPassthrough::StopByUserId(uint32_t userId) {
 	assert(userId >= 1 && userId <= 4);
 
 	uint32_t index = userId - 1;
 
-	if (m_active[index]) {
-		if (isMaDeviceWorking(&m_controller[index])) {
-			ma_device_stop(&m_controller[index]);
+	if (m_Active[index]) {
+		if (isMaDeviceWorking(&m_Controller[index])) {
+			ma_device_stop(&m_Controller[index]);
 		}
-		ma_device_uninit(&m_controller[index]);
+		ma_device_uninit(&m_Controller[index]);
 
 		{
-			std::lock_guard<std::mutex> lock(m_bufferMutex);
-			m_audioBuffer[index].clear();
-			m_audioBuffer[index].shrink_to_fit();
+			std::lock_guard<std::mutex> lock(m_BufferMutex);
+			m_AudioBuffer[index].clear();
+			m_AudioBuffer[index].shrink_to_fit();
 		}
 	}
 
-	m_active[index] = false;
+	m_Active[index] = false;
 
 	return true;
 }
 
-void AudioPassthrough::setHapticIntensityByUserId(uint32_t userId, float intensity) {
+void AudioPassthrough::SetHapticIntensityByUserId(uint32_t userId, float intensity) {
 	assert(userId >= 1 && userId <= 4);
 
-	m_hapticIntensity[userId - 1] = intensity;
+	m_HapticIntensity[userId - 1] = intensity;
 }
 
-float AudioPassthrough::getCurrentCapturePeak() {
-	return m_currentCapturePeak;
+float AudioPassthrough::GetCurrentCapturePeak() {
+	return m_CurrentCapturePeak;
 }

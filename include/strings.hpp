@@ -5,14 +5,14 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-std::string countryCodeToFile(const std::string& code);
+std::string CountryCodeToFile(const std::string& code);
 
 class Strings {
 private:
-	std::unordered_map<std::string, std::string> m_strings;
+	std::unordered_map<std::string, std::string> m_Strings;
 public:
-	void readStringsFromJson(const std::string& path);
-	std::string getString(const std::string& key);
+	void ReadStringsFromJson(const std::string& path);
+	std::string GetString(const std::string& key);
 };
 
 #endif

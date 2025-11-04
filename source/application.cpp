@@ -20,6 +20,7 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_glfw.h>
 #include <stb_image/stb_image.h>
+#include <tray.hpp>
 
 #include "mainWindow.hpp"
 #include "strings.hpp"
@@ -47,17 +48,17 @@ LRESULT CALLBACK CustomWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 }
 #endif
 
-bool Application::isMinimized() {
+bool Application::IsMinimized() {
 	ImGuiIO& io = ImGui::GetIO();
-	bool isMinimized = glfwGetWindowAttrib(m_glfwWindow.get(), GLFW_ICONIFIED);
-	bool isFocused = glfwGetWindowAttrib(m_glfwWindow.get(), GLFW_FOCUSED);
+	bool isMinimized = glfwGetWindowAttrib(m_GlfwWindow.get(), GLFW_ICONIFIED);
+	bool isFocused = glfwGetWindowAttrib(m_GlfwWindow.get(), GLFW_FOCUSED);
 	return (isMinimized || !isFocused);
 }
 
-void Application::disableControllerInputIfMinimized() {
+void Application::DisableControllerInputIfMinimized() {
 	ImGuiIO& io = ImGui::GetIO();
 
-	if (isMinimized()) {
+	if (IsMinimized()) {
 		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
 	}
 	else {
@@ -65,19 +66,19 @@ void Application::disableControllerInputIfMinimized() {
 	}
 }
 
-bool Application::run() {
+bool Application::Run() {
 	// Delete update.zip if present
 	remove("update.zip");
 
-	Platform platform = Application::getPlatform();
+	Platform platform = Application::GetPlatform();
 	#pragma region Initialize duaLib
 	s_ScePadInitParam initParam = {};
 	initParam.allowBT = true;
 	scePadInit3(&initParam);
-	g_scePad[0] = scePadOpen(1, 0, 0);
-	g_scePad[1] = scePadOpen(2, 0, 0);
-	g_scePad[2] = scePadOpen(3, 0, 0);
-	g_scePad[3] = scePadOpen(4, 0, 0);
+	g_ScePad[0] = scePadOpen(1, 0, 0);
+	g_ScePad[1] = scePadOpen(2, 0, 0);
+	g_ScePad[2] = scePadOpen(3, 0, 0);
+	g_ScePad[3] = scePadOpen(4, 0, 0);
 	scePadSetParticularMode(true);
 #pragma endregion
 	#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
@@ -88,27 +89,28 @@ bool Application::run() {
 	freopen_s(&fp, "CONIN$", "r", stdin);
 	#endif
 
-	createWindow();
+
+	InitializeWindow();
 	ImGuiIO& io = ImGui::GetIO();
 	AudioPassthrough audio = {};
 	UDP udp = {};
-	Vigem vigem(m_scePadSettings, udp);
+	Vigem vigem(m_ScePadSettings, udp);
 	Strings strings = {};
-	KeyboardMouseMapper keyboardMouseMapper(m_scePadSettings);
-	Client client(m_scePadSettings);
+	KeyboardMouseMapper keyboardMouseMapper(m_ScePadSettings);
+	Client client(m_ScePadSettings);
 
-	loadAppSettings(&m_appSettings);
-	io.FontDefault = io.Fonts->Fonts[g_FontIndex[m_appSettings.SelectedLanguage]];
+	LoadAppSettings(&m_AppSettings);
+	io.FontDefault = io.Fonts->Fonts[g_FontIndex[m_AppSettings.SelectedLanguage]];
 
 	client.Start();
-	if(!m_appSettings.DontConnectToServerOnStart) client.Connect();
-	client.AllowedToHostController = vigem.isVigemConnected();
+	if(!m_AppSettings.DontConnectToServerOnStart) client.Connect();
+	client.AllowedToHostController = vigem.IsVigemConnected();
 	vigem.SetPeerControllerDataPointer(client.GetActivePeerControllerMap());
 
 	// Windows
-	MainWindow main(strings, audio, vigem, udp, m_appSettings, client);
+	MainWindow main(strings, audio, vigem, udp, m_AppSettings, client);
 
-	strings.readStringsFromJson(countryCodeToFile(m_appSettings.SelectedLanguage));
+	strings.ReadStringsFromJson(CountryCodeToFile(m_AppSettings.SelectedLanguage));
 
 	bool active = false;
 	uint32_t occasionalFrameWhenMinimized = 0;
@@ -122,8 +124,8 @@ bool Application::run() {
 
 	int display_w, display_h = 0;
 	float xscale, yscale = 1;
-	while (!glfwWindowShouldClose(m_glfwWindow.get())) {
-		bool v_isMinimized = isMinimized();
+	while (!glfwWindowShouldClose(m_GlfwWindow.get())) {
+		bool v_isMinimized = IsMinimized();
 		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
 
 		#pragma region ImGUI
@@ -131,13 +133,13 @@ bool Application::run() {
 		if (v_isMinimized && occasionalFrameWhenMinimized > 500 || !v_isMinimized) {
 			glClear(GL_COLOR_BUFFER_BIT);
 			glClearColor(0, 0, 0, 0);
-			glfwGetFramebufferSize(m_glfwWindow.get(), &display_w, &display_h);
+			glfwGetFramebufferSize(m_GlfwWindow.get(), &display_w, &display_h);
 			glViewport(0, 0, display_w, display_h);
-			glfwGetWindowContentScale(m_glfwWindow.get(), &xscale, &yscale);
+			glfwGetWindowContentScale(m_GlfwWindow.get(), &xscale, &yscale);
 
 		#if !defined(__linux__) && !defined(__MACOS__)
 			if (colorsChanged) {
-				setStyleAndColors();
+				SetStyleAndColors();
 				colorsChanged = false;
 			}
 		#endif
@@ -151,27 +153,27 @@ bool Application::run() {
 		}
 		#pragma endregion
 
-		int selectedController = main.getSelectedController();
-		vigem.setSelectedController(selectedController);
+		int selectedController = main.GetSelectedController();
+		vigem.SetSelectedController(selectedController);
 		client.SetSelectedController(selectedController);
-		udp.setVibrationToUdpConfig(m_scePadSettings[selectedController].rumbleFromEmulatedController);
-		audio.validate();	
+		udp.SetVibrationToUdpConfig(m_ScePadSettings[selectedController].rumbleFromEmulatedController);
+		audio.Validate();	
 		
 		for (int i = 0; i < 4; i++) {
-			loadDefaultConfigs(i, &m_scePadSettings[i]);
-			applySettings(i, i == (selectedController) && udp.isActive() ? udp.getSettings() : m_scePadSettings[i], audio);
+			LoadDefaultConfigs(i, &m_ScePadSettings[i]);
+			applySettings(i, i == (selectedController) && udp.IsActive() ? udp.GetSettings() : m_ScePadSettings[i], audio);
 		}
 
 		#pragma region ImGUI + GLFW
-		disableControllerInputIfMinimized();
+		DisableControllerInputIfMinimized();
 		glfwPollEvents();
 
 		if (finishFrame) {
-			main.show(m_scePadSettings, xscale);
+			main.Show(m_ScePadSettings, xscale);
 			ImGui::Render();
 			ImDrawData* drawData = ImGui::GetDrawData();
 			ImGui_ImplOpenGL3_RenderDrawData(drawData);
-			glfwSwapBuffers(m_glfwWindow.get());
+			glfwSwapBuffers(m_GlfwWindow.get());
 			occasionalFrameWhenMinimized = 0;
 			ImGui::EndFrame();
 		}
@@ -192,17 +194,17 @@ bool Application::run() {
 	return true;
 }
 
-void Application::createWindow() {
+void Application::InitializeWindow() {
 	glfwInit();
-	m_glfwWindow = std::unique_ptr<GLFWwindow, glfwDeleter>(glfwCreateWindow(1000, 720, "DualSenseY", nullptr, nullptr));
-	glfwMakeContextCurrent(m_glfwWindow.get());
+	m_GlfwWindow = std::unique_ptr<GLFWwindow, glfwDeleter>(glfwCreateWindow(1000, 720, "DualSenseY", nullptr, nullptr));
+	glfwMakeContextCurrent(m_GlfwWindow.get());
 	glfwSwapInterval(1);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		LOGE("GLAD couldn't be loaded");
 	}
 
-	glfwSetWindowCloseCallback(m_glfwWindow.get(), [](GLFWwindow* window) {
+	glfwSetWindowCloseCallback(m_GlfwWindow.get(), [](GLFWwindow* window) {
 		glfwSetWindowShouldClose(window, true);
 	});
 	
@@ -212,17 +214,17 @@ void Application::createWindow() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #if defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
-	HWND hwnd = glfwGetWin32Window(m_glfwWindow.get());
+	HWND hwnd = glfwGetWin32Window(m_GlfwWindow.get());
 	EnableBlurBehind(hwnd);
 	SetDarkTitleBar(hwnd, true);
 	originalWndProc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
 #endif
 
 	// Setup Platform/Renderer backends
-	ImGui_ImplGlfw_InitForOpenGL(m_glfwWindow.get(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+	ImGui_ImplGlfw_InitForOpenGL(m_GlfwWindow.get(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
 	ImGui_ImplOpenGL3_Init();
 
-	setStyleAndColors();
+	SetStyleAndColors();
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
@@ -247,15 +249,15 @@ void Application::createWindow() {
 	GLFWimage image;
 	image.pixels = stbi_load(RESOURCES_PATH "images/iconWhite.png", &image.width, &image.height, 0, 4); // RGBA
 	if (image.pixels) {
-		glfwSetWindowIcon(m_glfwWindow.get(), 1, &image);
+		glfwSetWindowIcon(m_GlfwWindow.get(), 1, &image);
 		stbi_image_free(image.pixels);
 	}
 
-	assert(m_glfwWindow.get() != nullptr);
+	assert(m_GlfwWindow.get() != nullptr);
 	LOGI("Window created");
 }
 
-void Application::setStyleAndColors() {
+void Application::SetStyleAndColors() {
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowRounding = 10.0f;
 	style.ChildRounding = 10.0f;
@@ -310,17 +312,24 @@ void Application::setStyleAndColors() {
 	colors[ImGuiCol_TitleBgActive] = ImVec4(0.47, 0.38, 1, 0.5f);
 }
 
+void Application::SetupTray() {
+	Tray::Tray tray("DualSenseY", RESOURCES_PATH "images/icon.ico");
+	tray.addEntry(Tray::Button("Exit", [&] {
+		tray.exit();
+	}));
+}
+
 Application::~Application() {
 	// Unhide controllers
 #ifdef WINDOWS
-	if (isRunningAsAdministratorWindows()) {
+	if (IsRunningAsAdministratorWindows()) {
 		for(int i = 0;i<4;i++)
-			unhideController(scePadGetPath(g_scePad[i]));
+			UnhideController(scePadGetPath(g_ScePad[i]));
 	}
 
-	if (m_appSettings.DisableAllBluetoothControllersOnExit) {
+	if (m_AppSettings.DisableAllBluetoothControllersOnExit) {
 		for (int i = 0; i < 4; i++)
-			DisableBluetoothDevice(scePadGetMacAddress(g_scePad[i]));
+			DisableBluetoothDevice(scePadGetMacAddress(g_ScePad[i]));
 	}
 #endif
 	ImGui_ImplOpenGL3_Shutdown();

@@ -7,11 +7,11 @@
 
 class KeyboardMouseMapper {
 private:
-	s_scePadSettings* m_scePadSettings = nullptr;
-	std::atomic<bool> m_threadRunning = true;
+	s_scePadSettings* m_ScePadSettings = nullptr;
+	std::atomic<bool> m_ThreadRunning = true;
 	std::thread m_thread;
-	void thread();
-	void moveCursor(int x, int y);
+	void Thread();
+	void MoveCursor(int x, int y);
 public:
 	KeyboardMouseMapper(s_scePadSettings* scePadSettings);
 	~KeyboardMouseMapper();

@@ -1,6 +1,6 @@
 #include "scePadCustomTriggers.hpp"
 
-void customTriggerNormal(uint8_t ffb[11]) {
+void CustomTriggerNormal(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Rigid_B;
 	ffb[1] = 0;
 	ffb[2] = 0;
@@ -14,7 +14,7 @@ void customTriggerNormal(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerGamecube(uint8_t ffb[11]) {
+void CustomTriggerGamecube(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse;
 	ffb[1] = 144;
 	ffb[2] = 160;
@@ -28,7 +28,7 @@ void customTriggerGamecube(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerVerySoft(uint8_t ffb[11]) {
+void CustomTriggerVerySoft(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse;
 	ffb[1] = 128;
 	ffb[2] = 160;
@@ -42,7 +42,7 @@ void customTriggerVerySoft(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerSoft(uint8_t ffb[11]) {
+void CustomTriggerSoft(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Rigid_A;
 	ffb[1] = 69;
 	ffb[2] = 160;
@@ -56,7 +56,7 @@ void customTriggerSoft(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerHard(uint8_t ffb[11]) {
+void CustomTriggerHard(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Rigid_A;
 	ffb[1] = 32;
 	ffb[2] = 160;
@@ -70,7 +70,7 @@ void customTriggerHard(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerVeryHard(uint8_t ffb[11]) {
+void CustomTriggerVeryHard(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Rigid_A;
 	ffb[1] = 16;
 	ffb[2] = 160;
@@ -84,7 +84,7 @@ void customTriggerVeryHard(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerHardest(uint8_t ffb[11]) {
+void CustomTriggerHardest(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse;
 	ffb[1] = 0;
 	ffb[2] = 255;
@@ -98,7 +98,7 @@ void customTriggerHardest(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerRigid(uint8_t ffb[11]) {
+void CustomTriggerRigid(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Rigid;
 	ffb[1] = 0;
 	ffb[2] = 255;
@@ -112,7 +112,7 @@ void customTriggerRigid(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerVibrateTrigger(uint8_t ffb[11]) {
+void CustomTriggerVibrateTrigger(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse_AB;
 	ffb[1] = 37;
 	ffb[2] = 35;
@@ -126,7 +126,7 @@ void customTriggerVibrateTrigger(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerChoppy(uint8_t ffb[11]) {
+void CustomTriggerChoppy(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Rigid_A;
 	ffb[1] = 2;
 	ffb[2] = 39;
@@ -140,7 +140,7 @@ void customTriggerChoppy(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerMedium(uint8_t ffb[11]) {
+void CustomTriggerMedium(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse_A;
 	ffb[1] = 2;
 	ffb[2] = 35;
@@ -154,7 +154,7 @@ void customTriggerMedium(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerVibrateTriggerPulse(uint8_t ffb[11]) {
+void CustomTriggerVibrateTriggerPulse(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse_AB;
 	ffb[1] = 37;
 	ffb[2] = 35;
@@ -172,7 +172,7 @@ static uint8_t getOrZero(const std::vector<uint8_t>& vec, size_t index) {
 	return index < vec.size() ? vec[index] : 0;
 }
 
-void customTriggerCustomTriggerValue(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerCustomTriggerValue(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 1) return;
 
 	switch (param[0]) {
@@ -207,7 +207,7 @@ void customTriggerCustomTriggerValue(std::vector<uint8_t> param, uint8_t ffb[11]
 	ffb[10] = getOrZero(param, 8);
 }
 
-void customTriggerResistance(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerResistance(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 2) return;
 
 	ffb[0] = DSXTriggerMode::Feedback;
@@ -234,7 +234,7 @@ void customTriggerResistance(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	}
 }
 
-void customTriggerBow(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerBow(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 4) return;
 
 	ffb[0] = DSXTriggerMode::Pulse_A;
@@ -258,7 +258,7 @@ void customTriggerBow(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	}
 }
 
-void customTriggerGalloping(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerGalloping(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 5) return;
 
 	ffb[0] = DSXTriggerMode::Pulse_A2;
@@ -283,7 +283,7 @@ void customTriggerGalloping(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	}
 }
 
-void customTriggerSemiAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerSemiAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 3) return;
 
 	ffb[0] = DSXTriggerMode::Rigid_AB;
@@ -305,7 +305,7 @@ void customTriggerSemiAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]) 
 	}
 }
 
-void customTriggerAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 3) return;
 
 	ffb[0] = DSXTriggerMode::Pulse_B2;
@@ -332,7 +332,7 @@ void customTriggerAutomaticGun(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	}
 }
 
-void customTriggerMachine(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerMachine(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 6) return;
 
 	ffb[0] = DSXTriggerMode::Pulse_AB;
@@ -358,7 +358,7 @@ void customTriggerMachine(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	}
 }
 
-void customTriggerBetterVibration(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerBetterVibration(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	if (param.size() < 3) return;
 
 	ffb[0] = DSXTriggerMode::Pulse_B;
@@ -374,7 +374,7 @@ void customTriggerBetterVibration(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
-void customTriggerVIBRATE_TRIGGER_10Hz(std::vector<uint8_t> param, uint8_t ffb[11]) {
+void CustomTriggerVIBRATE_TRIGGER_10Hz(std::vector<uint8_t> param, uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse_B;
 	ffb[1] = 10;
 	ffb[2] = 255;
@@ -388,7 +388,7 @@ void customTriggerVIBRATE_TRIGGER_10Hz(std::vector<uint8_t> param, uint8_t ffb[1
 	ffb[10] = 0;
 }
 
-void customTriggerOFF(uint8_t ffb[11]) {
+void CustomTriggerOFF(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Pulse_B;
 	ffb[1] = 0;
 	ffb[2] = 0;

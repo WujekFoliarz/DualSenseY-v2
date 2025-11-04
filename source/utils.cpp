@@ -70,19 +70,19 @@ std::string USBtoHIDinstance(const std::string& input) {
     return result;
 }
 
-void hideController(const std::string& instanceId) {
+void HideController(const std::string& instanceId) {
 #if !defined(__linux__) && !defined(__MACOS__)
     hidHideRequest(instanceId, "hide");
 #endif
 }
 
-void unhideController(const std::string& instanceId) {
+void UnhideController(const std::string& instanceId) {
 #if !defined(__linux__) && !defined(__MACOS__)
     hidHideRequest(instanceId, "show");
 #endif
 }
 
-bool isRunningAsAdministratorWindows() {
+bool IsRunningAsAdministratorWindows() {
 #if !defined(__linux__) && !defined(__MACOS__)
     BOOL fIsRunAsAdmin = FALSE;
     DWORD dwError = ERROR_SUCCESS;

@@ -126,5 +126,7 @@
   "LeftMouseHotkey": "Left mouse hotkey",
   "Update": "Update",
   "RemoveDefaultConfig": "Remove default config",
-  "SelectedTrigger": "Selected trigger"
+  "SelectedTrigger": "Selected trigger",
+  "NoControllersConnected": "No controllers connected",
+  "Controller": "Controller"
 }

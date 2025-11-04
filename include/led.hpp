@@ -3,6 +3,6 @@
 
 #include <duaLib.h>
 
-void getRainbowColor(float t, s_SceLightBar& led);
+void GetRainbowColor(float t, s_SceLightBar& led);
 
 #endif // LED_H

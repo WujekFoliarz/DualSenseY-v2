@@ -16,10 +16,10 @@
 #include <process.hpp>
 #include "applicationVersion.hpp"
 
-#define str(string) m_strings.getString(string).c_str()
-#define strr(string) m_strings.getString(string)
+#define str(string) m_Strings.GetString(string).c_str()
+#define strr(string) m_Strings.GetString(string)
 
-bool MainWindow::about(bool* open) {
+bool MainWindow::About(bool* open) {
 	ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 
@@ -45,7 +45,7 @@ bool MainWindow::about(bool* open) {
 static bool showLoadFailedError = false;
 static bool showSetDefaultConfigSuccess = false;
 static bool showControllerNotConnectedError = false;
-bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSettings) {
+bool MainWindow::MenuBar(int& currentController, s_scePadSettings& scePadSettings) {
 	static bool openAbout = false;
 
 	if (ImGui::BeginMainMenuBar()) {
@@ -60,7 +60,7 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 					if (outPathString.find(".dsy") == std::string::npos) {
 						outPathString += ".dsy";
 					}
-					saveSettingsToFile(scePadSettings, outPathString);
+					SaveSettingsToFile(scePadSettings, outPathString);
 					free(outPath);
 				}
 				else {
@@ -74,7 +74,7 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 				nfdresult_t result = NFD_OpenDialog("dsy", NULL, &outPath);
 
 				if (result == NFD_OKAY) {
-					if (!loadSettingsFromFile(&scePadSettings, outPath))
+					if (!LoadSettingsFromFile(&scePadSettings, outPath))
 						showLoadFailedError = true;
 
 					free(outPath);
@@ -91,10 +91,10 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 				s_scePadSettings tempSettings = {};
 
 				if (result == NFD_OKAY) {
-					if (!loadSettingsFromFile(&tempSettings, outPath))
+					if (!LoadSettingsFromFile(&tempSettings, outPath))
 						showLoadFailedError = true;
 
-					std::string macAddress = scePadGetMacAddress(g_scePad[currentController]);
+					std::string macAddress = scePadGetMacAddress(g_ScePad[currentController]);
 
 					if (macAddress == "")
 						showControllerNotConnectedError = true;
@@ -113,10 +113,10 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 			}
 
 			if (ImGui::MenuItem(str("RemoveDefaultConfig"))) {
-				std::string macAddress = scePadGetMacAddress(g_scePad[currentController]);
+				std::string macAddress = scePadGetMacAddress(g_ScePad[currentController]);
 
 				if (macAddress != "") {
-					removeDefaultConfigByMac(macAddress);
+					RemoveDefaultConfigByMac(macAddress);
 				}
 			}
 
@@ -126,7 +126,7 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 		if (ImGui::BeginMenu(str("Settings"))) {
 
 			ImGui::SetNextItemWidth(300);
-			if (ImGui::BeginCombo(str("Language"), g_LanguageName[m_appSettings.SelectedLanguage].c_str())) {
+			if (ImGui::BeginCombo(str("Language"), g_LanguageName[m_AppSettings.SelectedLanguage].c_str())) {
 				int currentItem = 0;
 				int index = 0;
 
@@ -139,10 +139,10 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 
 					if (ImGui::Selectable(name.c_str(), isSelected)) {
 						currentItem = index;
-						m_appSettings.SelectedLanguage = code;
-						saveAppSettings(&m_appSettings);
+						m_AppSettings.SelectedLanguage = code;
+						SaveAppSettings(&m_AppSettings);
 						io.FontDefault = io.Fonts->Fonts[fontIndex];
-						m_strings.readStringsFromJson(countryCodeToFile(code));
+						m_Strings.ReadStringsFromJson(CountryCodeToFile(code));
 					}
 
 					if (fontIndex != 0)
@@ -154,10 +154,10 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 				ImGui::EndCombo();
 			}
 
-			if (ImGui::MenuItem(str("DisconnectAllBTDevicesOnExit"), NULL, &m_appSettings.DisableAllBluetoothControllersOnExit))
-				saveAppSettings(&m_appSettings);
-			if (ImGui::MenuItem(str("DontConnectToServerOnStart"), NULL, &m_appSettings.DontConnectToServerOnStart))
-				saveAppSettings(&m_appSettings);
+			if (ImGui::MenuItem(str("DisconnectAllBTDevicesOnExit"), NULL, &m_AppSettings.DisableAllBluetoothControllersOnExit))
+				SaveAppSettings(&m_AppSettings);
+			if (ImGui::MenuItem(str("DontConnectToServerOnStart"), NULL, &m_AppSettings.DontConnectToServerOnStart))
+				SaveAppSettings(&m_AppSettings);
 			ImGui::EndMenu();
 		}
 
@@ -172,7 +172,7 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 		float textWidth = ImGui::CalcTextSize(std::string(strr("UDPStatus") + ":" + strr("Inactive")).c_str()).x + 10;
 		ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - textWidth);
 		ImGui::Text(std::string(strr("UDPStatus") + ":").c_str());
-		if (m_udp.isActive())
+		if (m_Udp.IsActive())
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), str("Active"));
 		else
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), str("Inactive"));
@@ -180,18 +180,18 @@ bool MainWindow::menuBar(int& currentController, s_scePadSettings& scePadSetting
 		ImGui::EndMainMenuBar();
 	}
 
-	if (openAbout) about(&openAbout);
+	if (openAbout) About(&openAbout);
 
 	return true;
 }
 
-bool MainWindow::controllers(int& currentController, s_scePadSettings& scePadSettings, float scale) {
-	ImGui::SeparatorText("Controller");
+bool MainWindow::Controllers(int& currentController, s_scePadSettings& scePadSettings, float scale) {
+	ImGui::SeparatorText(str("Controller"));
 
 	bool noneConnected = true;
 	for (uint32_t i = 0; i < 4; i++) {
 		s_ScePadData data = {};
-		int result = scePadReadState(g_scePad[i], &data);
+		int result = scePadReadState(g_ScePad[i], &data);
 		if (result == SCE_OK) {
 			noneConnected = false;
 			ImGui::RadioButton(std::to_string(i + 1).c_str(), &currentController, i);
@@ -200,7 +200,7 @@ bool MainWindow::controllers(int& currentController, s_scePadSettings& scePadSet
 	}
 
 	if (noneConnected) {
-		ImGui::TextColored(ImVec4(1, 0, 0, 1), "No controllers connected");
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("NoControllersConnected"));
 		return false;
 	}
 
@@ -208,8 +208,8 @@ bool MainWindow::controllers(int& currentController, s_scePadSettings& scePadSet
 	return true;
 }
 
-bool MainWindow::led(s_scePadSettings& scePadSettings, float scale) {
-	if (m_udp.isActive())
+bool MainWindow::Led(s_scePadSettings& scePadSettings, float scale) {
+	if (m_Udp.IsActive())
 		return false;
 
 	ImGui::SeparatorText(str("LedSection"));
@@ -237,10 +237,10 @@ bool MainWindow::led(s_scePadSettings& scePadSettings, float scale) {
 	return true;
 }
 
-bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) {
+bool MainWindow::Audio(int currentController, s_scePadSettings& scePadSettings) {
 	static bool failedToStart = false;
 	int busType = 0;
-	scePadGetControllerBusType(g_scePad[currentController], &busType);
+	scePadGetControllerBusType(g_ScePad[currentController], &busType);
 
 	ImGui::SeparatorText(str("Audio"));
 
@@ -254,14 +254,14 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 
 	if (!scePadSettings.audioPassthrough && wasChecked) {
 		wasChecked = false;
-		if (!m_audio.stopByUserId(currentController + 1)) {
+		if (!m_Audio.StopByUserId(currentController + 1)) {
 			LOGE("Failed to stop audio passthrough");
 		}
 	}
 
 	if (scePadSettings.audioPassthrough && !wasChecked) {
 		wasChecked = true;
-		if (!m_audio.startByUserId(currentController + 1)) {
+		if (!m_Audio.StartByUserId(currentController + 1)) {
 			LOGE("Failed to start audio passthrough");
 			scePadSettings.audioPassthrough = false;
 			failedToStart = true;
@@ -301,8 +301,8 @@ bool MainWindow::audio(int currentController, s_scePadSettings& scePadSettings) 
 
 static std::vector<std::string> sonyItems = { TriggerStringSony::OFF, TriggerStringSony::FEEDBACK, TriggerStringSony::WEAPON, TriggerStringSony::VIBRATION, TriggerStringSony::SLOPE_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_FEEDBACK, TriggerStringSony::MULTIPLE_POSITION_VIBRATION };
 static std::vector<std::string> dsxItems = { TriggerStringDSX::Normal, TriggerStringDSX::GameCube, TriggerStringDSX::VerySoft, TriggerStringDSX::Soft, TriggerStringDSX::Medium, TriggerStringDSX::Hard, TriggerStringDSX::VeryHard , TriggerStringDSX::Hardest, TriggerStringDSX::VibrateTrigger, TriggerStringDSX::VibrateTriggerPulse, TriggerStringDSX::Choppy, TriggerStringDSX::CustomTriggerValue, TriggerStringDSX::Resistance,TriggerStringDSX::Bow,TriggerStringDSX::Galloping,TriggerStringDSX::SemiAutomaticGun, TriggerStringDSX::AutomaticGun, TriggerStringDSX::Machine, TriggerStringDSX::VIBRATE_TRIGGER_10Hz };
-bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
-	if (m_udp.isActive())
+bool MainWindow::AdaptiveTriggers(s_scePadSettings& scePadSettings) {
+	if (m_Udp.IsActive())
 		return false;
 
 	ImGui::SeparatorText(str("AdaptiveTriggers"));
@@ -569,7 +569,7 @@ bool MainWindow::adaptiveTriggers(s_scePadSettings& scePadSettings) {
 	return true;
 }
 
-bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings, s_ScePadData& state) {
+bool MainWindow::KeyboardAndMouseMapping(s_scePadSettings& scePadSettings, s_ScePadData& state) {
 	static std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now() - std::chrono::seconds(3);
 	auto now = std::chrono::steady_clock::now();
 	static bool wasClicked = false;
@@ -601,12 +601,12 @@ bool MainWindow::keyboardAndMouseMapping(s_scePadSettings& scePadSettings, s_Sce
 		wasClicked = true;
 	}
 
-	getHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
+	GetHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
 
 	return true;
 }
 
-bool MainWindow::touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale) {
+bool MainWindow::Touchpad(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale) {
 	ImGui::SeparatorText(str("Touchpad"));
 
 	ImGui::Checkbox(str("TouchpadToMouse"), &scePadSettings.touchpadAsMouse);
@@ -614,12 +614,12 @@ bool MainWindow::touchpad(int currentController, s_scePadSettings& scePadSetting
 		ImGui::SetNextItemWidth(400);
 		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##touchpad").c_str(), &scePadSettings.touchpadAsMouse_sensitivity, 0.0f, 5.0f);
 	}
-	treeElement_touchpadDiagnostics(currentController, scePadSettings, state, scale);
+	TreeElement_touchpadDiagnostics(currentController, scePadSettings, state, scale);
 
 	return true;
 }
 
-bool MainWindow::treeElement_touchpadDiagnostics(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale) {
+bool MainWindow::TreeElement_touchpadDiagnostics(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state, float scale) {
 
 	if (ImGui::TreeNodeEx(str("Diagnostics"))) {
 		ImVec2 touchpadSize(
@@ -634,7 +634,7 @@ bool MainWindow::treeElement_touchpadDiagnostics(int currentController, s_scePad
 								IM_COL32(state.bitmask_buttons & SCE_BM_TOUCH ? 200 : 50, 50, 50, 255));
 
 		s_ScePadInfo info = {};
-		scePadGetControllerInformation(g_scePad[currentController], &info);
+		scePadGetControllerInformation(g_ScePad[currentController], &info);
 
 		auto drawFinger = [&](float x, float y, int id, bool notTouching) {
 			if (!notTouching) {
@@ -656,7 +656,7 @@ bool MainWindow::treeElement_touchpadDiagnostics(int currentController, s_scePad
 	return true;
 }
 
-bool MainWindow::treeElement_lightbar(s_scePadSettings& scePadSettings) {
+bool MainWindow::TreeElement_lightbar(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(str("Lightbar"))) {
 		ImGui::Checkbox(str("UseEmulatedLightbar"), &scePadSettings.useLightbarFromEmulatedController);
 		ImGui::TreePop();
@@ -665,7 +665,7 @@ bool MainWindow::treeElement_lightbar(s_scePadSettings& scePadSettings) {
 	return true;
 }
 
-bool MainWindow::treeElement_vibration(s_scePadSettings& scePadSettings) {
+bool MainWindow::TreeElement_vibration(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(str("Vibration"))) {
 		ImGui::Checkbox(str("UseEmulatedVibration"), &scePadSettings.useRumbleFromEmulatedController);
 		ImGui::TreePop();
@@ -674,7 +674,7 @@ bool MainWindow::treeElement_vibration(s_scePadSettings& scePadSettings) {
 	return true;
 }
 
-bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings) {
+bool MainWindow::TreeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(str("DynamicTriggerSettings"))) {
 		ImGui::Checkbox(str("RumbleToAT"), &scePadSettings.rumbleToAT);
 		if (scePadSettings.rumbleToAT) {
@@ -701,7 +701,7 @@ bool MainWindow::treeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSet
 	return true;
 }
 
-bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadData& state) {
+bool MainWindow::TreeElement_motion(s_scePadSettings& scePadSettings, s_ScePadData& state) {
 	static std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now() - std::chrono::seconds(3);
 	auto now = std::chrono::steady_clock::now();
 	static bool wasClicked = false;
@@ -728,7 +728,7 @@ bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 				scePadSettings.gyroToRightStickActivationButton = state.bitmask_buttons;
 		}
 
-		getHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
+		GetHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
 
 		ImGui::SetNextItemWidth(350);
 		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotorightstick").c_str(), &scePadSettings.gyroToRightStickSensitivity, 0, 100);
@@ -740,42 +740,42 @@ bool MainWindow::treeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 	return true;
 }
 
-bool MainWindow::online() {
+bool MainWindow::Online() {
 	static bool showMsgFromServer = false;
-	SCMD::CMD_CODE_RESPONSE currentResponse = m_client.GetLastResponseInQueue();
+	SCMD::CMD_CODE_RESPONSE currentResponse = m_Client.GetLastResponseInQueue();
 
-	if (!m_client.IsResponseQueueEmpty() && currentResponse.Code != RESPONSE_CODE::E_SUCCESS) {
+	if (!m_Client.IsResponseQueueEmpty() && currentResponse.Code != RESPONSE_CODE::E_SUCCESS) {
 		showMsgFromServer = true;
 
-		if (messageFromServer(&showMsgFromServer, &currentResponse)) {
-			m_client.PopBackResponseQueue();
+		if (MessageFromServer(&showMsgFromServer, &currentResponse)) {
+			m_Client.PopBackResponseQueue();
 		}
 	}
 	else {
 		showMsgFromServer = false;
 	}
 
-	bool fetchingData = m_client.IsFetchingDataFromServer();
-	screenBlock(&fetchingData, str("FetchingFromServer"));
+	bool fetchingData = m_Client.IsFetchingDataFromServer();
+	ScreenBlock(&fetchingData, str("FetchingFromServer"));
 
-	fetchingData = m_client.IsFetchingDataFromPeer();
-	screenBlock(&fetchingData, str("FetchingFromPeer"));
+	fetchingData = m_Client.IsFetchingDataFromPeer();
+	ScreenBlock(&fetchingData, str("FetchingFromPeer"));
 
 	ImGui::SeparatorText(str("Online"));
 
-	if (m_client.IsConnectionOccupied()) {
+	if (m_Client.IsConnectionOccupied()) {
 		ImGui::Text(str("FailedToCreateHost"));
 		return false;
 	}
 
-	if (!m_client.IsConnected()) {
+	if (!m_Client.IsConnected()) {
 
-		if (m_client.IsConnecting())
+		if (m_Client.IsConnecting())
 			ImGui::Text(str("ConnectingToServer"));
-		else if (!m_client.IsUpToDate()) {
+		else if (!m_Client.IsUpToDate()) {
 			ImGui::Text(str("UpdateRequiredToConnectMsg"));
 			if (ImGui::Button(str("Update"))) {
-				std::string updateUrl = m_client.GetUpdateUrl();
+				std::string updateUrl = m_Client.GetUpdateUrl();
 				std::filesystem::path filePath("Updater.exe");
 				if (std::filesystem::exists(filePath) && updateUrl != "") {
 					TinyProcessLib::Process process("Updater.exe --" + updateUrl + " update.zip");
@@ -784,55 +784,55 @@ bool MainWindow::online() {
 			}
 		}
 		else if (ImGui::Button(str("ConnectOnline")))
-			m_client.Connect();
+			m_Client.Connect();
 	}
 	else {
-		ImGui::Text("%s: %d", str("UsersOnline"), (int)m_client.GetGlobalPeerCount());
+		ImGui::Text("%s: %d", str("UsersOnline"), (int)m_Client.GetGlobalPeerCount());
 
-		if (!m_client.IsInRoom()) {
+		if (!m_Client.IsInRoom()) {
 			static char buf[MAX_ROOM_NAME_SIZE] = { 0 };
 			ImGui::SetNextItemWidth(250);
 			ImGui::InputText(str("RoomName"), buf, MAX_ROOM_NAME_SIZE);
 			std::string roomName = std::string(buf, strnlen(buf, MAX_ROOM_NAME_SIZE));
 
 			if (ImGui::Button(str("CreateRoom"))) {
-				m_client.CMD_OPEN_ROOM(roomName.c_str());
+				m_Client.CMD_OPEN_ROOM(roomName.c_str());
 			}
 			ImGui::SameLine();
 			if (ImGui::Button(str("JoinRoom"))) {
-				m_client.CMD_JOIN_ROOM(roomName.c_str());
+				m_Client.CMD_JOIN_ROOM(roomName.c_str());
 			}
 
 		}
 		else {
 			static bool showRoomName = false;
 			if (showRoomName)
-				ImGui::Text("%s: %s", str("Room"), m_client.GetRoomName().c_str());
+				ImGui::Text("%s: %s", str("Room"), m_Client.GetRoomName().c_str());
 			else if (ImGui::Button(str("ShowRoomName")))
 				showRoomName = true;
 
 			ImGui::SameLine();
 			if (ImGui::Button(str("LeaveRoom"))) {
-				m_client.CMD_LEAVE_ROOM();
+				m_Client.CMD_LEAVE_ROOM();
 			}
 
-			auto peers = m_client.GetPeerList();
+			auto peers = m_Client.GetPeerList();
 			if (!peers.empty()) {
 				for (auto& peer : peers) {
-					ImGui::Text("[%d] %s - %d ms", peer.first, peer.second.c_str(), m_client.GetPingFromPeer(peer.first));
+					ImGui::Text("[%d] %s - %d ms", peer.first, peer.second.c_str(), m_Client.GetPingFromPeer(peer.first));
 					ImGui::SameLine();
 
-					auto requestStatus = m_client.GetRequestStatus(peer.first);
+					auto requestStatus = m_Client.GetRequestStatus(peer.first);
 
 					if (requestStatus == PEER_REQUEST_STATUS::PEER_WAITING_FOR_MY_RESPONSE) {
 						ImGui::Text("[%s]", str("NewControllerRequest"));
 						ImGui::SameLine();
 						if (ImGui::SmallButton(str("Accept"))) {
-							m_client.AcceptPeerRequest(peer.first);
+							m_Client.AcceptPeerRequest(peer.first);
 						}
 						ImGui::SameLine();
 						if (ImGui::SmallButton(str("Decline"))) {
-							m_client.DeclinePeerRequest(peer.first);
+							m_Client.DeclinePeerRequest(peer.first);
 						}
 					}
 					else if (requestStatus == PEER_REQUEST_STATUS::WAITING_FOR_PEER_RESPONSE) {
@@ -842,13 +842,13 @@ bool MainWindow::online() {
 						ImGui::TextColored(ImVec4(0, 1, 0, 1), str("TransmitingToPeer"));
 						ImGui::SameLine();
 						if (ImGui::SmallButton(str("Abort")))
-							m_client.CMD_PEER_ABORT_VIGEM(peer.first);
+							m_Client.CMD_PEER_ABORT_VIGEM(peer.first);
 					}
 					else if (requestStatus == PEER_REQUEST_STATUS::PEER_TRANSMITING_TO_ME) {
 						ImGui::TextColored(ImVec4(0, 1, 0, 1), str("PeerTransmitingToYou"));
 						ImGui::SameLine();
 						if (ImGui::SmallButton(str("Abort")))
-							m_client.CMD_PEER_ABORT_VIGEM(peer.first);
+							m_Client.CMD_PEER_ABORT_VIGEM(peer.first);
 					}
 					else {
 						if (requestStatus == PEER_REQUEST_STATUS::PEER_DECLINED) {
@@ -857,11 +857,11 @@ bool MainWindow::online() {
 						ImGui::SameLine();
 
 						if (ImGui::SmallButton(str("RequestX360"))) {
-							m_client.CMD_PEER_REQUEST_VIGEM(peer.first, CONTROLLER::XBOX360);
+							m_Client.CMD_PEER_REQUEST_VIGEM(peer.first, CONTROLLER::XBOX360);
 						}
 						ImGui::SameLine();
 						if (ImGui::SmallButton(str("RequestDS4"))) {
-							m_client.CMD_PEER_REQUEST_VIGEM(peer.first, CONTROLLER::DUALSHOCK4);
+							m_Client.CMD_PEER_REQUEST_VIGEM(peer.first, CONTROLLER::DUALSHOCK4);
 						}
 					}
 				}
@@ -875,7 +875,7 @@ bool MainWindow::online() {
 	return true;
 }
 
-bool MainWindow::messageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response) {
+bool MainWindow::MessageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response) {
 
 	if (*open) {
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -926,7 +926,7 @@ bool MainWindow::messageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response
 	return clicked;
 }
 
-bool MainWindow::screenBlock(bool* open, const char* Message) {
+bool MainWindow::ScreenBlock(bool* open, const char* Message) {
 	if (*open) {
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
@@ -940,7 +940,7 @@ bool MainWindow::screenBlock(bool* open, const char* Message) {
 	return true;
 }
 
-void MainWindow::errors() {
+void MainWindow::Errors() {
 	if (showLoadFailedError) {
 
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -961,7 +961,7 @@ void MainWindow::errors() {
 	}
 }
 
-bool MainWindow::getHotkeyFromControllerScreen(bool* open, int countdown, int expectedCountdownLength) {
+bool MainWindow::GetHotkeyFromControllerScreen(bool* open, int countdown, int expectedCountdownLength) {
 
 	if (*open) {
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -978,7 +978,7 @@ bool MainWindow::getHotkeyFromControllerScreen(bool* open, int countdown, int ex
 	return true;
 }
 
-bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
+bool MainWindow::TreeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state) {
 	if (ImGui::TreeNodeEx(str("AnalogSticks"))) {
 		const int previewSize = 100;
 		const ImU32 whiteColor = IM_COL32(255, 255, 255, 255);
@@ -1025,10 +1025,10 @@ bool MainWindow::treeElement_analogSticks(s_scePadSettings& scePadSettings, s_Sc
 	return true;
 }
 
-bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state) {
+bool MainWindow::Emulation(int currentController, s_scePadSettings& scePadSettings, s_ScePadData& state) {
 	ImGui::SeparatorText(str("EmulationHeader"));
 
-	if (!m_vigem.isVigemConnected()) {
+	if (!m_Vigem.IsVigemConnected()) {
 	#if (!defined(__linux__)) && (!defined(__MACOS__))
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), str("VigemMissing")); ImGui::SameLine(); ImGui::Spacing(); ImGui::SameLine();
 		ImGui::TextLinkOpenURL(str("VigemInstallLink"), "https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe");
@@ -1040,19 +1040,19 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 		ImGui::RadioButton(str("None"), &scePadSettings.emulatedController, 0); ImGui::SameLine();
 		ImGui::RadioButton("Xbox 360", &scePadSettings.emulatedController, 1); ImGui::SameLine();
 		ImGui::RadioButton("DualShock 4", &scePadSettings.emulatedController, 2);
-		m_vigem.plugControllerByIndex(currentController, scePadSettings.emulatedController);
+		m_Vigem.PlugControllerByIndex(currentController, scePadSettings.emulatedController);
 
 		ImGui::NewLine();
 		if (ImGui::TreeNodeEx(str("ControllerSettings"), ImGuiTreeNodeFlags_DefaultOpen)) {
 
 			if (ImGui::TreeNode(str("HideRealController"))) {
-				if (m_isAdminWindows) {
+				if (m_IsAdminWindows) {
 					if (ImGui::Button(str("Hide"))) {
-						hideController(scePadGetPath(g_scePad[currentController]));
+						HideController(scePadGetPath(g_ScePad[currentController]));
 					}
 					ImGui::SameLine();
 					if (ImGui::Button(str("Unhide"))) {
-						unhideController(scePadGetPath(g_scePad[currentController]));
+						UnhideController(scePadGetPath(g_ScePad[currentController]));
 					}
 				}
 				else {
@@ -1061,11 +1061,11 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 				ImGui::TreePop();
 			}
 
-			treeElement_analogSticks(scePadSettings, state);
-			treeElement_lightbar(scePadSettings);
-			treeElement_vibration(scePadSettings);
-			treeElement_dynamicAdaptiveTriggers(scePadSettings);
-			treeElement_motion(scePadSettings, state);
+			TreeElement_analogSticks(scePadSettings, state);
+			TreeElement_lightbar(scePadSettings);
+			TreeElement_vibration(scePadSettings);
+			TreeElement_dynamicAdaptiveTriggers(scePadSettings);
+			TreeElement_motion(scePadSettings, state);
 
 			ImGui::TreePop();
 		}
@@ -1074,7 +1074,7 @@ bool MainWindow::emulation(int currentController, s_scePadSettings& scePadSettin
 	return true;
 }
 
-void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
+void MainWindow::Show(s_scePadSettings scePadSettings[4], float scale) {
 	static int c = 0;
 	scale = 100 * (scale * 2.5);
 
@@ -1085,19 +1085,19 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 	ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
 	//ImGui::TextColored(ImVec4(1, 0, 0, 1), "Work in progress. Older build at v2 branch on GitHub");
 	s_ScePadData state = {};
-	scePadReadState(g_scePad[c], &state);
+	scePadReadState(g_ScePad[c], &state);
 
-	errors();
-	menuBar(c, scePadSettings[c]);
-	if (controllers(c, scePadSettings[c], scale)) {
-		emulation(c, scePadSettings[c], state);
-		led(scePadSettings[c], scale);
-		adaptiveTriggers(scePadSettings[c]);
-		audio(c, scePadSettings[c]);
-		touchpad(c, scePadSettings[c], state, scale);
-		keyboardAndMouseMapping(scePadSettings[c], state);
+	Errors();
+	MenuBar(c, scePadSettings[c]);
+	if (Controllers(c, scePadSettings[c], scale)) {
+		Emulation(c, scePadSettings[c], state);
+		Led(scePadSettings[c], scale);
+		AdaptiveTriggers(scePadSettings[c]);
+		Audio(c, scePadSettings[c]);
+		Touchpad(c, scePadSettings[c], state, scale);
+		KeyboardAndMouseMapping(scePadSettings[c], state);
 	}
-	online();
+	Online();
 
 	// Apply triggers from UI
 	for (int i = 0; i < TRIGGER_COUNT; i++) {
@@ -1117,11 +1117,11 @@ void MainWindow::show(s_scePadSettings scePadSettings[4], float scale) {
 		}
 	}
 
-	m_selectedController = c;
+	m_SelectedController = c;
 
 	ImGui::End();
 }
 
-int MainWindow::getSelectedController() {
-	return m_selectedController;
+int MainWindow::GetSelectedController() {
+	return m_SelectedController;
 }

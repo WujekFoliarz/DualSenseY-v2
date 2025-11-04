@@ -126,5 +126,7 @@
   "LeftMouseHotkey": "Hotkey lewego przycisku myszy",
   "Update": "Zaktualizuj",
   "RemoveDefaultConfig": "Usuń domyślną konfigurację",
-  "SelectedTrigger": "Wybrany spust"
+  "SelectedTrigger": "Wybrany spust",
+  "NoControllersConnected": "Brak podłączonych kontrolerów",
+  "Controller": "Kontroler"
 }

@@ -8,7 +8,7 @@
 // If you're wondering why I use ASIO for the mods and ENet for the other features I literally just forgot
 // Maybe I'll replace it later but I'm a lazy bum
 
-std::string getFormattedDateTime() {
+std::string GetFormattedDateTime() {
 	auto now = std::chrono::system_clock::now();
 	std::time_t now_time = std::chrono::system_clock::to_time_t(now);
 
@@ -24,12 +24,12 @@ std::string getFormattedDateTime() {
 	return oss.str();
 }
 
-void UDP::listen() {
-	while (m_threadRunning) {
+void UDP::Listen() {
+	while (m_ThreadRunning) {
 		char buffer[1024] = {};
 		asio::ip::udp::endpoint senderEndpoint;
 		try {
-			size_t length = m_socket.receive_from(asio::buffer(buffer), senderEndpoint);
+			size_t length = m_Socket.receive_from(asio::buffer(buffer), senderEndpoint);
 			LOGI("[UDP] Received packet with length %d", length);
 			LOGI("[UDP] Raw packet:\n%s", buffer);
 			nlohmann::json packetJson = nlohmann::json::parse(buffer);
@@ -42,15 +42,15 @@ void UDP::listen() {
 					case InstructionType::GetDSXStatus:
 						break;
 					case InstructionType::TriggerUpdate:
-						handleTriggerUpdate(instr);
+						HandleTriggerUpdate(instr);
 						break;
 					case InstructionType::RGBUpdate:
-						handleRgbUpdate(instr);
+						HandleRgbUpdate(instr);
 						break;
 					case InstructionType::PlayerLED:
 						break;
 					case InstructionType::TriggerThreshold:
-						handleTriggerThresholdUpdate(instr);
+						HandleTriggerThresholdUpdate(instr);
 						break;
 					case InstructionType::MicLED:
 						break;
@@ -63,11 +63,11 @@ void UDP::listen() {
 				LOGI("[UDP] Instruction type: %d", instr.type);
 			}
 
-			m_lastUpdate = std::chrono::steady_clock::now();
+			m_LastUpdate = std::chrono::steady_clock::now();
 
 			ServerResponse response = {};
 			response.status = "DSX Received UDP Instructions";
-			response.timeReceived = getFormattedDateTime();
+			response.timeReceived = GetFormattedDateTime();
 			response.batteryLevel = 100;
 
 			for (uint32_t i = 0; i < 4; i++) {
@@ -75,16 +75,16 @@ void UDP::listen() {
 				s_ScePadInfo scePadInfo = {};
 				int busType = 0;
 
-				scePadGetControllerType(g_scePad[i], &controllerType);
-				scePadGetControllerInformation(g_scePad[i], &scePadInfo);
-				uint32_t result = scePadGetControllerBusType(g_scePad[i], &busType);
+				scePadGetControllerType(g_ScePad[i], &controllerType);
+				scePadGetControllerInformation(g_ScePad[i], &scePadInfo);
+				uint32_t result = scePadGetControllerBusType(g_ScePad[i], &busType);
 
 				if (result == SCE_OK) {
 					response.isControllerConnected = true;
 
 					Device device = {};
 					device.index = i + 1;
-					device.macAddress = scePadGetMacAddress(g_scePad[i]);
+					device.macAddress = scePadGetMacAddress(g_ScePad[i]);
 					device.deviceType = controllerType == s_SceControllerType::DUALSENSE ? DeviceType::DUALSENSE : DeviceType::DUALSHOCK_V2;
 					device.connectionType = (ConnectionType)(busType - 1);
 					device.batteryLevel = 100;
@@ -97,7 +97,7 @@ void UDP::listen() {
 				}
 			}
 
-			m_socket.send_to(asio::buffer(response.to_json().dump(4)), senderEndpoint);
+			m_Socket.send_to(asio::buffer(response.to_json().dump(4)), senderEndpoint);
 		}
 		catch (std::exception& e) {
 			LOGE("[UDP] %s", e.what());
@@ -105,16 +105,16 @@ void UDP::listen() {
 	}
 }
 
-void UDP::handleRgbUpdate(Instruction instruction) {
-	std::lock_guard<std::mutex> guard(m_settingsLock);
+void UDP::HandleRgbUpdate(Instruction instruction) {
+	std::lock_guard<std::mutex> guard(m_SettingsLock);
 	if (instruction.parameters.size() < 4) return;
 
-	m_settings.led[0] = static_cast<float>(std::any_cast<int>(instruction.parameters[1])) / 255.0f;
-	m_settings.led[1] = static_cast<float>(std::any_cast<int>(instruction.parameters[2])) / 255.0f;
-	m_settings.led[2] = static_cast<float>(std::any_cast<int>(instruction.parameters[3])) / 255.0f;
+	m_Settings.led[0] = static_cast<float>(std::any_cast<int>(instruction.parameters[1])) / 255.0f;
+	m_Settings.led[1] = static_cast<float>(std::any_cast<int>(instruction.parameters[2])) / 255.0f;
+	m_Settings.led[2] = static_cast<float>(std::any_cast<int>(instruction.parameters[3])) / 255.0f;
 }
 
-void UDP::handleTriggerUpdate(Instruction instruction) {
+void UDP::HandleTriggerUpdate(Instruction instruction) {
 	if (instruction.parameters.size() < 3) return;
 	uint32_t settingsCount = instruction.parameters.size() - 3;
 
@@ -142,77 +142,77 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 	}
 
 	if (trigger == Trigger::Left)
-		m_settings.isLeftUsingDsxTrigger = usingDsxTrigger;
+		m_Settings.isLeftUsingDsxTrigger = usingDsxTrigger;
 	else if (trigger == Trigger::Right)
-		m_settings.isRightUsingDsxTrigger = usingDsxTrigger;
+		m_Settings.isRightUsingDsxTrigger = usingDsxTrigger;
 
 	switch (triggerMode) {
 		case TriggerMode::Normal:
-			customTriggerNormal(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerNormal(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::GameCube:
-			customTriggerGamecube(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerGamecube(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VerySoft:
-			customTriggerVerySoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerVerySoft(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Soft:
-			customTriggerSoft(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerSoft(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Hard:
-			customTriggerHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerHard(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VeryHard:
-			customTriggerVeryHard(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerVeryHard(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Hardest:
-			customTriggerHardest(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerHardest(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Rigid:
-			customTriggerRigid(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerRigid(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VibrateTrigger:
-			customTriggerVibrateTrigger(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerVibrateTrigger(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Choppy:
-			customTriggerChoppy(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerChoppy(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Medium:
-			customTriggerMedium(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerMedium(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VibrateTriggerPulse:
-			customTriggerVibrateTriggerPulse(trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerVibrateTriggerPulse(trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::CustomTriggerValue:
-			customTriggerCustomTriggerValue(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerCustomTriggerValue(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Resistance:
-			customTriggerResistance(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerResistance(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Bow:
-			customTriggerBow(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerBow(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Galloping:
-			customTriggerGalloping(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerGalloping(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::SemiAutomaticGun:
-			customTriggerSemiAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerSemiAutomaticGun(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::AutomaticGun:
-			customTriggerAutomaticGun(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerAutomaticGun(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::Machine:
-			customTriggerMachine(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerMachine(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 		case TriggerMode::VIBRATE_TRIGGER_10Hz:
-			customTriggerVIBRATE_TRIGGER_10Hz(settings, trigger == Trigger::Left ? m_settings.leftCustomTrigger.data() : m_settings.rightCustomTrigger.data());
+			CustomTriggerVIBRATE_TRIGGER_10Hz(settings, trigger == Trigger::Left ? m_Settings.leftCustomTrigger.data() : m_Settings.rightCustomTrigger.data());
 			break;
 
 		// Sony triggers
 		case TriggerMode::OFF:
 		{
 			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
-			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_OFF;
+			m_Settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_OFF;
 			break;
 		}
 		case TriggerMode::FEEDBACK:
@@ -220,9 +220,9 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 			if (settings.size() < 2) break;
 
 			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
-			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_FEEDBACK;
-			m_settings.stockTriggerParam.command[index].commandData.feedbackParam.position = settings[0];
-			m_settings.stockTriggerParam.command[index].commandData.feedbackParam.strength = settings[1];
+			m_Settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_FEEDBACK;
+			m_Settings.stockTriggerParam.command[index].commandData.feedbackParam.position = settings[0];
+			m_Settings.stockTriggerParam.command[index].commandData.feedbackParam.strength = settings[1];
 			break;
 		}
 		case TriggerMode::WEAPON:
@@ -230,10 +230,10 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 			if (settings.size() < 3) break;
 
 			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
-			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_WEAPON;
-			m_settings.stockTriggerParam.command[index].commandData.weaponParam.startPosition = settings[0];
-			m_settings.stockTriggerParam.command[index].commandData.weaponParam.endPosition = settings[1];
-			m_settings.stockTriggerParam.command[index].commandData.weaponParam.strength = settings[2];
+			m_Settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_WEAPON;
+			m_Settings.stockTriggerParam.command[index].commandData.weaponParam.startPosition = settings[0];
+			m_Settings.stockTriggerParam.command[index].commandData.weaponParam.endPosition = settings[1];
+			m_Settings.stockTriggerParam.command[index].commandData.weaponParam.strength = settings[2];
 			break;
 		}
 		case TriggerMode::VIBRATION:
@@ -241,10 +241,10 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 			if (settings.size() < 3) break;
 
 			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
-			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_VIBRATION;
-			m_settings.stockTriggerParam.command[index].commandData.vibrationParam.position = settings[0];
-			m_settings.stockTriggerParam.command[index].commandData.vibrationParam.amplitude = settings[1];
-			m_settings.stockTriggerParam.command[index].commandData.vibrationParam.frequency = settings[2];
+			m_Settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_VIBRATION;
+			m_Settings.stockTriggerParam.command[index].commandData.vibrationParam.position = settings[0];
+			m_Settings.stockTriggerParam.command[index].commandData.vibrationParam.amplitude = settings[1];
+			m_Settings.stockTriggerParam.command[index].commandData.vibrationParam.frequency = settings[2];
 			break;
 		}
 		case TriggerMode::SLOPE_FEEDBACK:
@@ -252,11 +252,11 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 			if (settings.size() < 4) break;
 
 			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
-			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_SLOPE_FEEDBACK;
-			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.startPosition = settings[0];
-			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.endPosition = settings[1];
-			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.startStrength = settings[2];
-			m_settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.endStrength = settings[3];
+			m_Settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_SLOPE_FEEDBACK;
+			m_Settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.startPosition = settings[0];
+			m_Settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.endPosition = settings[1];
+			m_Settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.startStrength = settings[2];
+			m_Settings.stockTriggerParam.command[index].commandData.slopeFeedbackParam.endStrength = settings[3];
 			break;
 		}
 		case TriggerMode::MULTIPLE_POSITION_FEEDBACK:
@@ -264,17 +264,17 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 			if (settings.size() < 10) break;
 
 			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
-			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_FEEDBACK;
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[0] = settings[0];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[1] = settings[1];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[2] = settings[2];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[3] = settings[3];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[4] = settings[4];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[5] = settings[5];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[6] = settings[6];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[7] = settings[7];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[8] = settings[8];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[9] = settings[9];
+			m_Settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_FEEDBACK;
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[0] = settings[0];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[1] = settings[1];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[2] = settings[2];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[3] = settings[3];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[4] = settings[4];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[5] = settings[5];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[6] = settings[6];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[7] = settings[7];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[8] = settings[8];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionFeedbackParam.strength[9] = settings[9];
 			break;
 		}
 		case TriggerMode::MULTIPLE_POSITION_VIBRATION:
@@ -282,59 +282,59 @@ void UDP::handleTriggerUpdate(Instruction instruction) {
 			if (settings.size() < 11) break;
 
 			uint8_t index = trigger == Trigger::Left ? SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2 : SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_R2;
-			m_settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION;
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.frequency = settings[0];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[0] = settings[1];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[1] = settings[2];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[2] = settings[3];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[3] = settings[4];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[4] = settings[5];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[5] = settings[6];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[6] = settings[7];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[7] = settings[8];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[8] = settings[9];
-			m_settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[9] = settings[10];
+			m_Settings.stockTriggerParam.command[index].mode = SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION;
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.frequency = settings[0];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[0] = settings[1];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[1] = settings[2];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[2] = settings[3];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[3] = settings[4];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[4] = settings[5];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[5] = settings[6];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[6] = settings[7];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[7] = settings[8];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[8] = settings[9];
+			m_Settings.stockTriggerParam.command[index].commandData.multiplePositionVibrationParam.amplitude[9] = settings[10];
 			break;
 		}
 	}
 }
 
-void UDP::handleTriggerThresholdUpdate(Instruction instruction) {
+void UDP::HandleTriggerThresholdUpdate(Instruction instruction) {
 	if (instruction.parameters.size() < 3) return;
 	Trigger trigger = (Trigger)std::any_cast<int>(instruction.parameters[1]);
 	if(trigger == Trigger::Left)
-		m_settings.leftTriggerThreshold = (uint8_t)std::any_cast<int>(instruction.parameters[2]);
+		m_Settings.leftTriggerThreshold = (uint8_t)std::any_cast<int>(instruction.parameters[2]);
 	else
-		m_settings.rightTriggerThreshold = (uint8_t)std::any_cast<int>(instruction.parameters[2]);
+		m_Settings.rightTriggerThreshold = (uint8_t)std::any_cast<int>(instruction.parameters[2]);
 }
 
-bool UDP::isActive() {
-	if (m_socket.is_open() &&
-	   (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - m_lastUpdate) <= std::chrono::seconds(15))) {
+bool UDP::IsActive() {
+	if (m_Socket.is_open() &&
+	   (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - m_LastUpdate) <= std::chrono::seconds(15))) {
 		return true;
 	}
 
 	return false;
 }
 
-s_scePadSettings UDP::getSettings() {
-	std::lock_guard<std::mutex> guard(m_settingsLock);
-	return m_settings;
+s_scePadSettings UDP::GetSettings() {
+	std::lock_guard<std::mutex> guard(m_SettingsLock);
+	return m_Settings;
 }
 
-void UDP::setVibrationToUdpConfig(s_ScePadVibrationParam vibration) {
-	std::lock_guard<std::mutex> guard(m_settingsLock);
-	m_settings.rumbleFromEmulatedController = vibration;
+void UDP::SetVibrationToUdpConfig(s_ScePadVibrationParam vibration) {
+	std::lock_guard<std::mutex> guard(m_SettingsLock);
+	m_Settings.rumbleFromEmulatedController = vibration;
 }
 
-UDP::UDP() : m_socket(m_ioContext) {
+UDP::UDP() : m_Socket(m_IoContext) {
 	try {
-		m_socket.open(asio::ip::udp::v4());
-		m_socket.bind(asio::ip::udp::endpoint(asio::ip::udp::v4(), 6969));
+		m_Socket.open(asio::ip::udp::v4());
+		m_Socket.bind(asio::ip::udp::endpoint(asio::ip::udp::v4(), 6969));
 
-		if (m_socket.is_open()) {
-			m_listenThread = std::thread(&UDP::listen, this);
-			m_listenThread.detach();
+		if (m_Socket.is_open()) {
+			m_ListenThread = std::thread(&UDP::Listen, this);
+			m_ListenThread.detach();
 			LOGI("[UDP] Started");
 		}
 		else {
@@ -345,17 +345,17 @@ UDP::UDP() : m_socket(m_ioContext) {
 		LOGE("[UDP] Failed to start");
 	}
 
-	m_settings.udpConfig = true;
+	m_Settings.udpConfig = true;
 }
 
 UDP::~UDP() {
-	m_threadRunning = false;
+	m_ThreadRunning = false;
 	asio::error_code ec;
-	m_socket.close(ec);
-	m_ioContext.stop();
+	m_Socket.close(ec);
+	m_IoContext.stop();
 
-	m_threadRunning = false;
-	if (m_listenThread.joinable()) {
-		m_listenThread.join();
+	m_ThreadRunning = false;
+	if (m_ListenThread.joinable()) {
+		m_ListenThread.join();
 	}
 }

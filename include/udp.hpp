@@ -211,22 +211,22 @@ public:
 // Maybe swap ASIO with ENet
 class UDP {
 private:
-	asio::io_context m_ioContext;
-	asio::ip::udp::socket m_socket;
-	std::atomic<bool> m_threadRunning = true;
-	std::thread m_listenThread;
-	std::chrono::steady_clock::time_point m_lastUpdate;
-	std::mutex m_settingsLock;
-	s_scePadSettings m_settings = {};
-	void listen();
+	asio::io_context m_IoContext;
+	asio::ip::udp::socket m_Socket;
+	std::atomic<bool> m_ThreadRunning = true;
+	std::thread m_ListenThread;
+	std::chrono::steady_clock::time_point m_LastUpdate;
+	std::mutex m_SettingsLock;
+	s_scePadSettings m_Settings = {};
+	void Listen();
 
-	void handleRgbUpdate(Instruction instruction);
-	void handleTriggerUpdate(Instruction instruction);
-	void handleTriggerThresholdUpdate(Instruction instruction);
+	void HandleRgbUpdate(Instruction instruction);
+	void HandleTriggerUpdate(Instruction instruction);
+	void HandleTriggerThresholdUpdate(Instruction instruction);
 public:
-	bool isActive();
-	s_scePadSettings getSettings();
-	void setVibrationToUdpConfig(s_ScePadVibrationParam vibration);
+	bool IsActive();
+	s_scePadSettings GetSettings();
+	void SetVibrationToUdpConfig(s_ScePadVibrationParam vibration);
 	UDP();
 	~UDP();
 };

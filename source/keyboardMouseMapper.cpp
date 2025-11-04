@@ -36,7 +36,7 @@ void MouseClick(DWORD flag, DWORD mouseData = 0) {
 #endif
 
 
-void KeyboardMouseMapper::thread() {
+void KeyboardMouseMapper::Thread() {
 #ifdef WINDOWS
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
@@ -51,7 +51,7 @@ void KeyboardMouseMapper::thread() {
 
 	std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
 
-	while (m_threadRunning) {
+	while (m_ThreadRunning) {
 
 		static bool wHeld = false, aHeld = false, sHeld = false, dHeld = false;
 		static std::chrono::milliseconds time = std::chrono::milliseconds(100);
@@ -64,62 +64,62 @@ void KeyboardMouseMapper::thread() {
 
 		for (int i = 0; i < 4; i++) {
 			s_ScePadData state = {};
-			int result = scePadReadState(g_scePad[i], &state);
+			int result = scePadReadState(g_ScePad[i], &state);
 
-			if (result != SCE_OK || m_scePadSettings == nullptr)
+			if (result != SCE_OK || m_ScePadSettings == nullptr)
 				continue;
 
 		#pragma region Touchpad as mouse
-			if (m_scePadSettings[i].touchpadAsMouse && !state.touchData.touch[0].reserve[0]) {
+			if (m_ScePadSettings[i].touchpadAsMouse && !state.touchData.touch[0].reserve[0]) {
 
-				if (!m_scePadSettings[i].wasTouching) {
-					m_scePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
-					m_scePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
+				if (!m_ScePadSettings[i].wasTouching) {
+					m_ScePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
+					m_ScePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
 				}
 
-				int cursorX = state.touchData.touch[0].x - m_scePadSettings[i].lastTouchData.touch[0].x;
-				int cursorY = state.touchData.touch[0].y - m_scePadSettings[i].lastTouchData.touch[0].y;
+				int cursorX = state.touchData.touch[0].x - m_ScePadSettings[i].lastTouchData.touch[0].x;
+				int cursorY = state.touchData.touch[0].y - m_ScePadSettings[i].lastTouchData.touch[0].y;
 
-				float sensitivity = m_scePadSettings[i].touchpadAsMouse_sensitivity;
+				float sensitivity = m_ScePadSettings[i].touchpadAsMouse_sensitivity;
 				if (state.touchData.touch[1].reserve[0] && (abs(cursorX) > 3 || abs(cursorY) > 3))
-					moveCursor((float)cursorX * sensitivity, (float)cursorY * sensitivity);
+					MoveCursor((float)cursorX * sensitivity, (float)cursorY * sensitivity);
 
-				m_scePadSettings[i].lastTouchData.touch[0].reserve[0] = state.touchData.touch[0].reserve[0];
-				m_scePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
-				m_scePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
-				m_scePadSettings[i].wasTouching = true;
+				m_ScePadSettings[i].lastTouchData.touch[0].reserve[0] = state.touchData.touch[0].reserve[0];
+				m_ScePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
+				m_ScePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
+				m_ScePadSettings[i].wasTouching = true;
 
 				if (!state.touchData.touch[1].reserve[0] && fabs(cursorY) > 5.0f) {
 					MouseClick(MOUSEEVENTF_WHEEL, static_cast<int>(-cursorY * 2));
 				}
 			}
-			else if (m_scePadSettings[i].touchpadAsMouse && state.touchData.touch[0].reserve[0]) {
-				m_scePadSettings[i].wasTouching = false;
+			else if (m_ScePadSettings[i].touchpadAsMouse && state.touchData.touch[0].reserve[0]) {
+				m_ScePadSettings[i].wasTouching = false;
 			}
 
 			static bool wasLeftMousePressed = false;
 			static bool wasRightMousePressed = false;
-			if (m_scePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x < 1000 && state.bitmask_buttons & SCE_BM_TOUCH) {
+			if (m_ScePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x < 1000 && state.bitmask_buttons & SCE_BM_TOUCH) {
 				MouseClick(MOUSEEVENTF_LEFTDOWN);
 				wasLeftMousePressed = true;
 			}
-			else if (m_scePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x > 1000 && state.bitmask_buttons & SCE_BM_TOUCH) {
+			else if (m_ScePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x > 1000 && state.bitmask_buttons & SCE_BM_TOUCH) {
 				wasRightMousePressed = true;
 				MouseClick(MOUSEEVENTF_RIGHTDOWN);
 			}
 
-			if (m_scePadSettings[i].touchpadAsMouse && wasLeftMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH)) {
+			if (m_ScePadSettings[i].touchpadAsMouse && wasLeftMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH)) {
 				MouseClick(MOUSEEVENTF_LEFTUP);
 				wasLeftMousePressed = false;
 			}
-			if (m_scePadSettings[i].touchpadAsMouse && wasRightMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH)) {
+			if (m_ScePadSettings[i].touchpadAsMouse && wasRightMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH)) {
 				MouseClick(MOUSEEVENTF_RIGHTUP);
 				wasRightMousePressed = false;
 			}
 		#pragma endregion
 
 		#pragma region Emulate analog wsad
-			if (m_scePadSettings[i].emulateAnalogWsad) {
+			if (m_ScePadSettings[i].emulateAnalogWsad) {
 				int lx = state.LeftStick.X;
 				int ly = state.LeftStick.Y;
 
@@ -163,18 +163,18 @@ void KeyboardMouseMapper::thread() {
 
 		#pragma region Gyro to mouse
 
-			if (m_scePadSettings[i].gyroToMouse) {
+			if (m_ScePadSettings[i].gyroToMouse) {
 				static bool lastVelX[4] = { 0 };
 				static bool lastVelY[4] = { 0 };
 
 				float velX = -state.angularVelocity.z;
 				float velY = -state.angularVelocity.x;
 
-				float X = ((velX - lastVelX[i]) / 100.0f) * m_scePadSettings[i].gyroToMouseSensitivity;
-				float Y = ((velY - lastVelY[i]) / 100.0f) * m_scePadSettings[i].gyroToMouseSensitivity;
+				float X = ((velX - lastVelX[i]) / 100.0f) * m_ScePadSettings[i].gyroToMouseSensitivity;
+				float Y = ((velY - lastVelY[i]) / 100.0f) * m_ScePadSettings[i].gyroToMouseSensitivity;
 
 				if(abs(X) > 0.1f && abs(Y) > 0.1f)
-					moveCursor(X, Y);
+					MoveCursor(X, Y);
 
 				lastVelX[i] = velX;
 				lastVelY[i] = velY;
@@ -183,14 +183,14 @@ void KeyboardMouseMapper::thread() {
 		#pragma endregion
 
 		#pragma region Mouse1 hotkey
-			if (m_scePadSettings[i].useMouse1Hotkey) {
+			if (m_ScePadSettings[i].useMouse1Hotkey) {
 				static bool wasPressed[4] = { false };
 
-				if ((state.bitmask_buttons & m_scePadSettings[i].mouse1Hotkey) && !wasPressed[i]) {
+				if ((state.bitmask_buttons & m_ScePadSettings[i].mouse1Hotkey) && !wasPressed[i]) {
 					MouseClick(MOUSEEVENTF_LEFTDOWN);
 					wasPressed[i] = true;
 				}
-				else if (!(state.bitmask_buttons & m_scePadSettings[i].mouse1Hotkey) && wasPressed[i]) {
+				else if (!(state.bitmask_buttons & m_ScePadSettings[i].mouse1Hotkey) && wasPressed[i]) {
 					MouseClick(MOUSEEVENTF_LEFTUP);
 					wasPressed[i] = false;
 				}
@@ -209,7 +209,7 @@ void KeyboardMouseMapper::thread() {
 #endif
 }
 
-void KeyboardMouseMapper::moveCursor(int x, int y) {
+void KeyboardMouseMapper::MoveCursor(int x, int y) {
 #ifdef WINDOWS
 	INPUT input = { 0 };
 	input.type = INPUT_MOUSE;
@@ -221,16 +221,16 @@ void KeyboardMouseMapper::moveCursor(int x, int y) {
 #endif
 }
 
-KeyboardMouseMapper::KeyboardMouseMapper(s_scePadSettings* scePadSettings) : m_scePadSettings(scePadSettings) {
+KeyboardMouseMapper::KeyboardMouseMapper(s_scePadSettings* scePadSettings) : m_ScePadSettings(scePadSettings) {
 #ifdef WINDOWS
-	m_thread = std::thread(&KeyboardMouseMapper::thread, this);
+	m_thread = std::thread(&KeyboardMouseMapper::Thread, this);
 	m_thread.detach();
 #endif
 }
 
 KeyboardMouseMapper::~KeyboardMouseMapper() {
 #ifdef WINDOWS
-	m_threadRunning = false;
+	m_ThreadRunning = false;
 
 	if (m_thread.joinable()) {
 		m_thread.join();

@@ -14,11 +14,11 @@ int convertRange(int value, int oldMin, int oldMax, int newMin, int newMax) {
 }
 
 #ifdef WINDOWS
-PVIGEM_CLIENT Vigem::m_vigemClient;
+PVIGEM_CLIENT Vigem::m_VigemClient;
 #endif
 
 #ifdef WINDOWS
-void Vigem::update360ByTarget(PVIGEM_TARGET Target, s_ScePadData& state) {
+void Vigem::Update360ByTarget(PVIGEM_TARGET Target, s_ScePadData& state) {
 	XUSB_REPORT report = {};
 
 	report.wButtons |= (state.bitmask_buttons & SCE_BM_CROSS) ? XINPUT_GAMEPAD_A : 0;
@@ -48,10 +48,10 @@ void Vigem::update360ByTarget(PVIGEM_TARGET Target, s_ScePadData& state) {
 	report.sThumbRX = convertRange(state.RightStick.X, 0, 255, -32767, 32766);
 	report.sThumbRY = convertRange(state.RightStick.Y, 255, 0, -32767, 32766);
 
-	vigem_target_x360_update(m_vigemClient, Target, report);
+	vigem_target_x360_update(m_VigemClient, Target, report);
 }
 
-void Vigem::updateDs4ByTarget(PVIGEM_TARGET Target, s_ScePadData& state) {
+void Vigem::UpdateDs4ByTarget(PVIGEM_TARGET Target, s_ScePadData& state) {
 	DS4_REPORT_EX report{};
 	report.Report.bThumbLX = state.LeftStick.X;
 	report.Report.bThumbLY = state.LeftStick.Y;
@@ -124,26 +124,26 @@ void Vigem::updateDs4ByTarget(PVIGEM_TARGET Target, s_ScePadData& state) {
 	report.Report.wGyroZ = state.angularVelocity.y;
 	report.Report.wTimestamp = state.timestamp / 16;
 
-	vigem_target_ds4_update_ex(m_vigemClient, Target, report);
+	vigem_target_ds4_update_ex(m_VigemClient, Target, report);
 }
 #endif
 
-Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_scePadSettings(scePadSettings), m_udp(udp) {
+Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_ScePadSettings(scePadSettings), m_Udp(udp) {
 #ifdef WINDOWS
-	if (!m_vigemClientInitalized) {
-		m_vigemClient = vigem_alloc();
+	if (!m_VigemClientInitalized) {
+		m_VigemClient = vigem_alloc();
 
-		VIGEM_ERROR retval = vigem_connect(m_vigemClient);
+		VIGEM_ERROR retval = vigem_connect(m_VigemClient);
 		if (!VIGEM_SUCCESS(retval)) {
 			LOGE("Failed to connect to ViGEm client");
 			return;
 		}
 
-		m_vigemThread = std::thread(&Vigem::emulatedControllerUpdate, this);
-		m_vigemThread.detach();
+		m_VigemThread = std::thread(&Vigem::EmulatedControllerUpdate, this);
+		m_VigemThread.detach();
 
 		LOGI("ViGEm Client initialized");
-		m_vigemClientInitalized = true;
+		m_VigemClientInitalized = true;
 	}
 
 	for (uint32_t i = 0; i < 4; i++) {
@@ -155,55 +155,55 @@ Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_scePadSettings(sceP
 
 Vigem::~Vigem() {
 #ifdef WINDOWS
-	m_vigemThreadRunning = false;
-	if (m_vigemThread.joinable()) {
-		m_vigemThread.join();
+	m_VigemThreadRunning = false;
+	if (m_VigemThread.joinable()) {
+		m_VigemThread.join();
 	}
 
 	for (uint32_t i = 0; i < 4; i++) {
 		vigem_target_x360_unregister_notification(m_360[i]);
-		vigem_target_remove(m_vigemClient, m_360[i]);
+		vigem_target_remove(m_VigemClient, m_360[i]);
 		vigem_target_ds4_unregister_notification(m_ds4[i]);
-		vigem_target_remove(m_vigemClient, m_ds4[i]);
+		vigem_target_remove(m_VigemClient, m_ds4[i]);
 		vigem_target_free(m_360[i]);
 		vigem_target_free(m_ds4[i]);
 	}
 
-	vigem_disconnect(m_vigemClient);
-	vigem_free(m_vigemClient);
+	vigem_disconnect(m_VigemClient);
+	vigem_free(m_VigemClient);
 #endif
 }
 
-void Vigem::plugControllerByIndex(uint32_t index, uint32_t controllerType) {
+void Vigem::PlugControllerByIndex(uint32_t index, uint32_t controllerType) {
 #ifdef WINDOWS
 	static uint32_t lastEmulatedController[4] = {};
 
 	if ((EmulatedController)controllerType == EmulatedController::NONE && (EmulatedController)lastEmulatedController[index] != EmulatedController::NONE) {
-		vigem_target_remove(m_vigemClient, m_360[index]);
-		vigem_target_remove(m_vigemClient, m_ds4[index]);
+		vigem_target_remove(m_VigemClient, m_360[index]);
+		vigem_target_remove(m_VigemClient, m_ds4[index]);
 		vigem_target_x360_unregister_notification(m_360[index]);
 		vigem_target_ds4_unregister_notification(m_ds4[index]);
 		lastEmulatedController[index] = (uint32_t)EmulatedController::NONE;
 	}
 	else if ((EmulatedController)controllerType == EmulatedController::XBOX360 && (EmulatedController)lastEmulatedController[index] != EmulatedController::XBOX360) {
-		vigem_target_remove(m_vigemClient, m_ds4[index]);
+		vigem_target_remove(m_VigemClient, m_ds4[index]);
 		vigem_target_ds4_unregister_notification(m_ds4[index]);
-		vigem_target_add(m_vigemClient, m_360[index]);
-		vigem_target_x360_register_notification(m_vigemClient, m_360[index], xbox360Notification, &m_userData[index]);
+		vigem_target_add(m_VigemClient, m_360[index]);
+		vigem_target_x360_register_notification(m_VigemClient, m_360[index], xbox360Notification, &m_UserData[index]);
 		lastEmulatedController[index] = (uint32_t)EmulatedController::XBOX360;
 	}
 	else if ((EmulatedController)controllerType == EmulatedController::DUALSHOCK4 && (EmulatedController)lastEmulatedController[index] != EmulatedController::DUALSHOCK4) {
-		vigem_target_remove(m_vigemClient, m_360[index]);
+		vigem_target_remove(m_VigemClient, m_360[index]);
 		vigem_target_x360_unregister_notification(m_360[index]);
-		vigem_target_add(m_vigemClient, m_ds4[index]);
-		vigem_target_ds4_register_notification(m_vigemClient, m_ds4[index], ds4Notification, &m_userData[index]);
+		vigem_target_add(m_VigemClient, m_ds4[index]);
+		vigem_target_ds4_register_notification(m_VigemClient, m_ds4[index], ds4Notification, &m_UserData[index]);
 		lastEmulatedController[index] = (uint32_t)EmulatedController::DUALSHOCK4;
 	}
 #endif
 }
 
-void Vigem::setSelectedController(uint32_t selectedController) {
-	m_selectedController = selectedController;
+void Vigem::SetSelectedController(uint32_t selectedController) {
+	m_SelectedController = selectedController;
 }
 
 void Vigem::SetPeerControllerDataPointer(std::shared_ptr<std::unordered_map<uint32_t, PeerControllerData>> Pointer) {
@@ -212,9 +212,9 @@ void Vigem::SetPeerControllerDataPointer(std::shared_ptr<std::unordered_map<uint
 #endif
 }
 
-bool Vigem::isVigemConnected() {
+bool Vigem::IsVigemConnected() {
 #if !defined(__linux__) && !defined(__MACOS__)
-	return m_vigemClientInitalized;
+	return m_VigemClientInitalized;
 #endif;
 	return false;
 }
@@ -266,7 +266,7 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 }
 
 #ifdef WINDOWS
-void Vigem::emulatedControllerUpdate() {
+void Vigem::EmulatedControllerUpdate() {
 	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 	timeBeginPeriod(1);
@@ -279,23 +279,23 @@ void Vigem::emulatedControllerUpdate() {
 	LARGE_INTEGER liDueTime;
 	liDueTime.QuadPart = -5000LL;
 
-	while (m_vigemThreadRunning) {
+	while (m_VigemThreadRunning) {
 		for (uint32_t i = 0; i < 4; i++) {
 
-			if ((EmulatedController)m_scePadSettings[i].emulatedController != EmulatedController::NONE) {
+			if ((EmulatedController)m_ScePadSettings[i].emulatedController != EmulatedController::NONE) {
 				s_ScePadData scePadState = {};
-				uint32_t result = scePadReadState(g_scePad[i], &scePadState);
+				uint32_t result = scePadReadState(g_ScePad[i], &scePadState);
 
-				s_scePadSettings settingsToUse = (m_selectedController == i && m_udp.isActive()) ? m_udp.getSettings() : m_scePadSettings[i];
+				s_scePadSettings settingsToUse = (m_SelectedController == i && m_Udp.IsActive()) ? m_Udp.GetSettings() : m_ScePadSettings[i];
 				applyInputSettingsToScePadState(settingsToUse, scePadState);
 
 				if (result == SCE_OK) {
 
-					if ((EmulatedController)m_scePadSettings[i].emulatedController == EmulatedController::XBOX360) {
-						update360ByTarget(m_360[i], scePadState);
+					if ((EmulatedController)m_ScePadSettings[i].emulatedController == EmulatedController::XBOX360) {
+						Update360ByTarget(m_360[i], scePadState);
 					}
-					else if ((EmulatedController)m_scePadSettings[i].emulatedController == EmulatedController::DUALSHOCK4) {
-						updateDs4ByTarget(m_ds4[i], scePadState);
+					else if ((EmulatedController)m_ScePadSettings[i].emulatedController == EmulatedController::DUALSHOCK4) {
+						UpdateDs4ByTarget(m_ds4[i], scePadState);
 					}
 				}
 			}
@@ -308,9 +308,9 @@ void Vigem::emulatedControllerUpdate() {
 
 				if (peer.AllowedToReceive && targetIter == m_PeerControllerTargets.end()) {
 					PVIGEM_TARGET target = peer.Controller == CONTROLLER::XBOX360 ? vigem_target_x360_alloc() : vigem_target_ds4_alloc();
-					VIGEM_ERROR error = vigem_target_add(m_vigemClient, target);
-					if (peer.Controller == CONTROLLER::XBOX360) vigem_target_x360_register_notification(m_vigemClient, target, x360PeerNotification, &peer);
-					if (peer.Controller == CONTROLLER::DUALSHOCK4) vigem_target_ds4_register_notification(m_vigemClient, target, ds4PeerNotification, &peer);
+					VIGEM_ERROR error = vigem_target_add(m_VigemClient, target);
+					if (peer.Controller == CONTROLLER::XBOX360) vigem_target_x360_register_notification(m_VigemClient, target, x360PeerNotification, &peer);
+					if (peer.Controller == CONTROLLER::DUALSHOCK4) vigem_target_ds4_register_notification(m_VigemClient, target, ds4PeerNotification, &peer);
 					if (error == VIGEM_ERROR_NONE) {
 						m_PeerControllerTargets[it->first] = target;
 						it->second.Disconnected = false;
@@ -323,7 +323,7 @@ void Vigem::emulatedControllerUpdate() {
 
 				if (targetIter != m_PeerControllerTargets.end() && peer.Disconnected) {
 					if (!targetIter->second) continue;
-					VIGEM_ERROR error = vigem_target_remove(m_vigemClient, targetIter->second);
+					VIGEM_ERROR error = vigem_target_remove(m_VigemClient, targetIter->second);
 					if (error == VIGEM_ERROR_NONE) {
 						if (peer.Controller == CONTROLLER::XBOX360) vigem_target_x360_unregister_notification(targetIter->second);
 						else if (peer.Controller == CONTROLLER::DUALSHOCK4) vigem_target_ds4_unregister_notification(targetIter->second);
@@ -353,9 +353,9 @@ void Vigem::emulatedControllerUpdate() {
 				targetIter = m_PeerControllerTargets.find(it->first);
 				if (targetIter != m_PeerControllerTargets.end() && targetIter->second) {
 					if(peer.Controller == CONTROLLER::XBOX360)
-						update360ByTarget(targetIter->second, inputState);
+						Update360ByTarget(targetIter->second, inputState);
 					else if (peer.Controller == CONTROLLER::DUALSHOCK4)
-						updateDs4ByTarget(targetIter->second, inputState);
+						UpdateDs4ByTarget(targetIter->second, inputState);
 				}
 
 				++it;
@@ -374,18 +374,18 @@ void Vigem::emulatedControllerUpdate() {
 VOID Vigem::xbox360Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData) {
 	auto* data = static_cast<VigemUserData*>(UserData);
 	if (!data || !data->instance) return;
-	if (!data->instance->m_scePadSettings) return;
+	if (!data->instance->m_ScePadSettings) return;
 
-	data->instance->m_scePadSettings[data->index].rumbleFromEmulatedController = { LargeMotor, SmallMotor };
+	data->instance->m_ScePadSettings[data->index].rumbleFromEmulatedController = { LargeMotor, SmallMotor };
 }
 
 VOID Vigem::ds4Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, DS4_LIGHTBAR_COLOR LightbarColor, LPVOID UserData) {
 	auto* data = static_cast<VigemUserData*>(UserData);
 	if (!data || !data->instance) return;
-	if (!data->instance->m_scePadSettings) return;
+	if (!data->instance->m_ScePadSettings) return;
 
-	data->instance->m_scePadSettings[data->index].lightbarFromEmulatedController = { LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue };	
-	data->instance->m_scePadSettings[data->index].rumbleFromEmulatedController = { LargeMotor, SmallMotor };
+	data->instance->m_ScePadSettings[data->index].lightbarFromEmulatedController = { LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue };	
+	data->instance->m_ScePadSettings[data->index].rumbleFromEmulatedController = { LargeMotor, SmallMotor };
 }
 VOID Vigem::x360PeerNotification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData) {
 	auto* data = static_cast<PeerControllerData*>(UserData);
