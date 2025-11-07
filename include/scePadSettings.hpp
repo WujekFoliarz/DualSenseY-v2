@@ -145,6 +145,9 @@ struct s_scePadSettings {
 	uint32_t gyroToRightStickActivationButton = SCE_BM_L2;
 	float gyroToRightStickSensitivity = 20.0f;
 	int gyroToRightStickDeadzone = 0;
+	bool triggersAsButtons = false;
+	int triggersAsButtonStartPos = 40;
+	bool TouchpadAsSelectStart = false;
 
 	// Keyboard and mouse stuff
 	bool emulateAnalogWsad = false;
@@ -234,14 +237,17 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	useMouse1Hotkey,
 	mouse1Hotkey,
 	gyroToMouse,
-	gyroToMouseSensitivity
+	gyroToMouseSensitivity,
+	triggersAsButtons,
+	triggersAsButtonStartPos
 );
 
 void SaveSettingsToFile(const s_scePadSettings& s, const std::string& filepath);
 bool LoadSettingsFromFile(s_scePadSettings* s, const std::string& filepath);
 bool GetDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s);
 bool RemoveDefaultConfigByMac(const std::string& mac);
-void LoadDefaultConfigs(int& currentController, s_scePadSettings* s);
+void LoadDefaultConfig(int currentController, s_scePadSettings* s);
+void ForceControllerToNotLoadDefault(int controller);
 
 using TriggerHandler = std::function<void(s_scePadSettings&, int&, std::vector<uint8_t>&)>;
 

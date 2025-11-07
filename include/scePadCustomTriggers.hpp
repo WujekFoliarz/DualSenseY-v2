@@ -29,6 +29,7 @@ void CustomTriggerSoft(uint8_t ffb[11]);
 void CustomTriggerHard(uint8_t ffb[11]);
 void CustomTriggerVeryHard(uint8_t ffb[11]);
 void CustomTriggerHardest(uint8_t ffb[11]);
+void CustomTriggerHardestB(uint8_t ffb[11], uint8_t startPos);
 void CustomTriggerRigid(uint8_t ffb[11]);
 void CustomTriggerVibrateTrigger(uint8_t ffb[11]);
 void CustomTriggerChoppy(uint8_t ffb[11]);

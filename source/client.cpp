@@ -30,7 +30,7 @@ Client::~Client() {
 	}
 }
 
-void Client::Connect() {
+void Client::Connect(const std::string& Ip, uint16_t Port) {
 	m_Connecting = true;
 	m_AwaitingResponseCount++;
 	if (IsConnected())
@@ -51,8 +51,8 @@ void Client::Connect() {
 	}
 
 	ENetAddress serverAddress = { 0 };
-	enet_address_set_host(&serverAddress, g_SERVER_HOSTNAME.c_str());
-	serverAddress.port = g_PORT;
+	enet_address_set_host(&serverAddress, Ip.c_str());
+	serverAddress.port = Port;
 	m_ServerPeer = enet_host_connect(m_Host, &serverAddress, 2, 0);
 
 	m_AwaitingResponseCount--;
@@ -679,7 +679,7 @@ void Client::InputStateSendoutService() {
 		SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0);
 		WaitForSingleObject(hTimer, INFINITE);
 	#else
-		std::this_thread::sleep_for(std::chrono::miliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(8));
 	#endif
 	}
 }

@@ -2,6 +2,7 @@
 #include <platform_folders.h>
 #include <filesystem>
 #include <fstream>
+#include "log.hpp"
 
 static inline std::filesystem::path directory = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/");
 static inline std::filesystem::path filePath = directory / "Config.json";
@@ -16,11 +17,16 @@ void SaveAppSettings(AppSettings* appSettings) {
 }
 
 void LoadAppSettings(AppSettings* appSettings) {
-	if (std::filesystem::exists(filePath)) {
-		std::ifstream ifs(filePath);
-		if (!ifs) return;
-		nlohmann::json j;
-		ifs >> j;
-		*appSettings = j.get<AppSettings>();
+	try {
+		if (std::filesystem::exists(filePath)) {
+			std::ifstream ifs(filePath);
+			if (!ifs) return;
+			nlohmann::json j;
+			ifs >> j;
+			*appSettings = j.get<AppSettings>();
+		}
+	}
+	catch (...) {
+		LOGE("Failed to load application config file");
 	}
 }

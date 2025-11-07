@@ -94,8 +94,8 @@
   "Accept": "Akceptuj",
   "Decline": "Odrzuć",
   "WaitingForPeerResponse": "Oczekiwanie na odpowiedź peera...",
-  "TransmitingToPeer": "Przesyłanie do peera",
-  "PeerTransmitingToYou": "Peer nadaje do ciebie",
+  "TransmittingToPeer": "Przesyłanie do peera",
+  "PeerTransmittingToYou": "Peer nadaje do ciebie",
   "PeerDeclined": "Peer odrzucił",
   "RequestX360": "Zażądaj X360",
   "RequestDS4": "Zażądaj DS4",
@@ -128,5 +128,10 @@
   "RemoveDefaultConfig": "Usuń domyślną konfigurację",
   "SelectedTrigger": "Wybrany spust",
   "NoControllersConnected": "Brak podłączonych kontrolerów",
-  "Controller": "Kontroler"
+  "Controller": "Kontroler",
+  "HideToTrayOnMinimize": "Ukryj w zasobniku przy minimalizacji",
+  "HideToTrayOnStart": "Ukryj w zasobniku przy starcie",
+  "AssociateDSYFile": "Połącz pliki konfiguracyjne (.dsy) z tym wykonywalnym plikiem",
+  "TriggersAsButtons": "Spusty jako przyciski",
+  "TouchpadAsSelectStart": "Touchpad jako select/start"
 }

@@ -94,8 +94,8 @@
   "Accept": "Accept",
   "Decline": "Decline",
   "WaitingForPeerResponse": "Waiting for peer response...",
-  "TransmitingToPeer": "Transmiting to peer",
-  "PeerTransmitingToYou": "Peer transmiting to you",
+  "TransmittingToPeer": "Transmitting to peer",
+  "PeerTransmittingToYou": "Peer transmitting to you",
   "PeerDeclined": "Peer declined",
   "RequestX360": "Request X360",
   "RequestDS4": "Request DS4",
@@ -130,5 +130,8 @@
   "NoControllersConnected": "No controllers connected",
   "Controller": "Controller",
   "HideToTrayOnMinimize": "Hide to tray on minimize",
-  "HideToTrayOnStart": "Hide to tray on start"
+  "HideToTrayOnStart": "Hide to tray on start",
+  "AssociateDSYFile": "Associate config files (.dsy) with this executable",
+  "TriggersAsButtons": "Triggers as buttons",
+  "TouchpadAsSelectStart": "Touchpad as select/start"
 }

@@ -98,6 +98,20 @@ void CustomTriggerHardest(uint8_t ffb[11]) {
 	ffb[10] = 0;
 }
 
+void CustomTriggerHardestB(uint8_t ffb[11], uint8_t startPos) {
+	ffb[0] = DSXTriggerMode::Pulse;
+	ffb[1] = startPos;
+	ffb[2] = 255;
+	ffb[3] = 255;
+	ffb[4] = 255;
+	ffb[5] = 255;
+	ffb[6] = 255;
+	ffb[7] = 255;
+	ffb[8] = 0;
+	ffb[9] = 0;
+	ffb[10] = 0;
+}
+
 void CustomTriggerRigid(uint8_t ffb[11]) {
 	ffb[0] = DSXTriggerMode::Rigid;
 	ffb[1] = 0;

@@ -44,6 +44,9 @@ struct AppSettings {
 	std::string SelectedLanguage = "en";
 	bool HideToTrayOnMinimize = false;
 	bool HideToTrayOnStart = false;
+	std::string ServerAddress = "maluch.mikr.us";
+	uint16_t ServerPort = 30151;
+	uint16_t LocalPort = 6969;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
@@ -52,7 +55,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	DontConnectToServerOnStart,
 	SelectedLanguage,
 	HideToTrayOnMinimize,
-	HideToTrayOnStart
+	HideToTrayOnStart,
+	ServerAddress,
+	ServerPort,
+	LocalPort
 );
 
 void SaveAppSettings(AppSettings* appSettings);

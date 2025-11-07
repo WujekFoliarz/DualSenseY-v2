@@ -44,7 +44,7 @@ public:
 	#endif
 	}
 	
-	bool Run();
+	bool Run(const std::string& Argument1 = "");
 	void InitializeWindow();
 	void SetStyleAndColors();
 	void SetupTray();

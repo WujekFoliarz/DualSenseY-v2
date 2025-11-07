@@ -35,7 +35,7 @@ void UDP::Listen() {
 			nlohmann::json packetJson = nlohmann::json::parse(buffer);
 			Packet packet = {};
 			packet.from_json(packetJson);
-
+			bool dontCountAsUpdate = false;
 			for (auto& instr : packet.instructions) {
 				// I don't care enough to implement the rest, if you wanna do it go ahead.
 				switch (instr.type) {
@@ -58,12 +58,27 @@ void UDP::Listen() {
 						break;
 					case InstructionType::ResetToUserSettings:
 						break;
+
+					case InstructionType::CONFIG:
+					{
+						m_SettingsFromOtherInstanceAvailable = LoadSettingsFromFile(&m_OtherInstanceSettings, std::any_cast<std::string>(instr.parameters[0]));
+						dontCountAsUpdate = true;
+						break;
+					}
+
+					case InstructionType::BRING_TO_FRONT:
+					{
+						m_AwaitingBringToFront = true;
+						dontCountAsUpdate = true;
+						break;
+					}
+					
 				}
 
 				LOGI("[UDP] Instruction type: %d", instr.type);
 			}
 
-			m_LastUpdate = std::chrono::steady_clock::now();
+			m_LastUpdate = dontCountAsUpdate ? m_LastUpdate : std::chrono::steady_clock::now();
 
 			ServerResponse response = {};
 			response.status = "DSX Received UDP Instructions";
@@ -317,6 +332,10 @@ bool UDP::IsActive() {
 	return false;
 }
 
+bool UDP::IsAvailable() {
+	return m_Available;
+}
+
 s_scePadSettings UDP::GetSettings() {
 	std::lock_guard<std::mutex> guard(m_SettingsLock);
 	return m_Settings;
@@ -327,7 +346,41 @@ void UDP::SetVibrationToUdpConfig(s_ScePadVibrationParam vibration) {
 	m_Settings.rumbleFromEmulatedController = vibration;
 }
 
-UDP::UDP() : m_Socket(m_IoContext) {
+void UDP::SendConfigPathToAnotherInstance(const std::string& Path) {
+	if (!m_ConnectedInsteadOfBinded) return;
+	Packet packet{};
+	Instruction instruction{};
+	instruction.type = InstructionType::CONFIG;
+	instruction.parameters.push_back(Path);
+	packet.instructions.push_back(instruction);
+	m_Socket.send(asio::buffer(packet.to_json().dump()));
+}
+
+void UDP::BringOtherInstanceToFront() {
+	if (!m_ConnectedInsteadOfBinded) return;
+	Packet packet{};
+	Instruction instruction{};
+	instruction.type = InstructionType::BRING_TO_FRONT;
+	packet.instructions.push_back(instruction);
+	m_Socket.send(asio::buffer(packet.to_json().dump()));
+}
+
+bool UDP::SettingsFromOtherInstanceAvailable() {
+	return m_SettingsFromOtherInstanceAvailable;
+}
+
+bool UDP::AwaitingBringToFront() {
+	bool wasTrue = m_AwaitingBringToFront;
+	m_AwaitingBringToFront = false;
+	return wasTrue;
+}
+
+s_scePadSettings UDP::GetSettingsFromOtherInstance() {
+	m_SettingsFromOtherInstanceAvailable = false;
+	return m_OtherInstanceSettings;
+}
+
+UDP::UDP(uint16_t Port) : m_Socket(m_IoContext) {
 	try {
 		m_Socket.open(asio::ip::udp::v4());
 		m_Socket.bind(asio::ip::udp::endpoint(asio::ip::udp::v4(), 6969));
@@ -336,6 +389,7 @@ UDP::UDP() : m_Socket(m_IoContext) {
 			m_ListenThread = std::thread(&UDP::Listen, this);
 			m_ListenThread.detach();
 			LOGI("[UDP] Started");
+			m_Available = true;
 		}
 		else {
 			LOGE("[UDP] Failed to start");
@@ -343,6 +397,14 @@ UDP::UDP() : m_Socket(m_IoContext) {
 	}
 	catch (...) {
 		LOGE("[UDP] Failed to start");
+		m_Socket.close();
+		m_Socket.open(asio::ip::udp::v4());
+		m_Socket.connect(asio::ip::udp::endpoint(asio::ip::address_v4::loopback(), 6969));
+
+		if (m_Socket.is_open()) {
+			m_ConnectedInsteadOfBinded = true;
+			LOGI("[UDP] Connected to another app instance");
+		}
 	}
 
 	m_Settings.udpConfig = true;

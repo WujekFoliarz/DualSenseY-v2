@@ -6,6 +6,8 @@
 #include <platform_folders.h>
 
 static std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
+// <Mac address, was loaded>
+static std::unordered_map<std::string, bool> loadList;
 
 void SaveSettingsToFile(const s_scePadSettings& s, const std::string& filepath) {
 	nlohmann::json j = s;
@@ -58,10 +60,7 @@ bool RemoveDefaultConfigByMac(const std::string& mac) {
 
 
 
-void LoadDefaultConfigs(int& currentController, s_scePadSettings* s) {
-	// <Mac address, was loaded>
-	static std::unordered_map<std::string, bool> loadList;
-
+void LoadDefaultConfig(int currentController, s_scePadSettings* s) {
 	std::string macAddress = scePadGetMacAddress(g_ScePad[currentController]);
 
 	if (macAddress != "" && !loadList[macAddress]) {
@@ -69,6 +68,11 @@ void LoadDefaultConfigs(int& currentController, s_scePadSettings* s) {
 			loadList[macAddress] = true;
 		}
 	}
+}
+
+void ForceControllerToNotLoadDefault(int controller) {
+	std::string macAddress = scePadGetMacAddress(g_ScePad[controller]);
+	loadList[macAddress] = true;
 }
 
 void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
@@ -118,7 +122,16 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 
 	int l2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.smallMotor : settings.rumbleFromEmulatedController.largeMotor;
 	int r2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.largeMotor : settings.rumbleFromEmulatedController.smallMotor;
-	if (settings.rumbleToAT && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE )) {
+	
+	if (settings.triggersAsButtons && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE)) {
+		uint8_t leftTrigger[11] = {};
+		uint8_t rightTrigger[11] = {};
+
+		CustomTriggerHardestB(leftTrigger,settings.triggersAsButtonStartPos);
+		CustomTriggerHardestB(rightTrigger, settings.triggersAsButtonStartPos);
+		scePadSetTriggerEffectCustom(g_ScePad[index], leftTrigger, rightTrigger, SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 | SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2);
+	}
+	else if (settings.rumbleToAT && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE )) {
 		uint8_t leftTrigger[11] = {};
 		uint8_t rightTrigger[11] = {};
 

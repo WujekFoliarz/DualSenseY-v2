@@ -15,6 +15,7 @@
 #include "controllerHotkey.hpp"
 #include <process.hpp>
 #include "applicationVersion.hpp"
+#include "dsyFileRegistry.hpp"
 
 #define str(string) m_Strings.GetString(string).c_str()
 #define strr(string) m_Strings.GetString(string)
@@ -119,6 +120,12 @@ bool MainWindow::MenuBar(int& currentController, s_scePadSettings& scePadSetting
 					RemoveDefaultConfigByMac(macAddress);
 				}
 			}
+
+		#ifdef WINDOWS
+			if (ImGui::MenuItem(str("AssociateDSYFile"))) {
+				RegisterFileAssociation();
+			}
+		#endif
 
 			ImGui::EndMenu();
 		}
@@ -680,25 +687,33 @@ bool MainWindow::TreeElement_vibration(s_scePadSettings& scePadSettings) {
 
 bool MainWindow::TreeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(str("DynamicTriggerSettings"))) {
-		ImGui::Checkbox(str("RumbleToAT"), &scePadSettings.rumbleToAT);
-		if (scePadSettings.rumbleToAT) {
-			ImGui::Checkbox(str("SwapTriggersRumbleToAT"), &scePadSettings.rumbleToAt_swapTriggers);
+		ImGui::Checkbox(str("TriggersAsButtons"), &scePadSettings.triggersAsButtons);
+
+		if (scePadSettings.triggersAsButtons) {
+			ImGui::SetNextItemWidth(400);
+			ImGui::SliderInt(str("StartPosition"), &scePadSettings.triggersAsButtonStartPos, 0, 255);
 		}
+		else {
+			ImGui::Checkbox(str("RumbleToAT"), &scePadSettings.rumbleToAT);
+			if (scePadSettings.rumbleToAT) {
+				ImGui::Checkbox(str("SwapTriggersRumbleToAT"), &scePadSettings.rumbleToAt_swapTriggers);
+			}
 
-		static int selectedTrigger = SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2;
-		auto rumbleToAtSetting = [&](int& selectedTrigger) {
-			ImGui::SetNextItemWidth(400);
-			ImGui::SliderInt(str("MaxFrequency"), &scePadSettings.rumbleToAt_frequency[selectedTrigger], 0, 255);
-			ImGui::SetNextItemWidth(400);
-			ImGui::SliderInt(str("MaxIntensity"), &scePadSettings.rumbleToAt_intensity[selectedTrigger], 0, 255);
-			ImGui::SetNextItemWidth(400);
-			ImGui::SliderInt(str("Position"), &scePadSettings.rumbleToAt_position[selectedTrigger], 0, 139);
-			};
+			static int selectedTrigger = SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2;
+			auto rumbleToAtSetting = [&](int& selectedTrigger) {
+				ImGui::SetNextItemWidth(400);
+				ImGui::SliderInt(str("MaxFrequency"), &scePadSettings.rumbleToAt_frequency[selectedTrigger], 0, 255);
+				ImGui::SetNextItemWidth(400);
+				ImGui::SliderInt(str("MaxIntensity"), &scePadSettings.rumbleToAt_intensity[selectedTrigger], 0, 255);
+				ImGui::SetNextItemWidth(400);
+				ImGui::SliderInt(str("Position"), &scePadSettings.rumbleToAt_position[selectedTrigger], 0, 139);
+				};
 
-		ImGui::RadioButton("L2", &selectedTrigger, 0);
-		ImGui::SameLine();
-		ImGui::RadioButton("R2", &selectedTrigger, 1);
-		rumbleToAtSetting(selectedTrigger);
+			ImGui::RadioButton("L2", &selectedTrigger, 0);
+			ImGui::SameLine();
+			ImGui::RadioButton("R2", &selectedTrigger, 1);
+			rumbleToAtSetting(selectedTrigger);
+		}
 
 		ImGui::TreePop();
 	}
@@ -738,6 +753,16 @@ bool MainWindow::TreeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotorightstick").c_str(), &scePadSettings.gyroToRightStickSensitivity, 0, 100);
 		ImGui::SetNextItemWidth(350);
 		ImGui::SliderInt(str("Deadzone"), &scePadSettings.gyroToRightStickDeadzone, 0, 255);
+
+		ImGui::TreePop();
+	}
+	return true;
+}
+
+bool MainWindow::TreeElement_touchpad(s_scePadSettings& scePadSettings) {
+	if (ImGui::TreeNodeEx(str("Touchpad"))) {
+
+		ImGui::Checkbox(str("TouchpadAsSelectStart"), &scePadSettings.TouchpadAsSelectStart);
 
 		ImGui::TreePop();
 	}
@@ -788,7 +813,7 @@ bool MainWindow::Online() {
 			}
 		}
 		else if (ImGui::Button(str("ConnectOnline")))
-			m_Client.Connect();
+			m_Client.Connect(m_AppSettings.ServerAddress, m_AppSettings.ServerPort);
 	}
 	else {
 		ImGui::Text("%s: %d", str("UsersOnline"), (int)m_Client.GetGlobalPeerCount());
@@ -1070,6 +1095,7 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings& scePadSettin
 			TreeElement_vibration(scePadSettings);
 			TreeElement_dynamicAdaptiveTriggers(scePadSettings);
 			TreeElement_motion(scePadSettings, state);
+			TreeElement_touchpad(scePadSettings);
 
 			ImGui::TreePop();
 		}

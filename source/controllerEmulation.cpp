@@ -247,7 +247,7 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 #pragma region Gyro to right stick
 	if (settings.gyroToRightStick && IsHotkeyActive(settings.gyroToRightStickActivationButton, state.bitmask_buttons)) {
 		if (abs(state.RightStick.X - 128) <= 80 &&
-		    abs(state.RightStick.Y - 128) <= 80) {
+			abs(state.RightStick.Y - 128) <= 80) {
 
 			const float maxVelValue = 1000.0f;
 
@@ -257,9 +257,26 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 			float adjustedX = -normalizedVelX * settings.gyroToRightStickSensitivity;
 			float adjustedY = -normalizedVelY * settings.gyroToRightStickSensitivity;
 
-			state.RightStick.X = static_cast<int>((adjustedY) - 127);
-			state.RightStick.Y = static_cast<int>((adjustedX) - 127);
+			state.RightStick.X = static_cast<int>((adjustedY)-127);
+			state.RightStick.Y = static_cast<int>((adjustedX)-127);
 			applyDeadzone(settings.gyroToRightStickDeadzone, state.RightStick);
+		}
+	}
+#pragma endregion
+
+#pragma region Triggers as buttons
+	if (settings.triggersAsButtons) {
+		state.L2_Analog = state.L2_Analog >= 1 ? 255 : 0;
+		state.R2_Analog = state.R2_Analog >= 1 ? 255 : 0;
+	}
+#pragma endregion
+
+#pragma region Touchpad as select/start
+	if (settings.TouchpadAsSelectStart && state.bitmask_buttons & SCE_BM_TOUCH) {
+		if ((!state.touchData.touch[0].reserve[0] && state.touchData.touch[0].x >= 1000) ||
+			(state.touchData.touch[0].reserve[0] && !state.touchData.touch[1].reserve[0] && state.touchData.touch[1].x >= 1000)) {
+			state.bitmask_buttons |= SCE_BM_OPTIONS;
+			state.bitmask_buttons &= ~SCE_BM_TOUCH;
 		}
 	}
 #pragma endregion
@@ -352,7 +369,7 @@ void Vigem::EmulatedControllerUpdate() {
 
 				targetIter = m_PeerControllerTargets.find(it->first);
 				if (targetIter != m_PeerControllerTargets.end() && targetIter->second) {
-					if(peer.Controller == CONTROLLER::XBOX360)
+					if (peer.Controller == CONTROLLER::XBOX360)
 						Update360ByTarget(targetIter->second, inputState);
 					else if (peer.Controller == CONTROLLER::DUALSHOCK4)
 						UpdateDs4ByTarget(targetIter->second, inputState);
@@ -384,7 +401,7 @@ VOID Vigem::ds4Notification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR La
 	if (!data || !data->instance) return;
 	if (!data->instance->m_ScePadSettings) return;
 
-	data->instance->m_ScePadSettings[data->index].lightbarFromEmulatedController = { LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue };	
+	data->instance->m_ScePadSettings[data->index].lightbarFromEmulatedController = { LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue };
 	data->instance->m_ScePadSettings[data->index].rumbleFromEmulatedController = { LargeMotor, SmallMotor };
 }
 VOID Vigem::x360PeerNotification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LedNumber, LPVOID UserData) {
@@ -398,7 +415,7 @@ VOID Vigem::ds4PeerNotification(PVIGEM_CLIENT Client, PVIGEM_TARGET Target, UCHA
 	if (!data) return;
 
 	data->Vibration = { LargeMotor, SmallMotor };
-	data->Lightbar = {LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue};
+	data->Lightbar = { LightbarColor.Red, LightbarColor.Green, LightbarColor.Blue };
 }
 #endif
 

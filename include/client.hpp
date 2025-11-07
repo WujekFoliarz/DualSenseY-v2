@@ -12,9 +12,6 @@
 #include <functional>
 #include "scePadSettings.hpp"
 
-static inline std::string g_SERVER_HOSTNAME = "maluch.mikr.us";
-static inline uint16_t g_PORT = 30151;
-
 constexpr auto MAX_ROOM_NAME_SIZE = 16;
 constexpr auto MAX_NICKNAME_SIZE = 16;
 constexpr auto MAX_IP_ADDRESS_STRING_SIZE = 40;
@@ -239,7 +236,7 @@ class Client {
 public:
 	Client(s_scePadSettings* ScePadSettings);
 	~Client();
-	void Connect();
+	void Connect(const std::string& Ip, uint16_t Port);
 	void Start();
 	bool IsConnected();
 	bool IsConnecting();

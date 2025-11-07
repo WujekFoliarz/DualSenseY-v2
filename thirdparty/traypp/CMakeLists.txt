@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 project(tray VERSION 0.2 DESCRIPTION "A cross-platform C++ system tray library")
 
 file(GLOB src

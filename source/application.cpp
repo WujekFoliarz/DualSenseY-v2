@@ -30,6 +30,7 @@
 #include "scePadHandle.hpp"
 #include "keyboardMouseMapper.hpp"
 #include "client.hpp"
+#include "appMutex.hpp"
 
 #if !defined(__linux__) && !defined(__MACOS__)
 bool colorsChanged = false;
@@ -73,7 +74,7 @@ void Application::IconifyCallback(GLFWwindow* window, int iconified) {
 	}
 }
 
-bool Application::Run() {
+bool Application::Run(const std::string& Argument1) {
 	// Delete update.zip if present
 	remove("update.zip");
 
@@ -88,42 +89,43 @@ bool Application::Run() {
 	g_ScePad[3] = scePadOpen(4, 0, 0);
 	scePadSetParticularMode(true);
 #pragma endregion
-#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0) && defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
-	AllocConsole();
-	FILE* fp;
-	freopen_s(&fp, "CONOUT$", "w", stdout);
-	freopen_s(&fp, "CONO UT$", "w", stderr);
-	freopen_s(&fp, "CONIN$", "r", stdin);
-#endif
+
+	LoadAppSettings(&m_AppSettings);
+	SaveAppSettings(&m_AppSettings); // Save here so it updates
+	UDP udp(m_AppSettings.LocalPort);
+	if (IsAlreadyRunning("app.lock")) {
+			
+		if (Argument1 != "") udp.SendConfigPathToAnotherInstance(Argument1);
+		else udp.BringOtherInstanceToFront();
+		
+		std::exit(0);
+	}
+
+	AudioPassthrough audio = {};
+	Vigem vigem(m_ScePadSettings, udp);
+	Strings strings = {};
+	KeyboardMouseMapper keyboardMouseMapper(m_ScePadSettings);
+	Client client(m_ScePadSettings);
+	client.Start();
+	if (!m_AppSettings.DontConnectToServerOnStart) client.Connect(m_AppSettings.ServerAddress, m_AppSettings.ServerPort);
+	client.AllowedToHostController = vigem.IsVigemConnected();
+	vigem.SetPeerControllerDataPointer(client.GetActivePeerControllerMap());
+	strings.ReadStringsFromJson(CountryCodeToFile(m_AppSettings.SelectedLanguage));
+
+	if (Argument1 != "") {
+		ForceControllerToNotLoadDefault(0);
+		LoadSettingsFromFile(&m_ScePadSettings[0], Argument1);
+	}
 
 	SetupTray();
 	InitializeWindow();
 
 	ImGuiIO& io = ImGui::GetIO();
-	AudioPassthrough audio = {};
-	UDP udp = {};
-	Vigem vigem(m_ScePadSettings, udp);
-	Strings strings = {};
-	KeyboardMouseMapper keyboardMouseMapper(m_ScePadSettings);
-	Client client(m_ScePadSettings);
-
-	LoadAppSettings(&m_AppSettings);
 	if (m_AppSettings.HideToTrayOnStart) HideWindowToTray();
 	io.FontDefault = io.Fonts->Fonts[g_FontIndex[m_AppSettings.SelectedLanguage]];
 
-	client.Start();
-	if (!m_AppSettings.DontConnectToServerOnStart) client.Connect();
-	client.AllowedToHostController = vigem.IsVigemConnected();
-	vigem.SetPeerControllerDataPointer(client.GetActivePeerControllerMap());
-
 	// Windows
 	MainWindow main(strings, audio, vigem, udp, m_AppSettings, client);
-
-	strings.ReadStringsFromJson(CountryCodeToFile(m_AppSettings.SelectedLanguage));
-
-	bool active = false;
-	uint32_t occasionalFrameWhenMinimized = 0;
-
 
 #ifdef WINDOWS
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
@@ -133,6 +135,8 @@ bool Application::Run() {
 
 	int display_w, display_h = 0;
 	float xscale, yscale = 1;
+	bool active = false;
+	uint32_t occasionalFrameWhenMinimized = 0;
 	while (!glfwWindowShouldClose(m_GlfwWindow.get())) {
 		bool v_isMinimized = IsMinimized();
 		occasionalFrameWhenMinimized = v_isMinimized ? occasionalFrameWhenMinimized + 1 : 0;
@@ -169,8 +173,16 @@ bool Application::Run() {
 		audio.Validate();
 
 		for (int i = 0; i < 4; i++) {
-			LoadDefaultConfigs(i, &m_ScePadSettings[i]);
+			LoadDefaultConfig(i, &m_ScePadSettings[i]);
 			applySettings(i, i == (selectedController) && udp.IsActive() ? udp.GetSettings() : m_ScePadSettings[i], audio);
+		}
+
+		if (udp.SettingsFromOtherInstanceAvailable()) {
+			m_ScePadSettings[selectedController] = udp.GetSettingsFromOtherInstance();
+		}
+
+		if (udp.AwaitingBringToFront()) {
+			RestoreWindowFromTray();
 		}
 
 	#pragma region ImGUI + GLFW

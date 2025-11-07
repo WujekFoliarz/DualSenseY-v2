@@ -164,7 +164,11 @@ enum class InstructionType {
 	TriggerThreshold,
 	MicLED,
 	PlayerLEDNewRevision,
-	ResetToUserSettings
+	ResetToUserSettings,
+
+	// DSY only
+	CONFIG = 30,
+	BRING_TO_FRONT = 31
 };
 
 class Instruction {
@@ -184,14 +188,43 @@ public:
 				parameters.push_back(parameter.get<float>());
 			}
 			else if (parameter.is_string()) {
-				try {
-					parameters.push_back(std::stoi(parameter.get<std::string>()));
-				}
-				catch (...) {
-					parameters.push_back(0);
-				}
+				std::string str = parameter.get<std::string>();
+
+				bool isNumeric = !str.empty() &&
+					std::all_of(str.begin() + (str[0] == '-' ? 1 : 0), str.end(), ::isdigit);
+
+				if (isNumeric)
+					parameters.push_back(std::stoi(str));
+				else
+					parameters.push_back(str);
 			}
 		}
+	}
+
+	nlohmann::json to_json() const {
+		nlohmann::json j;
+		j["type"] = static_cast<int>(type);
+		j["parameters"] = nlohmann::json::array();
+
+		for (const auto& param : parameters) {
+			if (param.type() == typeid(int)) {
+				j["parameters"].push_back(std::any_cast<int>(param));
+			}
+			else if (param.type() == typeid(float)) {
+				j["parameters"].push_back(std::any_cast<float>(param));
+			}
+			else if (param.type() == typeid(double)) {
+				j["parameters"].push_back(std::any_cast<double>(param));
+			}
+			else if (param.type() == typeid(std::string)) {
+				j["parameters"].push_back(std::any_cast<std::string>(param));
+			}
+			else {
+				j["parameters"].push_back(nullptr);
+			}
+		}
+
+		return j;
 	}
 };
 
@@ -206,6 +239,15 @@ public:
 			instructions.push_back(newInstruction);
 		}
 	}
+
+	nlohmann::json to_json() const {
+		nlohmann::json j;
+		j["instructions"] = nlohmann::json::array();
+		for (const auto& instr : instructions) {
+			j["instructions"].push_back(instr.to_json());
+		}
+		return j;
+	}
 };
 
 // Maybe swap ASIO with ENet
@@ -218,6 +260,11 @@ private:
 	std::chrono::steady_clock::time_point m_LastUpdate;
 	std::mutex m_SettingsLock;
 	s_scePadSettings m_Settings = {};
+	s_scePadSettings m_OtherInstanceSettings = {};
+	bool m_SettingsFromOtherInstanceAvailable = false;
+	bool m_ConnectedInsteadOfBinded = false;
+	bool m_Available = false;
+	bool m_AwaitingBringToFront = false;
 	void Listen();
 
 	void HandleRgbUpdate(Instruction instruction);
@@ -225,9 +272,15 @@ private:
 	void HandleTriggerThresholdUpdate(Instruction instruction);
 public:
 	bool IsActive();
+	bool IsAvailable();
 	s_scePadSettings GetSettings();
 	void SetVibrationToUdpConfig(s_ScePadVibrationParam vibration);
-	UDP();
+	void SendConfigPathToAnotherInstance(const std::string& Path);
+	void BringOtherInstanceToFront();
+	bool SettingsFromOtherInstanceAvailable();
+	bool AwaitingBringToFront();
+	s_scePadSettings GetSettingsFromOtherInstance();
+	UDP(uint16_t Port);
 	~UDP();
 };
 
