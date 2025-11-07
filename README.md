@@ -18,7 +18,7 @@ Go to [releases](https://github.com/WujekFoliarz/DualSenseY-v2/releases) and dow
 - Adaptive trigger configurator
 - Gyro support
 - Touchpad diagnostics and mouse emulation
-- Online gyro/touchpad streaming
+- Online controller streaming (as X360/DS4 on target computer, full gyro and touchpad support)
 
 
 
