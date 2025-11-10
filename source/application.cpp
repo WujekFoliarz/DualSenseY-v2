@@ -1,4 +1,4 @@
-﻿
+﻿#define NOMINMAX
 #include "application.hpp"
 #include "log.hpp"
 
@@ -21,6 +21,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <stb_image/stb_image.h>
 #include <tray.hpp>
+#include <algorithm>
 
 #include "mainWindow.hpp"
 #include "strings.hpp"
@@ -33,13 +34,36 @@
 #include "appMutex.hpp"
 
 #if !defined(__linux__) && !defined(__MACOS__)
+bool IsWindowsLightMode() {
+	DWORD value = 1;
+	DWORD size = sizeof(value);
+	if (RegGetValueW(
+		HKEY_CURRENT_USER,
+		L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+		L"AppsUseLightTheme",
+		RRF_RT_DWORD,
+		nullptr,
+		&value,
+		&size
+		) != ERROR_SUCCESS)
+		return true;
+	return value != 0;
+}
+
 bool colorsChanged = false;
+bool winSettingChange = false;
+bool isLightMode = false;
 WNDPROC originalWndProc = nullptr;
 LRESULT CALLBACK CustomWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
 		case WM_DWMCOLORIZATIONCOLORCHANGED:
 		{
 			colorsChanged = true;
+			return 0;
+		}
+		case WM_SETTINGCHANGE:
+		{
+			winSettingChange = true;
 			return 0;
 		}
 		default:
@@ -125,7 +149,7 @@ bool Application::Run(const std::string& Argument1) {
 	io.FontDefault = io.Fonts->Fonts[g_FontIndex[m_AppSettings.SelectedLanguage]];
 
 	// Windows
-	MainWindow main(strings, audio, vigem, udp, m_AppSettings, client);
+	MainWindow main(strings, audio, vigem, udp, m_AppSettings, client, isLightMode);
 
 #ifdef WINDOWS
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
@@ -151,9 +175,10 @@ bool Application::Run(const std::string& Argument1) {
 			glfwGetWindowContentScale(m_GlfwWindow.get(), &xscale, &yscale);
 
 		#if !defined(__linux__) && !defined(__MACOS__)
-			if (colorsChanged) {
+			if (colorsChanged || winSettingChange) {
 				SetStyleAndColors();
 				colorsChanged = false;
+				winSettingChange = false;
 			}
 		#endif
 
@@ -221,6 +246,8 @@ void Application::InitializeWindow() {
 	glfwMakeContextCurrent(m_GlfwWindow.get());
 	glfwSwapInterval(1);
 
+	originalWndProc = (WNDPROC)SetWindowLongPtr(glfwGetWin32Window(m_GlfwWindow.get()), GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
+
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		LOGE("GLAD couldn't be loaded");
 	}
@@ -237,12 +264,6 @@ void Application::InitializeWindow() {
 	glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#if defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
-	HWND hwnd = glfwGetWin32Window(m_GlfwWindow.get());
-	EnableBlurBehind(hwnd);
-	SetDarkTitleBar(hwnd, true);
-	originalWndProc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
-#endif
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(m_GlfwWindow.get(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
@@ -261,6 +282,7 @@ void Application::InitializeWindow() {
 	builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
 	builder.AddRanges(io.Fonts->GetGlyphRangesKorean());
 	builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
+	static const ImWchar arabicRanges[] = { 0x0600, 0x06FF, 0 };
 	builder.BuildRanges(&ranges);
 
 	// Font index in appSettings.hpp
@@ -268,14 +290,7 @@ void Application::InitializeWindow() {
 	ImFont* japaneseAndCyrillic = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Murecho-Regular.ttf", 20, nullptr, ranges.Data);
 	ImFont* korean = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/AstaSans-Light.ttf", 20, nullptr, ranges.Data);
 	ImFont* thai = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Kanit-LightItalic.ttf", 20, nullptr, ranges.Data);
-	ImFont* chineseSimplified = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansSC-Regular.ttf", 20, nullptr, ranges.Data);
-
-	GLFWimage image;
-	image.pixels = stbi_load(RESOURCES_PATH "images/iconWhite.png", &image.width, &image.height, 0, 4); // RGBA
-	if (image.pixels) {
-		glfwSetWindowIcon(m_GlfwWindow.get(), 1, &image);
-		stbi_image_free(image.pixels);
-	}
+	ImFont* arabic = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansArabic-Medium.ttf", 20, nullptr, arabicRanges);
 
 	assert(m_GlfwWindow.get() != nullptr);
 	LOGI("Window created");
@@ -297,43 +312,109 @@ void Application::SetStyleAndColors() {
 #ifdef WINDOWS
 	DWORD color = 0;
 	BOOL opaque = FALSE;
-
 	HRESULT hr = DwmGetColorizationColor(&color, &opaque);
+	BYTE a = 0;
+	BYTE r = 0;
+	BYTE g = 0;
+	BYTE b = 0;
 	if (SUCCEEDED(hr)) {
-		// color is in ARGB format (alpha in highest byte)
-		BYTE a = (color >> 24) & 0xFF;
-		BYTE r = (color >> 16) & 0xFF;
-		BYTE g = (color >> 8) & 0xFF;
-		BYTE b = color & 0xFF;
-
-		std::cout << "Accent color (ARGB): " << std::dec << "A=" << (int)a << " " << "R=" << (int)r << " " << "G=" << (int)g << " " << "B=" << (int)b << std::endl;
-
-		baseColor.x = r / 255.0f;
-		baseColor.y = g / 255.0f;
-		baseColor.z = b / 255.0f;
-		baseColor.w = a / 255.0f;
+		a = (color >> 24) & 0xFF;
+		r = (color >> 16) & 0xFF;
+		g = (color >> 8) & 0xFF;
+		b = color & 0xFF;
+		std::cout << "Accent color (ARGB): " << std::dec
+			<< "A=" << (int)a << " "
+			<< "R=" << (int)r << " "
+			<< "G=" << (int)g << " "
+			<< "B=" << (int)b << std::endl;
+		baseColor = ImVec4(r / 255.0f, g / 255.0f, b / 255.0f, 255.0f);
 	}
 	else {
 		std::cout << "Failed to get colorization color. HRESULT: " << hr << std::endl;
 	}
 #endif
 
-	colors[ImGuiCol_WindowBg] = ImVec4(0, 0, 0, 0.0f);
-	colors[ImGuiCol_Border] = ImVec4(0, 0, 0, 0.0f);
-	colors[ImGuiCol_Button] = ImVec4(0.47, 0.38, 1, 1.0f);
-	colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.60f, 0.90f, 1.0f);
-	colors[ImGuiCol_ButtonActive] = ImVec4(0.15f, 0.45f, 0.75f, 1.0f);
-	colors[ImGuiCol_FrameBg] = ImVec4(baseColor);
-	colors[ImGuiCol_FrameBgHovered] = ImVec4(ImVec4(baseColor.x - 0.069f, baseColor.y - 0.169f, baseColor.z - 0.069f, baseColor.w));
+	// Helper lambdas for color manipulation
+	auto Lighten = [](const ImVec4& color, float amount) -> ImVec4 {
+		return ImVec4(
+			std::min(color.x + amount, 1.0f),
+			std::min(color.y + amount, 1.0f),
+			std::min(color.z + amount, 1.0f),
+			color.w
+		);
+	};
+
+	auto Darken = [](const ImVec4& color, float amount) -> ImVec4 {
+		return ImVec4(
+			std::max(color.x - amount, 0.0f),
+			std::max(color.y - amount, 0.0f),
+			std::max(color.z - amount, 0.0f),
+			color.w
+		);
+		};
+
+	auto AdjustAlpha = [](const ImVec4& color, float alpha) -> ImVec4 {
+		return ImVec4(color.x, color.y, color.z, alpha);
+	};
+
+
+	isLightMode = IsWindowsLightMode();
+	static bool lastMode = !isLightMode;
+#if defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
+	HWND hwnd = glfwGetWin32Window(m_GlfwWindow.get());
+	EnableBlurBehind(hwnd);
+	SetDarkTitleBar(hwnd, !isLightMode);
+#endif
+
+	if(isLightMode != lastMode) {
+		GLFWimage image;
+		const char* whiteIcon = RESOURCES_PATH "images/iconWhite.png";
+		const char* blackIcon = RESOURCES_PATH "images/icon.png";
+		image.pixels = stbi_load(isLightMode ? blackIcon : whiteIcon, &image.width, &image.height, 0, 4); // RGBA
+		if (image.pixels) {
+			glfwSetWindowIcon(m_GlfwWindow.get(), 1, &image);
+			stbi_image_free(image.pixels);
+		}
+	}
+
+	colors[ImGuiCol_Border] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 	colors[ImGuiCol_FrameBgActive] = ImVec4(0.10f, 0.50f, 0.80f, 1.0f);
-	colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-	colors[ImGuiCol_SliderGrab] = ImVec4(baseColor.x - 0.569f, baseColor.y - 0.369f, baseColor.z - 0.569f, baseColor.w);
-	colors[ImGuiCol_SliderGrabActive] = ImVec4(ImVec4(baseColor.x - 0.069f, baseColor.y - 0.169f, baseColor.z - 0.069f, baseColor.w));
-	colors[ImGuiCol_CheckMark] = ImVec4(baseColor.x - 0.569f, baseColor.y - 0.369f, baseColor.z - 0.569f, baseColor.w);
 	colors[ImGuiCol_MenuBarBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.05f);
 	colors[ImGuiCol_HeaderHovered] = ImVec4(0.0f, 0.0f, 0.2f, 0.3f);
 	colors[ImGuiCol_TitleBg] = ImVec4(0.30f, 0.60f, 0.90f, 0.5f);
-	colors[ImGuiCol_TitleBgActive] = ImVec4(0.47, 0.38, 1, 0.5f);
+	colors[ImGuiCol_TitleBgActive] = ImVec4(0.47f, 0.38f, 1.0f, 0.5f);
+
+	if (isLightMode) {
+		colors[ImGuiCol_WindowBg] = ImVec4(0.85f, 0.85f, 0.85f, 0.8f);
+		colors[ImGuiCol_Text] = Darken(baseColor, 0.8f);
+		colors[ImGuiCol_FrameBg] = Lighten(baseColor, 0.30f);
+		colors[ImGuiCol_PopupBg] = Lighten(baseColor, 0.95f);
+		colors[ImGuiCol_FrameBgHovered] = Lighten(baseColor, 0.10f);
+		colors[ImGuiCol_SliderGrab] = Lighten(baseColor, 0.85f);
+		colors[ImGuiCol_SliderGrabActive] = Lighten(baseColor, 0.10f);
+		colors[ImGuiCol_Button] = Lighten(baseColor, 0.35f);
+		colors[ImGuiCol_CheckMark] = Darken(colors[ImGuiCol_Button], 0.7f);
+		colors[ImGuiCol_ButtonHovered] = Lighten(baseColor, 0.45f);
+		colors[ImGuiCol_ButtonActive] = Lighten(baseColor, 0.85f);
+	}
+	else {
+		colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+		colors[ImGuiCol_Text] = Lighten(baseColor, 1.0f);
+		colors[ImGuiCol_FrameBg] = Lighten(baseColor, 0.30f);
+		colors[ImGuiCol_PopupBg] = Darken(baseColor, 0.95f);
+		colors[ImGuiCol_FrameBgHovered] = Lighten(baseColor, 0.10f);
+		colors[ImGuiCol_SliderGrab] = (r < 40 || g < 40 || b < 40) ? Lighten(baseColor, 0.75f) : Darken(baseColor, 0.75f);
+		colors[ImGuiCol_SliderGrab] = (r > 100 || g > 100 || b > 100) ? Darken(baseColor, 0.75f) : Lighten(baseColor, 0.75f);
+		colors[ImGuiCol_SliderGrabActive] = Lighten(baseColor, 0.10f);
+		colors[ImGuiCol_Button] = (r < 40 || g < 40 || b < 40) ? Lighten(baseColor, 0.15f) : Darken(baseColor, 0.15f);
+		colors[ImGuiCol_CheckMark] = (r < 40 || g < 40 || b < 40) ? Lighten(colors[ImGuiCol_Button], 0.7f) : Darken(colors[ImGuiCol_Button], 0.7f);
+		colors[ImGuiCol_Button] = (r > 100 || g > 100 || b > 100) ? Darken(baseColor, 0.15f) : Lighten(baseColor, 0.15f);
+		colors[ImGuiCol_CheckMark] = (r > 100 || g > 100 || b > 100) ? Darken(colors[ImGuiCol_Button], 0.7f) : Lighten(colors[ImGuiCol_Button], 0.7f);
+		colors[ImGuiCol_ButtonHovered] = Lighten(baseColor, 0.55f);
+		colors[ImGuiCol_ButtonActive] = Lighten(baseColor, 1.00f);
+	}
+
+	lastMode = isLightMode;
 }
 
 void Application::SetupTray() {

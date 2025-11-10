@@ -100,6 +100,18 @@ std::string Client::GetUpdateUrl() {
 	return m_UpdateUrl;
 }
 
+std::vector<ScePadSettingsInfo> Client::GetFetchedScePadSettingsInfos() {
+	std::lock_guard<std::mutex> guard(m_CurrentlyFetchedSettingsLock);
+	return m_CurrentlyFetchedSettingsList;
+}
+
+std::string Client::GetLastFetchedScePadSettings() {
+	std::lock_guard<std::mutex> guard(m_LastFetchedScePadSettingsLock);
+	std::string res = m_LastFetchedScePadSettings;
+	m_LastFetchedScePadSettings = "";
+	return res;
+}
+
 void Client::CMD_CHANGE_NICKNAME(SCMD::CMD_CHANGE_NICKNAME* Command) {
 	if (!IsConnected())
 		return;
@@ -201,6 +213,36 @@ void Client::CMD_PEER_ABORT_VIGEM(uint32_t PeerId) {
 	LOGI("Sending request for command CMD_PEER_ABORT_VIGEM");
 	ENetPacket* packet = enet_packet_create(&command, sizeof(command), ENET_PACKET_FLAG_RELIABLE);
 	enet_peer_send(peer, CHANNEL_REQUEST_RESPONSE, packet);
+}
+
+void Client::CMD_SEND_SCEPADSETTINGS(const std::string& ConfigName, const std::string& Config) {
+	SCMD::CMD_SEND_SCEPADSETTINGS command = {};
+	std::snprintf(command.ConfigName, sizeof(command.ConfigName), "%s", ConfigName.c_str());
+	std::snprintf(command.Config, sizeof(command.Config), "%s", Config.c_str());
+	LOGI("Sending request for command CMD_SEND_SCEPADSETTINGS");
+	ENetPacket* packet = enet_packet_create(&command, sizeof(command), ENET_PACKET_FLAG_RELIABLE);
+	enet_peer_send(m_ServerPeer, CHANNEL_REQUEST_RESPONSE, packet);
+	m_AwaitingResponseCount++;
+}
+
+void Client::CMD_GET_SCEPADSETTINGS(const std::string& ConfigName) {
+	SCMD::CMD_GET_SCEPADSETTINGS command = {};
+	std::snprintf(command.ConfigName, sizeof(command.ConfigName), "%s", ConfigName.c_str());
+	LOGI("Sending request for command CMD_GET_SCEPADSETTINGS");
+	ENetPacket* packet = enet_packet_create(&command, sizeof(command), ENET_PACKET_FLAG_RELIABLE);
+	enet_peer_send(m_ServerPeer, CHANNEL_REQUEST_RESPONSE, packet);
+	m_AwaitingResponseCount++;
+}
+
+void Client::CMD_GET_SCEPADSETTINGS_LIST(LIST_FETCH_SETTING Setting, uint32_t Limit, uint32_t Page) {
+	SCMD::CMD_GET_SCEPADSETTINGS_LIST command = {};
+	command.Limit = Limit;
+	command.Page = Page;
+	command.Setting = Setting;
+	LOGI("Sending request for command CMD_GET_SCEPADSETTINGS_LIST");
+	ENetPacket* packet = enet_packet_create(&command, sizeof(command), ENET_PACKET_FLAG_RELIABLE);
+	enet_peer_send(m_ServerPeer, CHANNEL_REQUEST_RESPONSE, packet);
+	m_AwaitingResponseCount++;
 }
 
 void Client::AcceptPeerRequest(uint32_t PeerId) {
@@ -435,6 +477,11 @@ void Client::HostService() {
 								m_IsInRoom = false;
 							}
 
+							if ((response.Cmd == CMD::CMD_GET_SCEPADSETTINGS_LIST) && response.Code == RESPONSE_CODE::E_CONFIG_LIST_EMPTY) {
+								std::lock_guard<std::mutex> guard(m_CurrentlyFetchedSettingsLock);
+								m_CurrentlyFetchedSettingsList.clear();
+							}
+
 							if (m_AwaitingResponseCount != 0) m_AwaitingResponseCount--;
 							break;
 						}
@@ -478,6 +525,38 @@ void Client::HostService() {
 								LOGI("Application is out of date, disconnecting from server");
 								enet_peer_disconnect(m_ServerPeer, 0);
 							}
+							break;
+						}
+
+						case CMD::CMD_GET_SCEPADSETTINGS:
+						{
+							SCMD::CMD_GET_SCEPADSETTINGS command = {};
+							std::memcpy(&command, evt.packet->data, sizeof(command));
+							std::string result = std::string(command.Config, strnlen(command.Config, MAX_CONFIG_SIZE));
+							std::lock_guard<std::mutex> guard(m_LastFetchedScePadSettingsLock);
+							m_LastFetchedScePadSettings = result;
+							LOGI("Received response for command CMD_GET_SCEPADSETTINGS");
+							LOGI("%s", result.c_str());
+							if (m_AwaitingResponseCount != 0) m_AwaitingResponseCount--;
+							break;
+						}
+
+						case CMD::CMD_GET_SCEPADSETTINGS_LIST:
+						{
+	
+							SCMD::CMD_GET_SCEPADSETTINGS_LIST* command = reinterpret_cast<SCMD::CMD_GET_SCEPADSETTINGS_LIST*>(evt.packet->data);
+							ScePadSettingsInfo* dataArray = reinterpret_cast<ScePadSettingsInfo*>(evt.packet->data + sizeof(*command));
+
+							std::lock_guard<std::mutex> guard(m_CurrentlyFetchedSettingsLock);
+							if (command->ReturnedElementsCount > 0) 
+								m_CurrentlyFetchedSettingsList.clear();
+							for (int i = 0; i < command->ReturnedElementsCount; i++) {
+								m_CurrentlyFetchedSettingsList.push_back(dataArray[i]);
+							}
+
+							LOGI("Received response for command CMD_GET_SCEPADSETTINGS_LIST");
+
+							if (m_AwaitingResponseCount != 0) m_AwaitingResponseCount--;
 							break;
 						}
 					}

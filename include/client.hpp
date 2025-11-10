@@ -16,6 +16,9 @@ constexpr auto MAX_ROOM_NAME_SIZE = 16;
 constexpr auto MAX_NICKNAME_SIZE = 16;
 constexpr auto MAX_IP_ADDRESS_STRING_SIZE = 40;
 constexpr auto MAX_URL_SIZE = 2048;
+constexpr auto MAX_CONFIG_NAME_SIZE = 40;
+constexpr auto MAX_CONFIG_SIZE = 8092;
+constexpr auto MAX_DATE_SIZE = 20;
 
 constexpr auto CHANNEL_REQUEST_RESPONSE = 0; // Reliable
 constexpr auto CHANNEL_INPUT = 1; // Unreliable
@@ -44,6 +47,9 @@ enum class CMD : uint8_t {
 	CMD_PEER_GIMMICK_STATE,
 	CMD_PEER_SETTINGS_STATE,
 	CMD_GET_APP_VERSION,
+	CMD_SEND_SCEPADSETTINGS,
+	CMD_GET_SCEPADSETTINGS,
+	CMD_GET_SCEPADSETTINGS_LIST,
 };
 
 inline static std::string CMDToString(CMD cmd) {
@@ -67,6 +73,10 @@ inline static std::string CMDToString(CMD cmd) {
 		case CMD::CMD_PEER_INPUT_STATE:			return "CMD_PEER_INPUT_STATE";
 		case CMD::CMD_PEER_GIMMICK_STATE:		return "CMD_PEER_GIMMICK_STATE";
 		case CMD::CMD_PEER_SETTINGS_STATE:		return "CMD_PEER_SETTINGS_STATE";
+		case CMD::CMD_GET_APP_VERSION:			return "CMD_GET_APP_VERSION";
+		case CMD::CMD_SEND_SCEPADSETTINGS:		return "CMD_SEND_SCEPADSETTINGS";
+		case CMD::CMD_GET_SCEPADSETTINGS:		return "CMD_GET_SCEPADSETTINGS";
+		case CMD::CMD_GET_SCEPADSETTINGS_LIST:	return "CMD_GET_SCEPADSETTINGS_LIST";
 		default:								return "UNKNOWN_CMD";
 	}
 }
@@ -82,14 +92,20 @@ enum class RESPONSE_CODE : uint8_t {
 	E_PEER_UNAVAILABLE,
 	E_PEER_CANT_EMULATE, // Non-windows or no Vigem installed
 	E_PEER_DECLINE,
-
 	E_ROOM_FULL,
 	E_ROOM_DOESNT_EXIST,
 	E_ROOM_ALREADY_EXISTS,
 	E_ROOM_NAME_EMPTY,
-
 	E_SERVER_ERROR,
+	E_SERVER_DOESNT_SUPPORT_DATABASE,
+	E_CONFIG_ALREADY_EXISTS,
+	E_CONFIG_DOESNT_EXIST,
+	E_CONFIG_IS_INVALID,
+	E_SERVER_DATABASE_REQUEST_LIMIT_EXCEEDED,
+	E_CONFIG_LIST_EMPTY,
+	E_SERVER_LOST_CONNECTION_WITH_DATABASE,
 };
+
 
 enum class PEER_REQUEST_STATUS : uint8_t {
 	PEER_NONE,
@@ -99,6 +115,58 @@ enum class PEER_REQUEST_STATUS : uint8_t {
 	WAITING_FOR_PEER_RESPONSE,
 	PEER_WAITING_FOR_MY_RESPONSE,
 };
+
+#pragma pack(push, 1)
+struct ScePadSettingsInfo {
+	uint32_t Id = 0;
+	char Name[MAX_CONFIG_NAME_SIZE] = { 0 };
+	char UploadDate[MAX_DATE_SIZE] = { 0 };
+	uint32_t DownloadCount = 0;
+};
+#pragma pack(pop)
+
+enum class LIST_FETCH_SETTING : uint8_t {
+	RANDOM,
+	ID_ASC,
+	ID_DESC,
+	DOWNCOUNT_ASC,
+	DOWNCOUNT_DESC,
+	COUNT,
+};
+
+inline static std::string ResponseCodeToString(RESPONSE_CODE code) {
+	switch (code) {
+		case RESPONSE_CODE::E_SUCCESS:                               return "E_SUCCESS";
+		case RESPONSE_CODE::E_PEER_ALREADY_IN_ROOM:                  return "E_PEER_ALREADY_IN_ROOM";
+		case RESPONSE_CODE::E_PEER_UNAVAILABLE:                      return "E_PEER_UNAVAILABLE";
+		case RESPONSE_CODE::E_PEER_CANT_EMULATE:                     return "E_PEER_CANT_EMULATE";
+		case RESPONSE_CODE::E_PEER_DECLINE:                          return "E_PEER_DECLINE";
+		case RESPONSE_CODE::E_ROOM_FULL:                             return "E_ROOM_FULL";
+		case RESPONSE_CODE::E_ROOM_DOESNT_EXIST:                     return "E_ROOM_DOESNT_EXIST";
+		case RESPONSE_CODE::E_ROOM_ALREADY_EXISTS:                   return "E_ROOM_ALREADY_EXISTS";
+		case RESPONSE_CODE::E_ROOM_NAME_EMPTY:                       return "E_ROOM_NAME_EMPTY";
+		case RESPONSE_CODE::E_SERVER_ERROR:                          return "E_SERVER_ERROR";
+		case RESPONSE_CODE::E_SERVER_DOESNT_SUPPORT_DATABASE:        return "E_SERVER_DOESNT_SUPPORT_DATABASE";
+		case RESPONSE_CODE::E_CONFIG_ALREADY_EXISTS:                 return "E_CONFIG_ALREADY_EXISTS";
+		case RESPONSE_CODE::E_CONFIG_DOESNT_EXIST:                   return "E_CONFIG_DOESNT_EXIST";
+		case RESPONSE_CODE::E_CONFIG_IS_INVALID:                     return "E_CONFIG_IS_INVALID";
+		case RESPONSE_CODE::E_SERVER_DATABASE_REQUEST_LIMIT_EXCEEDED:return "E_SERVER_DATABASE_REQUEST_LIMIT_EXCEEDED";
+		case RESPONSE_CODE::E_CONFIG_LIST_EMPTY:                     return "E_CONFIG_LIST_EMPTY";
+		case RESPONSE_CODE::E_SERVER_LOST_CONNECTION_WITH_DATABASE:  return "E_CONFIG_LIST_EMPTY";
+		default:													 return "UNKNOWN_RESPONSE_CODE";
+	}
+}
+
+inline static std::string FetchSettingToString(LIST_FETCH_SETTING setting) {
+	switch (setting) {
+		case LIST_FETCH_SETTING::ID_ASC:			return "ID_ASC";
+		case LIST_FETCH_SETTING::ID_DESC:			return "ID_DESC";
+		case LIST_FETCH_SETTING::RANDOM:			return "RANDOM";
+		case LIST_FETCH_SETTING::DOWNCOUNT_ASC:		return "DOWNCOUNT_ASC";
+		case LIST_FETCH_SETTING::DOWNCOUNT_DESC:	return "DOWNCOUNT_DESC";
+	}
+}
+
 
 namespace SCMD {
 #pragma pack(push, 1)
@@ -192,6 +260,27 @@ namespace SCMD {
 		uint32_t Version = 0;
 		char UpdateUrl[MAX_URL_SIZE] = { 0 };
 	};
+
+	struct CMD_SEND_SCEPADSETTINGS {
+		CMD Cmd = CMD::CMD_SEND_SCEPADSETTINGS;
+		char ConfigName[MAX_CONFIG_NAME_SIZE] = { 0 };
+		char Config[MAX_CONFIG_SIZE] = { 0 };
+	};
+
+	struct CMD_GET_SCEPADSETTINGS {
+		CMD Cmd = CMD::CMD_GET_SCEPADSETTINGS;
+		char ConfigName[MAX_CONFIG_NAME_SIZE] = { 0 };
+		char Config[MAX_CONFIG_SIZE] = { 0 };
+	};
+
+	struct CMD_GET_SCEPADSETTINGS_LIST {
+		CMD Cmd = CMD::CMD_GET_SCEPADSETTINGS_LIST;
+		uint32_t Limit = 1;
+		uint32_t Page = 0;
+		LIST_FETCH_SETTING Setting = LIST_FETCH_SETTING::RANDOM;
+		uint32_t ReturnedElementsCount = 0;
+		ScePadSettingsInfo* Data = nullptr;
+	};
 #pragma pack(pop)
 }
 
@@ -250,6 +339,9 @@ public:
 	void CMD_PEER_REQUEST_VIGEM(uint32_t PeerId, CONTROLLER Controller);
 	void CMD_SEND_LOCAL_IPANDPORT();
 	void CMD_PEER_ABORT_VIGEM(uint32_t PeerId);
+	void CMD_SEND_SCEPADSETTINGS(const std::string& ConfigName, const std::string& Config);
+	void CMD_GET_SCEPADSETTINGS(const std::string& ConfigName);
+	void CMD_GET_SCEPADSETTINGS_LIST(LIST_FETCH_SETTING Setting, uint32_t Limit, uint32_t Page);
 
 	void AcceptPeerRequest(uint32_t PeerId);
 	void DeclinePeerRequest(uint32_t PeerId);
@@ -270,6 +362,8 @@ public:
 	uint32_t GetAppVersion();
 	bool IsUpToDate(); // Returns true if we haven't fetched server app version yet
 	std::string GetUpdateUrl();
+	std::vector<ScePadSettingsInfo> GetFetchedScePadSettingsInfos();
+	std::string GetLastFetchedScePadSettings();
 
 	std::vector<uint32_t> GetConnectedPeers();
 	std::vector<std::pair<uint32_t, std::string>> GetPeerList();
@@ -309,6 +403,10 @@ private:
 	uint32_t m_GlobalPeerCount = 0;
 	uint32_t m_ServerAppVersion = 0;
 	std::string m_UpdateUrl = "";
+	std::vector<ScePadSettingsInfo> m_CurrentlyFetchedSettingsList;
+	std::mutex m_CurrentlyFetchedSettingsLock;
+	std::string m_LastFetchedScePadSettings = "";
+	std::mutex m_LastFetchedScePadSettingsLock;
 
 	std::thread m_ServiceThread;
 	std::thread m_InputStateSendoutThread;

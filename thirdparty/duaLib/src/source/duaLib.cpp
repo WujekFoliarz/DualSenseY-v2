@@ -842,22 +842,20 @@ int watchFunc() {
 								if (dev == DUALSENSE_DEVICE_ID || dev == DUALSENSE_EDGE_DEVICE_ID) { controller.deviceType = DUALSENSE; }
 								else if (dev == DUALSHOCK4_DEVICE_ID || dev == DUALSHOCK4V2_DEVICE_ID || dev == DUALSHOCK4_WIRELESS_ADAPTOR_ID) { controller.deviceType = DUALSHOCK4; }
 
-								if (controller.deviceType == DUALSENSE) {
-									duaLibUtils::getHardwareVersion(controller.handle, controller.versionReport);
-								}
-								else if (controller.deviceType == DUALSENSE && info->bus_type == HID_API_BUS_BLUETOOTH) {
+								if (controller.deviceType == DUALSENSE && info->bus_type == HID_API_BUS_BLUETOOTH) {
 									duaLibUtils::getHardwareVersion(controller.handle, controller.versionReport);
 									dualsenseData::ReportOut31 report = {};
 
 									report.Data.ReportID = 0x31;
 									report.Data.flag = 2;
-									
 									report.Data.State.EnableRumbleEmulation = true;
 									report.Data.State.UseRumbleNotHaptics = true;
 									report.Data.State.AllowRightTriggerFFB = true;
 									report.Data.State.AllowLeftTriggerFFB = true;
 									report.Data.State.AllowLedColor = true;
 									report.Data.State.AllowColorLightFadeAnimation = true;
+									report.Data.State.lightFadeAnimation = dualsenseData::LightFadeAnimation::FadeOut;
+									report.Data.State.ResetLights = true;
 									report.Data.State.LeftTriggerFFB[0] = (uint8_t)TriggerEffectType::Off;
 									report.Data.State.RightTriggerFFB[0] = (uint8_t)TriggerEffectType::Off;
 

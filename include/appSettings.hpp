@@ -8,7 +8,8 @@ static constexpr uint8_t FONT_REGULAR = 0;
 static constexpr uint8_t FONT_JP_CYRILLIC = 1;
 static constexpr uint8_t FONT_KOREAN = 2;
 static constexpr uint8_t FONT_THAI = 3;
-static constexpr uint8_t FONT_CHINESE_SIMPLIFIED = 4;
+static constexpr uint8_t FONT_ARABIC = 4;
+//static constexpr uint8_t FONT_CHINESE_SIMPLIFIED = 5;
 
 static std::unordered_map<std::string, std::string> g_LanguageName = {
 	{"en", "English"},
@@ -19,23 +20,23 @@ static std::unordered_map<std::string, std::string> g_LanguageName = {
 	//{"ja", "日本語"},
 	//{"ko", "한국어"},
 	{"pl", "Polski"},
-	//{"pt-BR", "Português (Brasil)"},
+	{"pt", "Português (Brasil)"},
 	//{"ru", "Русский"},
-	//{"es-ES", "Español"},
 	{"tr", "Türkçe"},
 	{"es", "Español"},
 	//{"tr", "Türkçe"},
 	//{"uk", "Українська"},
 	//{"vi", "Tiếng Việt"},
+	{"ar", "اَلْعَرَبِيَّةُ"},
 };
 
 static std::unordered_map<std::string, uint8_t> g_FontIndex = {
-	{"ja", 1},
-	{"ru", 1},
-	{"uk", 1},
-	{"ko", 2},
-	{"th", 3},
-	{"zh-CN", 4},
+	{"ja", FONT_JP_CYRILLIC},
+	{"ru", FONT_JP_CYRILLIC},
+	{"uk", FONT_JP_CYRILLIC},
+	{"ko", FONT_KOREAN},
+	{"th", FONT_THAI},
+	{"ar", FONT_ARABIC},
 };
 
 struct AppSettings {

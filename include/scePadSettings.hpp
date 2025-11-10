@@ -248,6 +248,9 @@ bool GetDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s);
 bool RemoveDefaultConfigByMac(const std::string& mac);
 void LoadDefaultConfig(int currentController, s_scePadSettings* s);
 void ForceControllerToNotLoadDefault(int controller);
+std::string ScePadSettingsToString(s_scePadSettings* s);
+bool LoadSettingsFromString(s_scePadSettings* s, const std::string& String);
+bool SaveSettingsFromString(const std::string& String, const std::string& Path);
 
 using TriggerHandler = std::function<void(s_scePadSettings&, int&, std::vector<uint8_t>&)>;
 

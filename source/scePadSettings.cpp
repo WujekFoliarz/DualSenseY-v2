@@ -10,6 +10,10 @@ static std::chrono::steady_clock::time_point startTime = std::chrono::steady_clo
 static std::unordered_map<std::string, bool> loadList;
 
 void SaveSettingsToFile(const s_scePadSettings& s, const std::string& filepath) {
+
+	std::filesystem::path filePath = std::filesystem::path(filepath);
+	if (!std::filesystem::exists(filePath.parent_path()))
+		std::filesystem::create_directory(filePath.parent_path());
 	nlohmann::json j = s;
 	std::ofstream(filepath) << j.dump(4);
 }
@@ -58,8 +62,6 @@ bool RemoveDefaultConfigByMac(const std::string& mac) {
 	return false;
 }
 
-
-
 void LoadDefaultConfig(int currentController, s_scePadSettings* s) {
 	std::string macAddress = scePadGetMacAddress(g_ScePad[currentController]);
 
@@ -73,6 +75,35 @@ void LoadDefaultConfig(int currentController, s_scePadSettings* s) {
 void ForceControllerToNotLoadDefault(int controller) {
 	std::string macAddress = scePadGetMacAddress(g_ScePad[controller]);
 	loadList[macAddress] = true;
+}
+
+std::string ScePadSettingsToString(s_scePadSettings* s) {
+	nlohmann::json j = *s;
+	return j.dump();
+}
+
+bool LoadSettingsFromString(s_scePadSettings* s, const std::string& String) {
+	try {
+		nlohmann::json j = nlohmann::json::parse(String);
+		*s = j.get<s_scePadSettings>();
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
+}
+
+bool SaveSettingsFromString(const std::string& String, const std::string& Path) {
+	try {
+		s_scePadSettings settings = {};
+		nlohmann::json j = nlohmann::json::parse(String);
+		settings = j.get<s_scePadSettings>();
+		SaveSettingsToFile(settings, Path);
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
 }
 
 void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
