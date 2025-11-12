@@ -38,7 +38,7 @@ All you need to do is run a game with dualsense mod installed, it will turn to a
 
 ## Contact
 
-- [Discord server](https://www.github.com/octokatherine)
+- [Discord server](https://discord.com/invite/AFYvxf282U)
 - Discord user wujek_foliarz
 
 ## [Translations](https://crowdin.com/project/dualsensey)
