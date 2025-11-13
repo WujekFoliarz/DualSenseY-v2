@@ -143,7 +143,7 @@ struct s_scePadSettings {
 	bool useLightbarFromEmulatedController = true;
 	bool gyroToRightStick = false;
 	uint32_t gyroToRightStickActivationButton = SCE_BM_L2;
-	float gyroToRightStickSensitivity = 20.0f;
+	float gyroToRightStickSensitivity = 1.0f;
 	int gyroToRightStickDeadzone = 0;
 	bool triggersAsButtons = false;
 	int triggersAsButtonStartPos = 40;

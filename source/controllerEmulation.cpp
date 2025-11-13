@@ -254,11 +254,15 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 			float normalizedVelX = state.angularVelocity.x / maxVelValue;
 			float normalizedVelY = state.angularVelocity.z / maxVelValue;
 
-			float adjustedX = -normalizedVelX * settings.gyroToRightStickSensitivity;
-			float adjustedY = -normalizedVelY * settings.gyroToRightStickSensitivity;
+			float adjustedX = normalizedVelX * settings.gyroToRightStickSensitivity;
+			float adjustedY = normalizedVelY * settings.gyroToRightStickSensitivity;
 
-			state.RightStick.X = static_cast<int>((adjustedY)-127);
-			state.RightStick.Y = static_cast<int>((adjustedX)-127);
+			adjustedX = std::clamp(adjustedX, -1.0f, 1.0f);
+			adjustedY = std::clamp(adjustedY, -1.0f, 1.0f);
+
+			state.RightStick.X = static_cast<int>((-adjustedY + 1.0f) * 127.5f);
+			state.RightStick.Y = static_cast<int>((-adjustedX + 1.0f) * 127.5f);
+
 			applyDeadzone(settings.gyroToRightStickDeadzone, state.RightStick);
 		}
 	}

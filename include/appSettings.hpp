@@ -27,7 +27,7 @@ static std::unordered_map<std::string, std::string> g_LanguageName = {
 	//{"tr", "Türkçe"},
 	//{"uk", "Українська"},
 	//{"vi", "Tiếng Việt"},
-	{"ar", "اَلْعَرَبِيَّةُ"},
+	//{"ar", "اَلْعَرَبِيَّةُ"},
 };
 
 static std::unordered_map<std::string, uint8_t> g_FontIndex = {

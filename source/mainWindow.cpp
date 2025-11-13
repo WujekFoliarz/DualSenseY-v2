@@ -752,7 +752,7 @@ bool MainWindow::TreeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 		GetHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
 
 		ImGui::SetNextItemWidth(350);
-		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotorightstick").c_str(), &scePadSettings.gyroToRightStickSensitivity, 0, 100);
+		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotorightstick").c_str(), &scePadSettings.gyroToRightStickSensitivity, 0, 2);
 		ImGui::SetNextItemWidth(350);
 		ImGui::SliderInt(cstr("Deadzone"), &scePadSettings.gyroToRightStickDeadzone, 0, 255);
 

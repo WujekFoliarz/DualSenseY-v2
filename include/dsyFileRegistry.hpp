@@ -5,7 +5,7 @@
 #include <shlwapi.h>
 #include <string>
 #include <ShlObj_core.h>
-void RegisterFileAssociation() {
+inline static void RegisterFileAssociation() {
     wchar_t exePath[MAX_PATH];
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
     std::wstring command = L"\"" + std::wstring(exePath) + L"\" \"%1\"";
