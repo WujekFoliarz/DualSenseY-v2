@@ -67,6 +67,7 @@ void LoadDefaultConfig(int currentController, s_scePadSettings* s) {
 
 	if (macAddress != "" && !loadList[macAddress]) {
 		if (GetDefaultConfigFromMac(macAddress, s)) {
+			s->WasHidHideRanAfterLoad = false;
 			loadList[macAddress] = true;
 		}
 	}

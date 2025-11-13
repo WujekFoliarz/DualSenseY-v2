@@ -79,6 +79,8 @@ bool MainWindow::MenuBar(int& currentController, s_scePadSettings& scePadSetting
 				if (result == NFD_OKAY) {
 					if (!LoadSettingsFromFile(&scePadSettings, outPath))
 						showLoadFailedError = true;
+					else
+						scePadSettings.WasHidHideRanAfterLoad = false;
 
 					free(outPath);
 				}
@@ -764,8 +766,17 @@ bool MainWindow::TreeElement_motion(s_scePadSettings& scePadSettings, s_ScePadDa
 bool MainWindow::TreeElement_touchpad(s_scePadSettings& scePadSettings) {
 	if (ImGui::TreeNodeEx(cstr("Touchpad"))) {
 
-		ImGui::Checkbox(cstr("TouchpadAsSelectStart"), &scePadSettings.TouchpadAsSelectStart);
+		ImGui::Checkbox(cstr("TouchpadAsSelect"), &scePadSettings.TouchpadAsSelect);
+		ImGui::Checkbox(cstr("TouchpadAsStart"), &scePadSettings.TouchpadAsStart);
 
+		ImGui::TreePop();
+	}
+	return true;
+}
+
+bool MainWindow::TreeElement_sharebtn(s_scePadSettings& scePadSettings) {
+	if (ImGui::TreeNodeEx(cstr("ShareButton"))) {
+		ImGui::Checkbox(cstr("ShareButtonAsSelect"), &scePadSettings.ShareBtnAsSelect);
 		ImGui::TreePop();
 	}
 	return true;
@@ -1307,6 +1318,19 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings& scePadSettin
 		ImGui::RadioButton("DualShock 4", &scePadSettings.emulatedController, 2);
 		m_Vigem.PlugControllerByIndex(currentController, scePadSettings.emulatedController);
 
+		static bool lastHidHideStatus[4] = { false,false,false,false };
+		if (m_IsAdminWindows && (scePadSettings.Hidden != lastHidHideStatus[currentController])) {
+			if (!scePadSettings.WasHidHideRanAfterLoad && scePadSettings.Hidden) {
+				HideController(scePadGetPath(g_ScePad[currentController]));
+			}
+			else if (!scePadSettings.WasHidHideRanAfterLoad && !scePadSettings.Hidden) {
+				UnhideController(scePadGetPath(g_ScePad[currentController]));
+			}
+
+			lastHidHideStatus[currentController] = scePadSettings.Hidden;
+			scePadSettings.WasHidHideRanAfterLoad = true;
+		}
+
 		ImGui::NewLine();
 		if (ImGui::TreeNodeEx(cstr("ControllerSettings"), ImGuiTreeNodeFlags_DefaultOpen)) {
 
@@ -1314,10 +1338,12 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings& scePadSettin
 				if (m_IsAdminWindows) {
 					if (ImGui::Button(cstr("Hide"))) {
 						HideController(scePadGetPath(g_ScePad[currentController]));
+						scePadSettings.Hidden = true;
 					}
 					ImGui::SameLine();
 					if (ImGui::Button(cstr("Unhide"))) {
 						UnhideController(scePadGetPath(g_ScePad[currentController]));
+						scePadSettings.Hidden = false;
 					}
 				}
 				else {
@@ -1332,6 +1358,7 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings& scePadSettin
 			TreeElement_dynamicAdaptiveTriggers(scePadSettings);
 			TreeElement_motion(scePadSettings, state);
 			TreeElement_touchpad(scePadSettings);
+			TreeElement_sharebtn(scePadSettings);
 
 			ImGui::TreePop();
 		}

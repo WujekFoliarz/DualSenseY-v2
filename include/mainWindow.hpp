@@ -58,6 +58,7 @@ private:
 	bool TreeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
 	bool TreeElement_motion(s_scePadSettings& scePadSettings, s_ScePadData& state);
 	bool TreeElement_touchpad(s_scePadSettings& scePadSettings);
+	bool TreeElement_sharebtn(s_scePadSettings& scePadSettings);
 	bool Online(s_scePadSettings& scePadSettings);
 	bool MessageFromServer(bool* open, SCMD::CMD_CODE_RESPONSE* Response);
 	bool ScreenBlock(bool open, const char* message, const char* popup_id);

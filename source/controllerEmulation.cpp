@@ -276,12 +276,30 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 #pragma endregion
 
 #pragma region Touchpad as select/start
-	if (settings.TouchpadAsSelectStart && state.bitmask_buttons & SCE_BM_TOUCH) {
+	if (settings.TouchpadAsStart && state.bitmask_buttons & SCE_BM_TOUCH) {
 		if ((!state.touchData.touch[0].reserve[0] && state.touchData.touch[0].x >= 1000) ||
-			(state.touchData.touch[0].reserve[0] && !state.touchData.touch[1].reserve[0] && state.touchData.touch[1].x >= 1000)) {
+			(state.touchData.touch[0].reserve[0] && !state.touchData.touch[1].reserve[0] && state.touchData.touch[1].x >= 1000)
+			||
+			!settings.TouchpadAsSelect) {
 			state.bitmask_buttons |= SCE_BM_OPTIONS;
 			state.bitmask_buttons &= ~SCE_BM_TOUCH;
 		}
+	}
+
+	if (!settings.TouchpadAsSelect && state.bitmask_buttons & SCE_BM_TOUCH) {
+		if ((!state.touchData.touch[0].reserve[0] && state.touchData.touch[0].x <= 1000) ||
+			(state.touchData.touch[0].reserve[0] && !state.touchData.touch[1].reserve[0] && state.touchData.touch[1].x <= 1000) 
+			||
+			!settings.TouchpadAsStart) {
+			state.bitmask_buttons &= ~SCE_BM_TOUCH;
+		}
+	}
+#pragma endregion
+
+#pragma region Share button as select
+	if (settings.ShareBtnAsSelect && (state.bitmask_buttons & SCE_BM_SHARE)) {
+		state.bitmask_buttons |= SCE_BM_TOUCH;
+		state.bitmask_buttons &= ~SCE_BM_SHARE;
 	}
 #pragma endregion
 }

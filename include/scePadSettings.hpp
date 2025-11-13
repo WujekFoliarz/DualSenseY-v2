@@ -147,7 +147,9 @@ struct s_scePadSettings {
 	int gyroToRightStickDeadzone = 0;
 	bool triggersAsButtons = false;
 	int triggersAsButtonStartPos = 40;
-	bool TouchpadAsSelectStart = false;
+	bool TouchpadAsSelect = true;
+	bool TouchpadAsStart = false;
+	bool ShareBtnAsSelect = false;
 
 	// Keyboard and mouse stuff
 	bool emulateAnalogWsad = false;
@@ -168,6 +170,10 @@ struct s_scePadSettings {
 
 	// Online
 	bool usingPeerController = false;
+
+	// HidHide
+	bool Hidden = false;
+	bool WasHidHideRanAfterLoad = true; // When config is loaded, set to false. Set to true after HidHide is ran once.
 };
 
 #pragma pack(push, 1)
@@ -184,8 +190,13 @@ struct s_ScePadSettingsSimple {
 	// Motion
 	bool gyroToRightStick = false;
 	uint32_t gyroToRightStickActivationButton = SCE_BM_L2;
-	float gyroToRightStickSensitivity = 20.0f;
+	float gyroToRightStickSensitivity = 1.0f;
 	int gyroToRightStickDeadzone = 0;
+
+	// Select/Start
+	bool TouchpadAsSelect = true;
+	bool TouchpadAsStart = false;
+	bool ShareBtnAsSelect = false;
 };
 #pragma pack(pop)
 
@@ -239,7 +250,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	gyroToMouse,
 	gyroToMouseSensitivity,
 	triggersAsButtons,
-	triggersAsButtonStartPos
+	triggersAsButtonStartPos,
+	TouchpadAsSelect,
+	TouchpadAsStart,
+	Hidden
 );
 
 void SaveSettingsToFile(const s_scePadSettings& s, const std::string& filepath);

@@ -656,6 +656,9 @@ void Client::HostService() {
 								settings.gyroToRightStickActivationButton = simpleSettings.gyroToRightStickActivationButton;
 								settings.gyroToRightStickDeadzone = simpleSettings.gyroToRightStickDeadzone;
 								settings.gyroToRightStickSensitivity = simpleSettings.gyroToRightStickSensitivity;
+								settings.TouchpadAsSelect = simpleSettings.TouchpadAsSelect;
+								settings.TouchpadAsStart = simpleSettings.TouchpadAsStart;
+								settings.ShareBtnAsSelect = simpleSettings.ShareBtnAsSelect;
 							}
 							break;
 						}

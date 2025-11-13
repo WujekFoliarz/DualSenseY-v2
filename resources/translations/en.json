@@ -152,5 +152,9 @@
   "Options": "Options",
   "Apply": "Apply",
   "SaveToFile": "Save to file",
-  "SortingOption": "Sorting option"
+  "SortingOption": "Sorting option",
+  "ShareButton": "Share button",
+  "ShareButtonAsSelect": "Share button as select",
+  "TouchpadAsSelect": "Touchpad as select",
+  "TouchpadAsStart": "Touchpad as start"
 }
