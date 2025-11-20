@@ -20,7 +20,6 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_glfw.h>
 #include <stb_image/stb_image.h>
-#include <tray.hpp>
 #include <algorithm>
 
 #include "mainWindow.hpp"
@@ -242,15 +241,26 @@ bool Application::Run(const std::string& Argument1) {
 
 void Application::InitializeWindow() {
 	glfwInit();
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
 	m_GlfwWindow = std::unique_ptr<GLFWwindow, glfwDeleter>(glfwCreateWindow(1000, 720, "DualSenseY", nullptr, nullptr));
+
+	if (!m_GlfwWindow) {
+		LOGE("Failed to create windown");
+		return;
+	}
+
 	glfwMakeContextCurrent(m_GlfwWindow.get());
 	glfwSwapInterval(1);
-
-	originalWndProc = (WNDPROC)SetWindowLongPtr(glfwGetWin32Window(m_GlfwWindow.get()), GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		LOGE("GLAD couldn't be loaded");
 	}
+
+	originalWndProc = (WNDPROC)SetWindowLongPtr(glfwGetWin32Window(m_GlfwWindow.get()), GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
 
 	glfwSetWindowCloseCallback(m_GlfwWindow.get(), [](GLFWwindow* window) {
 		glfwSetWindowShouldClose(window, true);
@@ -267,7 +277,7 @@ void Application::InitializeWindow() {
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(m_GlfwWindow.get(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
-	ImGui_ImplOpenGL3_Init();
+	ImGui_ImplOpenGL3_Init("#version 330");
 
 	SetStyleAndColors();
 
@@ -418,26 +428,27 @@ void Application::SetStyleAndColors() {
 }
 
 void Application::SetupTray() {
-	std::thread trayThread([&]{
-		Tray::Tray tray("DualSenseY", RESOURCES_PATH "images/icon.ico");
-		tray.addEntry(Tray::Button("Show window", [&] {
-			RestoreWindowFromTray();
+	m_Tray = std::make_unique<Tray::Tray>("DualSenseY", RESOURCES_PATH "images/icon.ico");
+	m_Tray->addEntry(Tray::Button("Show window", [&] {
+		RestoreWindowFromTray();
 		}));
 
-		tray.addEntry(Tray::Button("Hide to tray", [&] {
-			HideWindowToTray();
+	m_Tray->addEntry(Tray::Button("Hide to tray", [&] {
+		HideWindowToTray();
 		}));
 
-		tray.addEntry(Tray::Separator());
+	m_Tray->addEntry(Tray::Separator());
 
-		tray.addEntry(Tray::Button("Exit", [&] {
-			tray.exit();
-			std::exit(0);
-		}));
+	m_Tray->addEntry(Tray::Button("Exit", [&] {
+		m_Tray->exit();
+		std::exit(0);
+	}));
 
-		tray.run();
+	m_TrayThread = std::thread([this] { // Capture 'this' explicitly
+		// m_tray must be non-null here
+		m_Tray->run();
 	});
-	trayThread.detach();
+	m_TrayThread.detach();
 }
 
 void Application::HideWindowToTray() {
@@ -463,6 +474,11 @@ Application::~Application() {
 			DisableBluetoothDevice(scePadGetMacAddress(g_ScePad[i]));
 	}
 #endif
+
+	m_Tray->exit();
+	if(m_TrayThread.joinable())
+		m_TrayThread.join();
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
