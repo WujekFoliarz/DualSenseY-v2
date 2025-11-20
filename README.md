@@ -37,12 +37,11 @@ All you need to do is run a game with dualsense mod installed, it will turn to a
 
 
 ## Contact
-
 - [Discord server](https://discord.com/invite/AFYvxf282U)
 - Discord user wujek_foliarz
 
 ## [Translations](https://crowdin.com/project/dualsensey)
 
 # Building
-### Windows
+Windows
 - Install [OpenSSL](https://slproweb.com/download/Win64OpenSSL-3_6_0.exe)
