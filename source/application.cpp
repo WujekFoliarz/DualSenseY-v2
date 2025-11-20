@@ -20,7 +20,6 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_glfw.h>
 #include <stb_image/stb_image.h>
-#include <tray.hpp>
 #include <algorithm>
 
 #include "mainWindow.hpp"
@@ -33,6 +32,7 @@
 #include "client.hpp"
 #include "appMutex.hpp"
 
+bool isLightMode = false;
 #if !defined(__linux__) && !defined(__MACOS__)
 bool IsWindowsLightMode() {
 	DWORD value = 1;
@@ -52,7 +52,6 @@ bool IsWindowsLightMode() {
 
 bool colorsChanged = false;
 bool winSettingChange = false;
-bool isLightMode = false;
 WNDPROC originalWndProc = nullptr;
 LRESULT CALLBACK CustomWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
@@ -141,8 +140,8 @@ bool Application::Run(const std::string& Argument1) {
 		LoadSettingsFromFile(&m_ScePadSettings[0], Argument1);
 	}
 
-	SetupTray();
 	InitializeWindow();
+	SetupTray();
 
 	ImGuiIO& io = ImGui::GetIO();
 	if (m_AppSettings.HideToTrayOnStart) HideWindowToTray();
@@ -195,7 +194,7 @@ bool Application::Run(const std::string& Argument1) {
 		vigem.SetSelectedController(selectedController);
 		client.SetSelectedController(selectedController);
 		udp.SetVibrationToUdpConfig(m_ScePadSettings[selectedController].rumbleFromEmulatedController);
-		audio.Validate();
+		//audio.Validate();
 
 		for (int i = 0; i < 4; i++) {
 			LoadDefaultConfig(i, &m_ScePadSettings[i]);
@@ -241,16 +240,31 @@ bool Application::Run(const std::string& Argument1) {
 }
 
 void Application::InitializeWindow() {
+	glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 	glfwInit();
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+
 	m_GlfwWindow = std::unique_ptr<GLFWwindow, glfwDeleter>(glfwCreateWindow(1000, 720, "DualSenseY", nullptr, nullptr));
+
+	if (!m_GlfwWindow) {
+		LOGE("Failed to create windown");
+		return;
+	}
+
 	glfwMakeContextCurrent(m_GlfwWindow.get());
 	glfwSwapInterval(1);
-
-	originalWndProc = (WNDPROC)SetWindowLongPtr(glfwGetWin32Window(m_GlfwWindow.get()), GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		LOGE("GLAD couldn't be loaded");
 	}
+
+	#ifdef WINDOWS
+	originalWndProc = (WNDPROC)SetWindowLongPtr(glfwGetWin32Window(m_GlfwWindow.get()), GWLP_WNDPROC, (LONG_PTR)CustomWndProc);
+	#endif
 
 	glfwSetWindowCloseCallback(m_GlfwWindow.get(), [](GLFWwindow* window) {
 		glfwSetWindowShouldClose(window, true);
@@ -260,14 +274,12 @@ void Application::InitializeWindow() {
 	glfwSetWindowIconifyCallback(m_GlfwWindow.get(), IconifyCallback);
 
 	ImGui::CreateContext();
-
-	glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(m_GlfwWindow.get(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
-	ImGui_ImplOpenGL3_Init();
+	ImGui_ImplOpenGL3_Init("#version 330");
 
 	SetStyleAndColors();
 
@@ -357,14 +369,13 @@ void Application::SetStyleAndColors() {
 		return ImVec4(color.x, color.y, color.z, alpha);
 	};
 
-
+#ifdef WINDOWS
 	isLightMode = IsWindowsLightMode();
-	static bool lastMode = !isLightMode;
-#if defined(_WIN32) && (!defined(__linux__) && !defined(__APPLE__))
 	HWND hwnd = glfwGetWin32Window(m_GlfwWindow.get());
 	EnableBlurBehind(hwnd);
 	SetDarkTitleBar(hwnd, !isLightMode);
 #endif
+	static bool lastMode = !isLightMode;
 
 	if(isLightMode != lastMode) {
 		GLFWimage image;
@@ -398,7 +409,12 @@ void Application::SetStyleAndColors() {
 		colors[ImGuiCol_ButtonActive] = Lighten(baseColor, 0.85f);
 	}
 	else {
+		#ifdef LINUX
+		int r,g,b,a=0;
+		colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
+		#else
 		colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+		#endif
 		colors[ImGuiCol_Text] = Lighten(baseColor, 1.0f);
 		colors[ImGuiCol_FrameBg] = Lighten(baseColor, 0.30f);
 		colors[ImGuiCol_PopupBg] = Darken(baseColor, 0.95f);
@@ -418,26 +434,26 @@ void Application::SetStyleAndColors() {
 }
 
 void Application::SetupTray() {
-	std::thread trayThread([&]{
-		Tray::Tray tray("DualSenseY", RESOURCES_PATH "images/icon.ico");
-		tray.addEntry(Tray::Button("Show window", [&] {
-			RestoreWindowFromTray();
-		}));
+	m_Tray = std::make_unique<Tray::Tray>("DualSenseY", RESOURCES_PATH "images/icon.ico");
+	m_Tray->addEntry(Tray::Button("Show window", [&] {
+		RestoreWindowFromTray();
+	}));
 
-		tray.addEntry(Tray::Button("Hide to tray", [&] {
-			HideWindowToTray();
-		}));
+	m_Tray->addEntry(Tray::Button("Hide to tray", [&] {
+		HideWindowToTray();
+	}));
 
-		tray.addEntry(Tray::Separator());
+	m_Tray->addEntry(Tray::Separator());
 
-		tray.addEntry(Tray::Button("Exit", [&] {
-			tray.exit();
-			std::exit(0);
-		}));
-
-		tray.run();
+	m_Tray->addEntry(Tray::Button("Exit", [&] {
+		m_Tray->exit();
+		std::exit(0);
+	}));
+	
+	m_TrayThread = std::thread([this] {
+		m_Tray->run();
 	});
-	trayThread.detach();
+	m_TrayThread.detach();
 }
 
 void Application::HideWindowToTray() {
@@ -463,6 +479,11 @@ Application::~Application() {
 			DisableBluetoothDevice(scePadGetMacAddress(g_ScePad[i]));
 	}
 #endif
+
+	m_Tray->exit();
+	if(m_TrayThread.joinable())
+		m_TrayThread.join();
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

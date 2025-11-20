@@ -7,6 +7,8 @@
 #include <GLFW/glfw3.h>
 #include "scePadSettings.hpp"
 #include "appSettings.hpp"
+#include <thread>
+#include <tray.hpp>
 
 constexpr auto WIN32_MSG_WINDOW_MUTEX = "DSYMSG";
 
@@ -24,6 +26,8 @@ private:
 	void DisableControllerInputIfMinimized();
 	AppSettings m_AppSettings = {};
 	static void IconifyCallback(GLFWwindow* window, int iconified);
+	std::unique_ptr<Tray::Tray> m_Tray;
+	std::thread m_TrayThread;         
 public:
 	enum class Platform {
 		Windows,

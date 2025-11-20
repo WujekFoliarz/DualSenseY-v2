@@ -10,6 +10,7 @@
 #include <Windows.h>
 #else
 #include <unistd.h>
+#include <signal.h>
 #endif
 
 static inline std::filesystem::path directory = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/");
@@ -23,7 +24,7 @@ bool IsAlreadyRunning(const std::string& LockName) {
         std::ifstream pidFile(path);
         int pid;
         if (pidFile >> pid) {
-        #if defined(_WIN32)
+        #ifdef WINDOWS
             HANDLE h = OpenProcess(SYNCHRONIZE, FALSE, pid);
             if (h != NULL) {
                 CloseHandle(h);
