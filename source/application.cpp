@@ -240,7 +240,9 @@ bool Application::Run(const std::string& Argument1) {
 }
 
 void Application::InitializeWindow() {
+	#ifdef LINUX
 	glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+	#endif
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
