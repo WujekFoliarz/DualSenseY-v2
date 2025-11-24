@@ -35,6 +35,8 @@ No, it's a free alternative for those who need it and a hobby project.
 #### How do I activate UDP?
 All you need to do is run a game with dualsense mod installed, it will turn to active as soon as it receives data (If the mod asks for a port, use 6969)
 
+## Credits
+#### [Wireless haptics](https://github.com/egormanga/SAxense)
 
 ## Contact
 - [Discord server](https://discord.com/invite/AFYvxf282U)
