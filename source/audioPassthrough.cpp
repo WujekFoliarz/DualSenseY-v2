@@ -15,6 +15,12 @@
 #include <thread>
 #include <hidapi.h>
 
+#ifdef WINDOWS
+#include <Windows.h>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
+#endif
+
 #if (!defined(__linux__)) && (!defined(__MACOS__))
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
@@ -388,20 +394,33 @@ bool initHapticReport()
 	memcpy(g_report->data, packet_0x11_data, packet_0x11_size);
 	memcpy(g_report->data + packet_0x11_size, packet_0x12_data, 2);
 
-	g_ii = &g_report->data[0 + 2 + 6];				 
+	g_ii = &g_report->data[2 + 6];				 
 	g_sample = &g_report->data[packet_0x11_size + 2]; 
 
 	return true;
 }
 
-void AudioPassthrough::HapticTimerThread()
-{
+void AudioPassthrough::HapticTimerThread() {
+#ifdef WINDOWS 
+	SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	timeBeginPeriod(1);
+
+	EXECUTION_STATE prevState = SetThreadExecutionState(
+		ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED
+	);
+
+	HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+	if (hTimer == NULL) {
+		fprintf(stderr, "CreateWaitableTimerEx failed: %lu\n", GetLastError());
+	}
+#endif
+
 	using namespace std::chrono;
 	auto period_us = (1000000LL * SAMPLE_SIZE) / (SAMPLE_RATE * 2);
 	auto period = microseconds(period_us);
 
-	while (g_running)
-	{
+	while (g_running) {
 		auto start = steady_clock::now();
 
 		uint8_t samples[4][SAMPLE_SIZE];
@@ -409,14 +428,11 @@ void AudioPassthrough::HapticTimerThread()
 			std::lock_guard<std::mutex> lock(g_bufferMutex);
 
 			size_t bufSize = g_audioBuffer.size();
-			if (bufSize == 0)
-			{
+			if (bufSize == 0) {
 				continue;
 			}
-			for (size_t i = 0; i < SAMPLE_SIZE; i++)
-			{
-				for(int j = 0;j<4;j++)
-				{
+			for (size_t i = 0; i < SAMPLE_SIZE; i++) {
+				for (int j = 0; j < 4; j++) {
 					int8_t sample = static_cast<int8_t>(g_audioBuffer[(g_audioPos + i) % bufSize] - 128);
 					sample = static_cast<int8_t>(std::clamp<int>(sample * m_HapticIntensity[j], -128, 127));
 					samples[j][i] = static_cast<uint8_t>(sample);
@@ -427,8 +443,8 @@ void AudioPassthrough::HapticTimerThread()
 
 		(*g_ii)++;
 
-		for(int i = 0;i<4;i++){
-			
+		for (int i = 0; i < 4; i++) {
+
 			int busType = -1;
 			int result = scePadGetControllerBusType(g_ScePad[i], &busType);
 			if (result != SCE_OK || busType != SCE_PAD_BUSTYPE_BT)
@@ -438,23 +454,45 @@ void AudioPassthrough::HapticTimerThread()
 			if (device == nullptr || m_Active[i] == false)
 				continue;
 
-			for(int j = 0;j<SAMPLE_SIZE;j++) {
+			for (int j = 0; j < SAMPLE_SIZE; j++) {
 				g_sample[j] = samples[i][j];
 			}
-			g_report->crc = crc32(reinterpret_cast<uint8_t *>(g_report), 1 + sizeof(g_report->payload));
-			int res = hid_write(device, reinterpret_cast<uint8_t *>(g_report), sizeof(report));
+			g_report->crc = crc32(reinterpret_cast<uint8_t*>(g_report), 1 + sizeof(g_report->payload));
+			int res = hid_write(device, reinterpret_cast<uint8_t*>(g_report), sizeof(report));
 
-			if (res < 0)
-			{
+			if (res < 0) {
 				fprintf(stderr, "Error writing to device: %ls\n", hid_error(device));
 			}
 		}
 
 		auto elapsed = steady_clock::now() - start;
 		auto sleepTime = duration_cast<microseconds>(period - elapsed);
+
+	#ifdef WINDOWS
+		if (sleepTime.count() > 0 && hTimer != NULL) {
+			LARGE_INTEGER liDueTime;
+			liDueTime.QuadPart = -(static_cast<LONGLONG>(sleepTime.count()) * 10LL);
+
+			if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, FALSE)) {
+				fprintf(stderr, "SetWaitableTimer failed: %lu\n", GetLastError());
+			}
+			else {
+				WaitForSingleObject(hTimer, INFINITE);
+			}
+		}
+	#else
 		if (sleepTime.count() > 0)
 			std::this_thread::sleep_for(sleepTime);
+	#endif
 	}
+
+#ifdef WINDOWS
+	if (hTimer != NULL) {
+		CloseHandle(hTimer);
+	}
+	SetThreadExecutionState(prevState);
+	timeEndPeriod(1);
+#endif
 }
 
 void PlaybackBTCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
@@ -487,7 +525,11 @@ void AudioPassthrough::Validate()
 			}
 		}
 
+	#ifdef WINDOWS
+		ma_device_config captureConfig = ma_device_config_init(ma_device_type_loopback);
+	#else
 		ma_device_config captureConfig = ma_device_config_init(ma_device_type_capture);
+	#endif
 		captureConfig.capture.format = ma_format_f32;
 		captureConfig.capture.channels = 2;
 		captureConfig.sampleRate = 48000;
@@ -502,7 +544,11 @@ void AudioPassthrough::Validate()
 	{
 		ma_device_uninit(&m_CaptureDevice3000HzU8);
 
+	#ifdef WINDOWS
+		ma_device_config captureConfig = ma_device_config_init(ma_device_type_loopback);
+	#else
 		ma_device_config captureConfig = ma_device_config_init(ma_device_type_capture);
+	#endif
 		captureConfig.capture.format = ma_format_u8;
 		captureConfig.capture.channels = 2;
 		captureConfig.sampleRate = SAMPLE_RATE;
@@ -618,6 +664,7 @@ void AudioPassthrough::StartCaptureDevice(ma_device *pDevice, ma_device_config *
 		return;
 	}
 
+#ifdef LINUX
 	ma_device_id deviceId = {};
 	if (m_CurrentCaptureDevice >= 0 && m_CurrentCaptureDevice <= captureCount)
 	{
@@ -629,6 +676,7 @@ void AudioPassthrough::StartCaptureDevice(ma_device *pDevice, ma_device_config *
 	}
 
 	pConfig->capture.pDeviceID = &deviceId;
+#endif;
 
 	result = ma_device_init(&g_context, pConfig, pDevice);
 	if (result != MA_SUCCESS)
@@ -656,15 +704,6 @@ bool AudioPassthrough::StartByUserId(uint32_t userId)
 
 	uint32_t index = userId - 1;
 
-	if (m_Active[index] && isMaDeviceWorking(&m_Controller[index]))
-	{
-		return false;
-	}
-	else if (m_Active[index] && !isMaDeviceWorking(&m_Controller[index]))
-	{
-		ma_device_uninit(&m_Controller[index]);
-	}
-
 	uint32_t handle = scePadGetHandle(userId, 0, 0);
 
 	int busType = -1;
@@ -675,6 +714,13 @@ bool AudioPassthrough::StartByUserId(uint32_t userId)
 	}
 	else if (result != SCE_OK) {
 		return false;
+	}
+
+	if (m_Active[index] && isMaDeviceWorking(&m_Controller[index])) {
+		return false;
+	}
+	else if (m_Active[index] && !isMaDeviceWorking(&m_Controller[index])) {
+		ma_device_uninit(&m_Controller[index]);
 	}
 
 	{
@@ -753,6 +799,17 @@ bool AudioPassthrough::StopByUserId(uint32_t userId)
 	assert(userId >= 1 && userId <= 4);
 
 	uint32_t index = userId - 1;
+
+	uint32_t handle = scePadGetHandle(userId, 0, 0);
+	int busType = -1;
+	uint32_t result = scePadGetControllerBusType(handle, &busType);
+	if (result == SCE_OK && busType == SCE_PAD_BUSTYPE_BT) {
+		m_Active[index] = false;
+		return true;
+	}
+	else if (result != SCE_OK) {
+		return false;
+	}
 
 	if (m_Active[index])
 	{
