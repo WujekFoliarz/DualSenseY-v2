@@ -156,5 +156,6 @@
   "ShareButton": "Share button",
   "ShareButtonAsSelect": "Share button as select",
   "TouchpadAsSelect": "Touchpad as select",
-  "TouchpadAsStart": "Touchpad as start"
+  "TouchpadAsStart": "Touchpad as start",
+  "CaptureDevice": "Capture device"
 }

@@ -198,9 +198,10 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 			scePadSetVibrationMode(g_ScePad[index], SCE_PAD_RUMBLE_MODE);
 		}
 		else {
-			scePadSetVibrationMode(g_ScePad[index], SCE_PAD_HAPTICS_MODE);
 		}
 
 		scePadSetVibration(g_ScePad[index], &settings.rumbleFromEmulatedController);
 	}
+
+	scePadSetVibrationMode(g_ScePad[index], SCE_PAD_HAPTICS_MODE);
 }

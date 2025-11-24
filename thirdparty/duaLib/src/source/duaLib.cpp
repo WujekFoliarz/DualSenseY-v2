@@ -30,6 +30,11 @@
 #else
 #include <clocale>
 #include <cstdlib>
+#include <libudev.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 #include "duaLib.h"
@@ -49,6 +54,9 @@
 #define DUALSHOCK4 1
 #define DUALSENSE 2
 #define ANGULAR_VELOCITY_DEADBAND_MIN 0.017453292
+
+static std::atomic<bool> g_audioThreadRunning[MAX_CONTROLLER_COUNT] = { false };
+static std::thread g_audioThreads[MAX_CONTROLLER_COUNT];
 
 namespace duaLibUtils {
 	struct trigger {
@@ -256,6 +264,48 @@ namespace duaLibUtils {
 		return false;
 	}
 
+	#if !defined(_WIN32) || !defined(_WIN64)
+	std::string get_devpath_safe(const std::string& device_node_path) {
+		struct udev *udev;
+		struct udev_device *dev;
+		struct stat st;
+		std::string devpath;
+
+		if (stat(device_node_path.c_str(), &st) < 0) {
+			std::cerr << "Error: Cannot stat device node: " << device_node_path << std::endl;
+			return "";
+		}
+
+		udev = udev_new();
+		if (!udev) {
+			std::cerr << "Error: Cannot create udev context." << std::endl;
+			return "";
+		}
+
+		dev = udev_device_new_from_devnum(udev, 'c', st.st_rdev);
+
+		if (!dev) {
+			std::cerr << "Error: Cannot find udev device for ID (" << (int)major(st.st_rdev) 
+					<< ":" << (int)minor(st.st_rdev) << ")." << std::endl;
+			udev_unref(udev);
+			return "";
+		}
+
+		const char *path = udev_device_get_devpath(dev);
+
+		if (path) {
+			devpath = path;
+		} else {
+			std::cerr << "Error: DEVPATH not found for device." << std::endl;
+		}
+
+		udev_device_unref(dev);
+		udev_unref(udev);
+
+		return devpath;
+	}
+	#endif
+
 	bool getHardwareVersion(hid_device* handle, dualsenseData::ReportFeatureInVersion& report) {
 		if (!handle) return false;
 
@@ -406,6 +456,15 @@ namespace duaLibUtils {
 		}
 
 		SetupDiDestroyDeviceInfoList(devs);
+	#else
+		std::string result = get_devpath_safe(narrowPath);
+		if(result == "") return false;
+		static char buffer[4096] = {};
+		std::snprintf(buffer, sizeof(buffer), "%s", result.c_str());
+		buffer[result.length()-1] = '\0';
+		*ID = buffer;
+		*size = sizeof(result.length());
+		return true;
 	#endif
 		return false;
 	}
@@ -832,10 +891,8 @@ int watchFunc() {
 								uint32_t size = 0;
 								duaLibUtils::GetID(info->path, &id, &size);
 
-							#if defined(_WIN32) || defined(_WIN64)
 								controller.id = id;
 								controller.idSize = size;
-							#endif
 
 								uint16_t dev = g_deviceList.devices[j].Device;
 
@@ -855,7 +912,6 @@ int watchFunc() {
 									report.Data.State.AllowLedColor = true;
 									report.Data.State.AllowColorLightFadeAnimation = true;
 									report.Data.State.lightFadeAnimation = dualsenseData::LightFadeAnimation::FadeOut;
-									report.Data.State.ResetLights = true;
 									report.Data.State.LeftTriggerFFB[0] = (uint8_t)TriggerEffectType::Off;
 									report.Data.State.RightTriggerFFB[0] = (uint8_t)TriggerEffectType::Off;
 
@@ -1324,7 +1380,6 @@ int scePadGetContainerIdInformation(int handle, s_ScePadContainerIdInfo* contain
 	if (!g_initialized) return SCE_PAD_ERROR_NOT_INITIALIZED;
 	if (!containerIdInfo) return SCE_PAD_ERROR_INVALID_ARG;
 
-#if defined(_WIN32) || defined(_WIN64) // Windows only for now
 	for (auto& controller : g_controllers) {
 		std::shared_lock guard(controller.lock);
 		if (controller.sceHandle == handle && controller.id != "" && controller.idSize != 0) {
@@ -1332,7 +1387,7 @@ int scePadGetContainerIdInformation(int handle, s_ScePadContainerIdInfo* contain
 
 			s_ScePadContainerIdInfo info = {};
 			info.size = controller.idSize;
-			strncpy_s(info.id, controller.id.c_str(), sizeof(info.id) - 1);
+			std::strncpy(info.id, controller.id.c_str(), sizeof(info.id) - 1);
 			info.id[sizeof(info.id) - 1] = '\0';
 			*containerIdInfo = info;
 			return SCE_OK;
@@ -1340,10 +1395,7 @@ int scePadGetContainerIdInformation(int handle, s_ScePadContainerIdInfo* contain
 	}
 	containerIdInfo->size = 0;
 	containerIdInfo->id[0] = '\0';
-	return SCE_OK;
-#else
-	return SCE_PAD_ERROR_NOT_PERMITTED;
-#endif
+	return SCE_PAD_ERROR_FATAL;
 }
 
 int scePadSetLightBar(int handle, s_SceLightBar* lightbar) {
@@ -1970,6 +2022,21 @@ int scePadSetTriggerEffectCustom(int handle, uint8_t left[11], uint8_t right[11]
 		return SCE_OK;
 	}
 	return SCE_PAD_ERROR_INVALID_HANDLE;
+}
+
+void *scePadGetHidApiHandle(int handle)
+{
+	if (!g_initialized) return nullptr;
+
+	for (auto& controller : g_controllers) {
+		std::shared_lock guard(controller.lock);
+
+		if (controller.sceHandle != handle) continue;
+		if (!controller.valid) return nullptr;
+
+		return controller.handle;
+	}
+	return nullptr;
 }
 
 #if COMPILE_TO_EXE

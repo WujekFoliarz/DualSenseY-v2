@@ -97,6 +97,31 @@ void Application::IconifyCallback(GLFWwindow* window, int iconified) {
 	}
 }
 
+std::vector<int8_t> generate_sine_wave_samples(
+    uint32_t sampleCount, 
+    int sampleRate, 
+    double toneFrequency,
+    double startTimeSec
+) {
+    std::vector<int8_t> samples(sampleCount);
+
+    for (uint32_t i = 0; i < sampleCount; ++i) {
+        // Calculate the current time in seconds for the sample
+        double time = startTimeSec + (double)i / sampleRate;
+        
+        // Calculate the sine wave value (from -1.0 to 1.0)
+        double sinValue = std::sin(2.0 * M_PI * toneFrequency * time);
+        
+        // Scale and convert to int8_t (signed 8-bit integer)
+        // This is necessary because the target function expects int8_t samples.
+        int8_t sample = static_cast<int8_t>(sinValue * 120.0f);
+        
+        samples[i] = sample;
+    }
+
+    return samples;
+}
+
 bool Application::Run(const std::string& Argument1) {
 	// Delete update.zip if present
 	remove("update.zip");
@@ -110,9 +135,11 @@ bool Application::Run(const std::string& Argument1) {
 	g_ScePad[1] = scePadOpen(2, 0, 0);
 	g_ScePad[2] = scePadOpen(3, 0, 0);
 	g_ScePad[3] = scePadOpen(4, 0, 0);
+	printf("%d", g_ScePad[0]);
 	scePadSetParticularMode(true);
 #pragma endregion
 
+#pragma region Initialize application
 	LoadAppSettings(&m_AppSettings);
 	SaveAppSettings(&m_AppSettings); // Save here so it updates
 	UDP udp(m_AppSettings.LocalPort);
@@ -149,6 +176,7 @@ bool Application::Run(const std::string& Argument1) {
 
 	// Windows
 	MainWindow main(strings, audio, vigem, udp, m_AppSettings, client, isLightMode);
+#pragma endregion
 
 #ifdef WINDOWS
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
@@ -194,7 +222,7 @@ bool Application::Run(const std::string& Argument1) {
 		vigem.SetSelectedController(selectedController);
 		client.SetSelectedController(selectedController);
 		udp.SetVibrationToUdpConfig(m_ScePadSettings[selectedController].rumbleFromEmulatedController);
-		//audio.Validate();
+		audio.Validate();
 
 		for (int i = 0; i < 4; i++) {
 			LoadDefaultConfig(i, &m_ScePadSettings[i]);

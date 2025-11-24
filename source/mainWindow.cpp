@@ -255,17 +255,31 @@ bool MainWindow::Led(s_scePadSettings& scePadSettings, float scale) {
 bool MainWindow::Audio(int currentController, s_scePadSettings& scePadSettings) {
 	static bool failedToStart = false;
 	int busType = 0;
-	scePadGetControllerBusType(g_ScePad[currentController], &busType);
 
 	ImGui::SeparatorText(cstr("Audio"));
 
-	if (busType == SCE_PAD_BUSTYPE_BT) {
-		ImGui::TextColored(ImVec4(1, 0, 0, 1), cstr("HapticsUnavailable"));
-		return true;
-	}
-
 	static bool wasChecked = false;
 	ImGui::Checkbox(cstr("Audio passthrough"), &scePadSettings.audioPassthrough);
+
+	#ifdef LINUX
+	std::vector<std::string> captureDeviceList = m_Audio.GetCaptureDeviceList();
+	static int selectedDevice = 0;
+	ImGui::SetNextItemWidth(400);
+	if(selectedDevice < 0 || selectedDevice > captureDeviceList.size()) selectedDevice = 0;
+	if(ImGui::BeginCombo(cstr("CaptureDevice"), captureDeviceList.at(selectedDevice).c_str(), 0)){
+		
+		int index = 0;
+		for(auto& device : captureDeviceList){
+			if(ImGui::Selectable(device.c_str(), selectedDevice == index, 0)){
+				selectedDevice = index;
+			}
+			index++;
+		}
+		
+		ImGui::EndCombo();
+	}
+	m_Audio.SetCaptureDevice(selectedDevice);
+	#endif
 
 	if (!scePadSettings.audioPassthrough && wasChecked) {
 		wasChecked = false;

@@ -30,7 +30,7 @@ target_include_directories(${PROJECT_NAME}
 add_subdirectory(thirdparty/hidapi)
 
 target_link_libraries(${PROJECT_NAME}
-  PRIVATE
+  PUBLIC
     Threads::Threads
     hidapi::hidapi
 )
