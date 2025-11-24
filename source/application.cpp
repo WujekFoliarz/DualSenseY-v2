@@ -97,31 +97,6 @@ void Application::IconifyCallback(GLFWwindow* window, int iconified) {
 	}
 }
 
-std::vector<int8_t> generate_sine_wave_samples(
-    uint32_t sampleCount, 
-    int sampleRate, 
-    double toneFrequency,
-    double startTimeSec
-) {
-    std::vector<int8_t> samples(sampleCount);
-
-    for (uint32_t i = 0; i < sampleCount; ++i) {
-        // Calculate the current time in seconds for the sample
-        double time = startTimeSec + (double)i / sampleRate;
-        
-        // Calculate the sine wave value (from -1.0 to 1.0)
-        double sinValue = std::sin(2.0 * M_PI * toneFrequency * time);
-        
-        // Scale and convert to int8_t (signed 8-bit integer)
-        // This is necessary because the target function expects int8_t samples.
-        int8_t sample = static_cast<int8_t>(sinValue * 120.0f);
-        
-        samples[i] = sample;
-    }
-
-    return samples;
-}
-
 bool Application::Run(const std::string& Argument1) {
 	// Delete update.zip if present
 	remove("update.zip");
