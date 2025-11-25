@@ -273,6 +273,7 @@ private:
 public:
 	bool IsActive();
 	bool IsAvailable();
+	bool IsConnectedInsteadOfBinded();
 	s_scePadSettings GetSettings();
 	void SetVibrationToUdpConfig(s_ScePadVibrationParam vibration);
 	void SendConfigPathToAnotherInstance(const std::string& Path);

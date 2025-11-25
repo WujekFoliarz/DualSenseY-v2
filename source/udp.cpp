@@ -336,6 +336,11 @@ bool UDP::IsAvailable() {
 	return m_Available;
 }
 
+bool UDP::IsConnectedInsteadOfBinded()
+{
+    return m_ConnectedInsteadOfBinded;
+}
+
 s_scePadSettings UDP::GetSettings() {
 	std::lock_guard<std::mutex> guard(m_SettingsLock);
 	return m_Settings;
