@@ -885,6 +885,8 @@ int watchFunc() {
 								controller.failedReadCount = 0;
 								controller.lastPath = info->path;
 								controller.productID = g_deviceList.devices[j].Device;
+								controller.dualsenseLastOutputState = {};
+								controller.dualshock4LastOutputState = {};
 								hid_set_nonblocking(controller.handle, true);
 
 								const char* id = {};
