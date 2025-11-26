@@ -43,7 +43,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y openssl libappindicator-gtk3 libwayland-dev libxkbcommon-dev xorg-dev
+        sudo apt-get install -y openssl libayatana-appindicator3-1 libwayland-dev libxkbcommon-dev xorg-dev
 
     - name: Set reusable strings
       id: strings
