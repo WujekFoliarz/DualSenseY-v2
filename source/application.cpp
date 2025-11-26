@@ -293,6 +293,7 @@ void Application::InitializeWindow() {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
+	#pragma region Load fonts
 	ImVector<ImWchar> ranges;
 	ImFontGlyphRangesBuilder builder;
 	builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
@@ -301,6 +302,7 @@ void Application::InitializeWindow() {
 	builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
 	static const ImWchar arabicRanges[] = { 0x0600, 0x06FF, 0 };
 	builder.BuildRanges(&ranges);
+	builder.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
 
 	// Font index in appSettings.hpp
 	ImFont* regular = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Saira_Expanded-MediumItalic.ttf", 20, nullptr, ranges.Data);
@@ -308,6 +310,8 @@ void Application::InitializeWindow() {
 	ImFont* korean = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/AstaSans-Light.ttf", 20, nullptr, ranges.Data);
 	ImFont* thai = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Kanit-LightItalic.ttf", 20, nullptr, ranges.Data);
 	ImFont* arabic = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansArabic-Medium.ttf", 20, nullptr, arabicRanges);
+	ImFont* chinese = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansSC-Regular.ttf", 20, nullptr, arabicRanges);
+	#pragma endregion
 
 	assert(m_GlfwWindow.get() != nullptr);
 	LOGI("Window created");
