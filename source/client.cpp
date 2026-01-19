@@ -2,7 +2,6 @@
 #define ENET_IMPLEMENTATION
 #include "client.hpp"
 #include "log.hpp"
-#include "upnp.hpp"
 #include "scePadHandle.hpp"
 #include <algorithm>
 #include "applicationVersion.hpp"
