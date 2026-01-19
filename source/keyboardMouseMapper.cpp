@@ -7,6 +7,7 @@
 #include <chrono>
 #include "scePadHandle.hpp"
 #include <duaLib.h>
+#include <controllerHotkey.hpp>
 
 #ifdef WINDOWS
 constexpr WORD SC_W = 0x11;
