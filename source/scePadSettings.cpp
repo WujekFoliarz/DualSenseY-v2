@@ -9,7 +9,8 @@ static std::chrono::steady_clock::time_point startTime = std::chrono::steady_clo
 // <Mac address, was loaded>
 static std::unordered_map<std::string, bool> loadList;
 
-void SaveSettingsToFile(const s_scePadSettings& s, const std::string& filepath) {
+void SaveSettingsToFile(const s_scePadSettings &s, const std::string &filepath)
+{
 
 	std::filesystem::path filePath = std::filesystem::path(filepath);
 	if (!std::filesystem::exists(filePath.parent_path()))
@@ -18,26 +19,32 @@ void SaveSettingsToFile(const s_scePadSettings& s, const std::string& filepath) 
 	std::ofstream(filepath) << j.dump(4);
 }
 
-bool LoadSettingsFromFile(s_scePadSettings* s, const std::string& filepath) {
-	try {
+bool LoadSettingsFromFile(s_scePadSettings *s, const std::string &filepath)
+{
+	try
+	{
 		std::ifstream ifs(filepath);
-		if (!ifs) return false;
+		if (!ifs)
+			return false;
 		nlohmann::json j;
 		ifs >> j;
 		*s = j.get<s_scePadSettings>();
 		return true;
 	}
-	catch (...) {
+	catch (...)
+	{
 		return false;
 	}
 }
 
-bool GetDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s) {
+bool GetDefaultConfigFromMac(const std::string &mac, s_scePadSettings *s)
+{
 	std::string cleanMac = mac;
 	cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
 	std::filesystem::path filePath = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
-	
-	if (std::filesystem::exists(filePath)) {
+
+	if (std::filesystem::exists(filePath))
+	{
 		std::ifstream file(filePath);
 		std::string configPath = "";
 		file >> configPath;
@@ -49,12 +56,14 @@ bool GetDefaultConfigFromMac(const std::string& mac, s_scePadSettings* s) {
 	return false;
 }
 
-bool RemoveDefaultConfigByMac(const std::string& mac) {
+bool RemoveDefaultConfigByMac(const std::string &mac)
+{
 	std::string cleanMac = mac;
 	cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
 	std::filesystem::path filePath = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
 
-	if (std::filesystem::exists(filePath)) {
+	if (std::filesystem::exists(filePath))
+	{
 		std::filesystem::remove(filePath);
 		return true;
 	}
@@ -62,52 +71,64 @@ bool RemoveDefaultConfigByMac(const std::string& mac) {
 	return false;
 }
 
-void LoadDefaultConfig(int currentController, s_scePadSettings* s) {
+void LoadDefaultConfig(int currentController, s_scePadSettings *s)
+{
 	std::string macAddress = scePadGetMacAddress(g_ScePad[currentController]);
 
-	if (macAddress != "" && !loadList[macAddress]) {
-		if (GetDefaultConfigFromMac(macAddress, s)) {
+	if (macAddress != "" && !loadList[macAddress])
+	{
+		if (GetDefaultConfigFromMac(macAddress, s))
+		{
 			s->WasHidHideRanAfterLoad = false;
 			loadList[macAddress] = true;
 		}
 	}
 }
 
-void ForceControllerToNotLoadDefault(int controller) {
+void ForceControllerToNotLoadDefault(int controller)
+{
 	std::string macAddress = scePadGetMacAddress(g_ScePad[controller]);
 	loadList[macAddress] = true;
 }
 
-std::string ScePadSettingsToString(s_scePadSettings* s) {
+std::string ScePadSettingsToString(s_scePadSettings *s)
+{
 	nlohmann::json j = *s;
 	return j.dump();
 }
 
-bool LoadSettingsFromString(s_scePadSettings* s, const std::string& String) {
-	try {
+bool LoadSettingsFromString(s_scePadSettings *s, const std::string &String)
+{
+	try
+	{
 		nlohmann::json j = nlohmann::json::parse(String);
 		*s = j.get<s_scePadSettings>();
 		return true;
 	}
-	catch (...) {
+	catch (...)
+	{
 		return false;
 	}
 }
 
-bool SaveSettingsFromString(const std::string& String, const std::string& Path) {
-	try {
+bool SaveSettingsFromString(const std::string &String, const std::string &Path)
+{
+	try
+	{
 		s_scePadSettings settings = {};
 		nlohmann::json j = nlohmann::json::parse(String);
 		settings = j.get<s_scePadSettings>();
 		SaveSettingsToFile(settings, Path);
 		return true;
 	}
-	catch (...) {
+	catch (...)
+	{
 		return false;
 	}
 }
 
-void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& audio) {
+void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough &audio)
+{
 	auto now = std::chrono::steady_clock::now();
 	auto sec = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
 	float elapsed = std::chrono::duration<float>(now - startTime).count();
@@ -119,28 +140,34 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 	float audioPeak = audio.GetCurrentCapturePeak();
 	uint8_t audioPeakUint8 = (uint8_t)scaleFloatToInt(audioPeak, 1.0);
 
-	if (settings.useLightbarFromEmulatedController && (settings.emulatedController == (int)EmulatedController::DUALSHOCK4 || settings.usingPeerController)) {
+	if (settings.useLightbarFromEmulatedController && (settings.emulatedController == (int)EmulatedController::DUALSHOCK4 || settings.usingPeerController))
+	{
 		scePadSetLightBar(g_ScePad[index], &settings.lightbarFromEmulatedController);
 	}
-	else if (settings.audioToLed && !settings.discoMode) {
-		s_SceLightBar lightbar = { audioPeakUint8, audioPeakUint8, audioPeakUint8 };
+	else if (settings.audioToLed && !settings.discoMode)
+	{
+		s_SceLightBar lightbar = {audioPeakUint8, audioPeakUint8, audioPeakUint8};
 		scePadSetLightBar(g_ScePad[index], &lightbar);
 	}
-	else if (settings.audioToLed && settings.discoMode) {
-		s_SceLightBar lightbar = { std::min(audioPeakUint8, rainbowLightbar.r), std::min(audioPeakUint8, rainbowLightbar.g), std::min(audioPeakUint8, rainbowLightbar.b) };
+	else if (settings.audioToLed && settings.discoMode)
+	{
+		s_SceLightBar lightbar = {std::min(audioPeakUint8, rainbowLightbar.r), std::min(audioPeakUint8, rainbowLightbar.g), std::min(audioPeakUint8, rainbowLightbar.b)};
 		scePadSetLightBar(g_ScePad[index], &lightbar);
 	}
-	else if (settings.discoMode) {
+	else if (settings.discoMode)
+	{
 		scePadSetLightBar(g_ScePad[index], &rainbowLightbar);
 	}
-	else {
-		s_SceLightBar lightbar = { (uint8_t)scaleFloatToInt(settings.led[0], 1.0f), (uint8_t)scaleFloatToInt(settings.led[1], 1.0f), (uint8_t)scaleFloatToInt(settings.led[2],1.0f) };
+	else
+	{
+		s_SceLightBar lightbar = {(uint8_t)scaleFloatToInt(settings.led[0], 1.0f), (uint8_t)scaleFloatToInt(settings.led[1], 1.0f), (uint8_t)scaleFloatToInt(settings.led[2], 1.0f)};
 		scePadSetLightBar(g_ScePad[index], &lightbar);
 	}
 
 	scePadSetPlayerLedBrightness(g_ScePad[index], settings.brightness);
 	scePadSetPlayerLed(g_ScePad[index], settings.disablePlayerLed ? false : true);
-	scePadSetAudioOutPath(g_ScePad[index], settings.audioPath);
+	if (!settings.udpConfig)
+		scePadSetAudioOutPath(g_ScePad[index], settings.audioPath);
 
 	s_SceControllerType controllerType = {};
 	scePadGetControllerType(g_ScePad[index], &controllerType);
@@ -154,16 +181,18 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 
 	int l2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.smallMotor : settings.rumbleFromEmulatedController.largeMotor;
 	int r2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.largeMotor : settings.rumbleFromEmulatedController.smallMotor;
-	
-	if (settings.triggersAsButtons && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE)) {
+
+	if (settings.triggersAsButtons && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE))
+	{
 		uint8_t leftTrigger[11] = {};
 		uint8_t rightTrigger[11] = {};
 
-		CustomTriggerHardestB(leftTrigger,settings.triggersAsButtonStartPos);
+		CustomTriggerHardestB(leftTrigger, settings.triggersAsButtonStartPos);
 		CustomTriggerHardestB(rightTrigger, settings.triggersAsButtonStartPos);
 		scePadSetTriggerEffectCustom(g_ScePad[index], leftTrigger, rightTrigger, SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 | SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2);
 	}
-	else if (settings.rumbleToAT && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE )) {
+	else if (settings.rumbleToAT && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE))
+	{
 		uint8_t leftTrigger[11] = {};
 		uint8_t rightTrigger[11] = {};
 
@@ -182,7 +211,8 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 
 		scePadSetTriggerEffectCustom(g_ScePad[index], leftTrigger, rightTrigger, SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 | SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2);
 	}
-	else {
+	else
+	{
 		settings.stockTriggerParam.triggerMask |= settings.isLeftUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2;
 		settings.stockTriggerParam.triggerMask |= settings.isRightUsingDsxTrigger ? 0 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
 		scePadSetTriggerEffect(g_ScePad[index], &settings.stockTriggerParam);
@@ -193,13 +223,16 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough& 
 		scePadSetTriggerEffectCustom(g_ScePad[index], settings.leftCustomTrigger.data(), settings.rightCustomTrigger.data(), triggerBitmask);
 	}
 
-	if (settings.useRumbleFromEmulatedController || settings.udpConfig) {
-		if (settings.rumbleFromEmulatedController.largeMotor > 0 || settings.rumbleFromEmulatedController.smallMotor > 0) {
+	if (settings.useRumbleFromEmulatedController || settings.udpConfig)
+	{
+		if (settings.rumbleFromEmulatedController.largeMotor > 0 || settings.rumbleFromEmulatedController.smallMotor > 0)
+		{
 			scePadSetVibrationMode(g_ScePad[index], SCE_PAD_RUMBLE_MODE);
 		}
-		else {
+		else
+		{
 			scePadSetVibrationMode(g_ScePad[index], SCE_PAD_HAPTICS_MODE);
-		}	
+		}
 
 		scePadSetVibration(g_ScePad[index], &settings.rumbleFromEmulatedController);
 	}

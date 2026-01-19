@@ -157,5 +157,7 @@
   "ShareButtonAsSelect": "Share button as select",
   "TouchpadAsSelect": "Touchpad as select",
   "TouchpadAsStart": "Touchpad as start",
-  "CaptureDevice": "Capture device"
+  "CaptureDevice": "Capture device",
+  "UseHotkey": "Use hotkey",
+  "GyroToMouseHotkey": "Gyro to mouse hotkey"
 }

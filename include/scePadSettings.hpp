@@ -155,6 +155,8 @@ struct s_scePadSettings {
 	bool emulateAnalogWsad = false;
 	bool gyroToMouse = false;
 	float gyroToMouseSensitivity = 1.0f;
+	bool useGyroMouseHotkey = false;
+	uint32_t gyroMouseHotkey = SCE_BM_L2;
 	bool useMouse1Hotkey = false;
 	uint32_t mouse1Hotkey = SCE_BM_R2;
 
