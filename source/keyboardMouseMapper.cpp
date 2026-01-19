@@ -183,7 +183,7 @@ void KeyboardMouseMapper::Thread()
 
 			if (m_ScePadSettings[i].gyroToMouse)
 			{
-				if (m_ScePadSettings[i].useGyroMouseHotkey && !IsHotkeyActive(settings.gyroMouseHotkey, state.bitmask_buttons))
+				if (m_ScePadSettings[i].useGyroMouseHotkey && !IsHotkeyActive(m_ScePadSettings[i].gyroMouseHotkey, state.bitmask_buttons))
 					return;
 
 				static bool lastVelX[4] = {0};
