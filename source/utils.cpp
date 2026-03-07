@@ -3,6 +3,8 @@
 #include "log.hpp"
 #ifdef WINDOWS
 #include <Windows.h>
+#include <vector>
+#include <string>
 #endif
 
 // Function to retrieve HidHide installation path from Windows registry
@@ -76,27 +78,12 @@ void hidHideRequest(std::string ID, std::string arg) {
 
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
-    si.dwFlags = STARTF_USESHOWWINDOW; // Use this flag to control window visibility
-    si.wShowWindow = SW_HIDE;          // Set to SW_HIDE to prevent the window from showing
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
 
     ZeroMemory(&pi, sizeof(pi));
 
-    std::string arg1 = "\"" + ID + "\"";
-    std::string arg2 = " \"" + arg + "\" ";
-
-    std::filesystem::path path = std::filesystem::current_path();
-    std::string exePath = "";
-
-    if (std::filesystem::exists(path.string() + "\\DSX.exe")) {
-        exePath = path.string() + "\\DSX.exe";
-    }
-    else {
-        exePath = path.string() + "\\DualSenseY.exe";
-    }
-
-    std::string arg3 = " \"" + exePath + "\" ";
-
-    // Get HidHide executable path from registry or common installation paths
+    // Get HidHide executable path
     std::string hidHideExePath = getHidHideExecutablePath();
     
     if (hidHideExePath.empty()) {
@@ -104,25 +91,136 @@ void hidHideRequest(std::string ID, std::string arg) {
         return;
     }
 
-    std::string command = hidHideExePath + " " + arg1 + arg2 + arg3;
+    // Build command based on the requested action
+    std::string command = "\"" + hidHideExePath + "\"";
+    
+    if (arg == "hide") {
+        command += " --dev-hide \"" + ID + "\"";
+        LOGI("Executing HidHide: hide device " + ID);
+    }
+    else if (arg == "show") {
+        command += " --dev-unhide \"" + ID + "\"";
+        LOGI("Executing HidHide: unhide device " + ID);
+    }
+    else {
+        LOGE("Invalid argument for hidHideRequest. Only 'hide' and 'show' are supported.");
+        return;
+    }
 
-    if (CreateProcess(NULL,              // No module name (use command line)
-        (LPSTR)command.c_str(), // Command line
-        NULL,               // Process handle not inheritable
-        NULL,               // Thread handle not inheritable
-        FALSE,              // Set handle inheritance to FALSE
-        0,                  // No creation flags
-        NULL,               // Use parent's environment block
-        NULL,               // Use parent's starting directory 
-        &si,                // Pointer to STARTUPINFO structure
-        &pi)                // Pointer to PROCESS_INFORMATION structure
-       ) {
-        // Close process and thread handles. 
+    // Execute the HidHide CLI command
+    if (CreateProcess(NULL,
+        (LPSTR)command.c_str(),
+        NULL,
+        NULL,
+        FALSE,
+        0,
+        NULL,
+        NULL,
+        &si,
+        &pi)) {
+        // Wait for the process to complete
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        
+        // Get exit code to verify success
+        DWORD exitCode = 0;
+        GetExitCodeProcess(pi.hProcess, &exitCode);
+        
+        if (exitCode == 0) {
+            LOGI("HidHide command completed successfully");
+        } else {
+            LOGE("HidHide command failed with exit code: " + std::to_string(exitCode));
+        }
+        
+        // Close process and thread handles
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
     }
     else {
-        LOGE("Failed to start HidHide.exe from path: " + command);
+        LOGE("Failed to execute HidHide command. Error: " + std::to_string(GetLastError()));
+    }
+#endif
+}
+
+// Function to get the path of the current executable
+std::string getCurrentExecutablePath() {
+#ifdef WINDOWS
+    std::vector<char> buffer(MAX_PATH);
+    DWORD size;
+
+    while (true) {
+        size = GetModuleFileNameA(NULL, buffer.data(), static_cast<DWORD>(buffer.size()));
+        
+        if (size == 0) return ""; // Error
+        
+        // If buffer small, make it bigger and try again
+        if (size == buffer.size()) {
+            buffer.resize(buffer.size() * 2);
+        } else {
+            break; // Success
+        }
+    }
+    return std::string(buffer.data(), size);
+#else
+    return "";
+#endif
+}
+
+// Function to register this application with HidHide so it can always see hidden devices
+void RegisterApplicationWithHidHide() {
+#ifdef WINDOWS
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+
+    ZeroMemory(&pi, sizeof(pi));
+
+    std::string appPath = getCurrentExecutablePath();
+    if (appPath.empty()) {
+        LOGE("Failed to get current executable path for HidHide registration");
+        return;
+    }
+
+    // Get HidHide executable path
+    std::string hidHideExePath = getHidHideExecutablePath();
+    if (hidHideExePath.empty()) {
+        LOGE("HidHide executable not found. Cannot register application.");
+        return;
+    }
+
+    // Build command to register this application: HidHideCLI.exe --app-reg "<app_path>"
+    std::string command = "\"" + hidHideExePath + "\" --app-reg \"" + appPath + "\"";
+
+    if (CreateProcess(NULL,
+        (LPSTR)command.c_str(),
+        NULL,
+        NULL,
+        FALSE,
+        0,
+        NULL,
+        NULL,
+        &si,
+        &pi)) {
+        // Wait for the process to complete
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        
+        DWORD exitCode = 0;
+        GetExitCodeProcess(pi.hProcess, &exitCode);
+        
+        if (exitCode == 0) {
+            LOGI("Application successfully registered with HidHide: " + appPath);
+        } else {
+            LOGE("Failed to register application with HidHide. Exit code: " + std::to_string(exitCode));
+        }
+        
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+    else {
+        LOGE("Failed to execute HidHide registration command. Error: " + std::to_string(GetLastError()));
     }
 #endif
 }

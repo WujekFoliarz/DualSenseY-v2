@@ -10,6 +10,7 @@ void HidHideRequest(std::string ID, std::string arg);
 std::string USBtoHIDinstance(const std::string& input);
 void HideController(const std::string& instanceId);
 void UnhideController(const std::string& instanceId);
+void RegisterApplicationWithHidHide();
 bool IsRunningAsAdministratorWindows();
 void DisableBluetoothDevice(const std::string& Address);
 
