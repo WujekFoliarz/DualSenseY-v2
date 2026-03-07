@@ -5,6 +5,70 @@
 #include <Windows.h>
 #endif
 
+// Function to retrieve HidHide installation path from Windows registry
+std::string getHidHideExecutablePath() {
+#ifdef WINDOWS
+    HKEY hKey = NULL;
+    std::string hidHidePath = "";
+    
+    // Try to open the registry key for HidHide from Nefarius Software Solutions e.U.
+    LONG result = RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Nefarius Software Solutions e.U.\\HidHide", 0, KEY_READ, &hKey);
+    
+    // If not found, try the WOW6432Node (32-bit registry on 64-bit systems)
+    if (result != ERROR_SUCCESS) {
+        result = RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Nefarius Software Solutions e.U.\\HidHide", 0, KEY_READ, &hKey);
+    }
+    
+    if (result == ERROR_SUCCESS) {
+        DWORD dataSize = MAX_PATH;
+        char installPath[MAX_PATH] = {0};
+        
+        // Try to read the Path value
+        result = RegQueryValueExA(hKey, "Path", NULL, NULL, (LPBYTE)installPath, &dataSize);
+        
+        if (result == ERROR_SUCCESS && dataSize > 0) {
+            hidHidePath = std::string(installPath);
+            // Ensure proper path formatting and append the x64 executable path
+            if (hidHidePath.back() != '\\') {
+                hidHidePath += "\\";
+            }
+            hidHidePath += "x64\\HidHideCLI.exe";
+            LOGI("Found HidHide at: " + hidHidePath);
+        }
+        
+        RegCloseKey(hKey);
+    } else {
+        // Fallback: Try common installation paths from Nefarius Software Solutions
+        std::vector<std::string> commonPaths = {
+            "C:\\Program Files\\Nefarius Software Solutions\\HidHide\\x64\\HidHideCLI.exe",
+            "C:\\Program Files\\Nefarius Software Solutions\\HidHide\\x86\\HidHideCLI.exe",
+            "C:\\Program Files (x86)\\Nefarius Software Solutions\\HidHide\\x86\\HidHideCLI.exe"
+        };
+        
+        for (const auto& path : commonPaths) {
+            if (std::filesystem::exists(path)) {
+                hidHidePath = path;
+                LOGI("Found HidHide at common path: " + hidHidePath);
+                break;
+            }
+        }
+    }
+    
+    // If not found, show alert message
+    if (hidHidePath.empty()) {
+        std::string errorMsg = "HidHide is not installed on your system.\n\n"
+                               "Please install HidHide from: https://github.com/nefarius/HidHide\n\n"
+                               "Without HidHide, the controller hiding feature will not work.";
+        LOGE(errorMsg);
+        MessageBoxA(NULL, errorMsg.c_str(), "HidHide Not Found", MB_OK | MB_ICONWARNING);
+    }
+    
+    return hidHidePath;
+#else
+    return "";
+#endif
+}
+
 void hidHideRequest(std::string ID, std::string arg) {
 #ifdef WINDOWS
     STARTUPINFO si;
@@ -32,7 +96,15 @@ void hidHideRequest(std::string ID, std::string arg) {
 
     std::string arg3 = " \"" + exePath + "\" ";
 
-    std::string command = RESOURCES_PATH "/externals/windows/HidHide.exe " + arg1 + arg2 + arg3;
+    // Get HidHide executable path from registry or common installation paths
+    std::string hidHideExePath = getHidHideExecutablePath();
+    
+    if (hidHideExePath.empty()) {
+        LOGE("HidHide executable not found. Controller hiding feature is disabled.");
+        return;
+    }
+
+    std::string command = hidHideExePath + " " + arg1 + arg2 + arg3;
 
     if (CreateProcess(NULL,              // No module name (use command line)
         (LPSTR)command.c_str(), // Command line
@@ -50,7 +122,7 @@ void hidHideRequest(std::string ID, std::string arg) {
         CloseHandle(pi.hThread);
     }
     else {
-        LOGE("Failed to start HidHide.exe");
+        LOGE("Failed to start HidHide.exe from path: " + command);
     }
 #endif
 }
