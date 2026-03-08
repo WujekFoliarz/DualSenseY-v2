@@ -41,6 +41,7 @@ std::string GetDeviceInstancePath(const std::string& lastPath) {
 
 bool ReplugDevice(const std::wstring& instanceId)
 {
+#ifdef WINDOWS
     DEVINST devInst;
     CONFIGRET status = CM_Locate_DevNodeW(
         &devInst,
@@ -58,6 +59,7 @@ bool ReplugDevice(const std::wstring& instanceId)
     CM_Disable_DevNode(devInst, 0);
     Sleep(2000);
     CM_Enable_DevNode(devInst, 0);
+#endif
 
     return true;
 }
