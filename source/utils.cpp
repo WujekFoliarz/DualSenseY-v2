@@ -3,9 +3,65 @@
 #include "log.hpp"
 #ifdef WINDOWS
 #include <Windows.h>
+#include <cfgmgr32.h>
 #include <vector>
 #include <string>
 #endif
+
+#ifdef WINDOWS
+static std::wstring Utf8ToWstring(const std::string& str)
+{
+    if (str.empty()) return std::wstring();
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.size()), NULL, 0);
+    if (size_needed <= 0) return std::wstring();
+    std::wstring wstr(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.size()), &wstr[0], size_needed);
+    return wstr;
+}
+
+std::string GetDeviceInstancePath(const std::string& lastPath) {
+    // Remove prefix "\\?\" 
+    std::string path = lastPath;
+    if (path.compare(0, 4, "\\\\?\\") == 0) {
+        path.erase(0, 4);
+    }
+
+    // Look for GUID (starts with '{' )
+    size_t guidPos = path.find("#{");
+    if (guidPos != std::string::npos) {
+        path.erase(guidPos);
+    }
+
+    // Replace '#' with '\' for HID format
+    std::replace(path.begin(), path.end(), '#', '\\');
+
+    return path;
+}
+#endif
+
+bool ReplugDevice(const std::wstring& instanceId)
+{
+    DEVINST devInst;
+    CONFIGRET status = CM_Locate_DevNodeW(
+        &devInst,
+        const_cast<LPWSTR>(instanceId.c_str()),
+        CM_LOCATE_DEVNODE_NORMAL
+    );
+
+    if (status != CR_SUCCESS)
+    {
+        std::wcout << L"Device not found:\n";
+        std::wcout << instanceId.c_str() << L"\n";
+        return false;
+    }
+
+    CM_Disable_DevNode(devInst, 0);
+    Sleep(2000);
+    CM_Enable_DevNode(devInst, 0);
+
+    return true;
+}
+
 
 // Function to retrieve HidHide installation path from Windows registry
 std::string getHidHideExecutablePath() {
@@ -35,7 +91,7 @@ std::string getHidHideExecutablePath() {
                 hidHidePath += "\\";
             }
             hidHidePath += "x64\\HidHideCLI.exe";
-            LOGI("Found HidHide at: " + hidHidePath);
+            LOGI("Found HidHide at: %s", hidHidePath.c_str());
         }
         
         RegCloseKey(hKey);
@@ -50,7 +106,7 @@ std::string getHidHideExecutablePath() {
         for (const auto& path : commonPaths) {
             if (std::filesystem::exists(path)) {
                 hidHidePath = path;
-                LOGI("Found HidHide at common path: " + hidHidePath);
+                LOGI("Found HidHide at common path: %s", hidHidePath.c_str());
                 break;
             }
         }
@@ -61,7 +117,7 @@ std::string getHidHideExecutablePath() {
         std::string errorMsg = "HidHide is not installed on your system.\n\n"
                                "Please install HidHide from: https://github.com/nefarius/HidHide\n\n"
                                "Without HidHide, the controller hiding feature will not work.";
-        LOGE(errorMsg);
+        LOGE("%s", errorMsg.c_str());
         MessageBoxA(NULL, errorMsg.c_str(), "HidHide Not Found", MB_OK | MB_ICONWARNING);
     }
     
@@ -93,14 +149,16 @@ void hidHideRequest(std::string ID, std::string arg) {
 
     // Build command based on the requested action
     std::string command = "\"" + hidHideExePath + "\"";
+
+    std::string hidDeviceInstancePath = GetDeviceInstancePath(ID);
     
     if (arg == "hide") {
-        command += " --dev-hide \"" + ID + "\"";
-        LOGI("Executing HidHide: hide device " + ID);
+        command += " --cloak-on --dev-hide \"" + hidDeviceInstancePath + "\"";
+        LOGI("Executing HidHide: hide device %s", hidDeviceInstancePath);
     }
     else if (arg == "show") {
-        command += " --dev-unhide \"" + ID + "\"";
-        LOGI("Executing HidHide: unhide device " + ID);
+        command += " --cloak-off --dev-unhide \"" + hidDeviceInstancePath + "\"";
+        LOGI("Executing HidHide: unhide device %s", hidDeviceInstancePath);
     }
     else {
         LOGE("Invalid argument for hidHideRequest. Only 'hide' and 'show' are supported.");
@@ -127,8 +185,9 @@ void hidHideRequest(std::string ID, std::string arg) {
         
         if (exitCode == 0) {
             LOGI("HidHide command completed successfully");
+            ReplugDevice(Utf8ToWstring(hidDeviceInstancePath));
         } else {
-            LOGE("HidHide command failed with exit code: " + std::to_string(exitCode));
+            LOGE("HidHide command failed with exit code: %lu", static_cast<unsigned long>(exitCode));
         }
         
         // Close process and thread handles
@@ -136,7 +195,7 @@ void hidHideRequest(std::string ID, std::string arg) {
         CloseHandle(pi.hThread);
     }
     else {
-        LOGE("Failed to execute HidHide command. Error: " + std::to_string(GetLastError()));
+        LOGE("Failed to execute HidHide command. Error: %lu", static_cast<unsigned long>(GetLastError()));
     }
 #endif
 }
@@ -211,16 +270,16 @@ void RegisterApplicationWithHidHide() {
         GetExitCodeProcess(pi.hProcess, &exitCode);
         
         if (exitCode == 0) {
-            LOGI("Application successfully registered with HidHide: " + appPath);
+            LOGI("Application successfully registered with HidHide: %s", appPath.c_str());
         } else {
-            LOGE("Failed to register application with HidHide. Exit code: " + std::to_string(exitCode));
+            LOGE("Failed to register application with HidHide. Exit code: %lu", static_cast<unsigned long>(exitCode));
         }
         
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
     }
     else {
-        LOGE("Failed to execute HidHide registration command. Error: " + std::to_string(GetLastError()));
+        LOGE("Failed to execute HidHide registration command. Error: %lu", static_cast<unsigned long>(GetLastError()));
     }
 #endif
 }
