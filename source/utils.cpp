@@ -27,7 +27,7 @@ std::string GetDeviceInstancePath(const std::string& lastPath) {
         path.erase(0, 4);
     }
 
-	// Look for kast GUID (starts with '{' ) because BT devices have in-beween GUID
+	// Look for last GUID (starts with '{' ) because BT devices have in-between GUID
     size_t lastGuidPos = path.rfind("#{");
     if (lastGuidPos != std::string::npos) {
         path.erase(lastGuidPos);
