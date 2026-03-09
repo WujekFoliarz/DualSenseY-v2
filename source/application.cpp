@@ -159,6 +159,10 @@ bool Application::Run(const std::string& Argument1) {
 	liDueTime.QuadPart = -100000LL;
 #endif
 
+#ifdef WINDOWS
+	RegisterApplicationWithHidHide();
+#endif
+
 	int display_w, display_h = 0;
 	float xscale, yscale = 1;
 	bool active = false;
