@@ -22,14 +22,15 @@ static std::wstring Utf8ToWstring(const std::string& str)
 std::string GetDeviceInstancePath(const std::string& lastPath) {
     // Remove prefix "\\?\" 
     std::string path = lastPath;
+
     if (path.compare(0, 4, "\\\\?\\") == 0) {
         path.erase(0, 4);
     }
 
-    // Look for GUID (starts with '{' )
-    size_t guidPos = path.find("#{");
-    if (guidPos != std::string::npos) {
-        path.erase(guidPos);
+	// Look for kast GUID (starts with '{' ) because BT devices have in-beween GUID
+    size_t lastGuidPos = path.rfind("#{");
+    if (lastGuidPos != std::string::npos) {
+        path.erase(lastGuidPos);
     }
 
     // Replace '#' with '\' for HID format
