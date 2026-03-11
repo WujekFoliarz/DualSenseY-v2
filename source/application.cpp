@@ -480,6 +480,9 @@ void Application::RestoreWindowFromTray() {
 }
 
 Application::~Application() {
+	// Hide the window immediately to prevent user from interacting with it while it's closing
+	glfwHideWindow(m_GlfwWindow.get());
+
 	// Unhide controllers
 #ifdef WINDOWS
 	if (IsRunningAsAdministratorWindows()) {
