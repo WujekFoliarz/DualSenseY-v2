@@ -159,6 +159,10 @@ bool Application::Run(const std::string& Argument1) {
 	liDueTime.QuadPart = -100000LL;
 #endif
 
+#ifdef WINDOWS
+	RegisterApplicationWithHidHide();
+#endif
+
 	int display_w, display_h = 0;
 	float xscale, yscale = 1;
 	bool active = false;
@@ -456,7 +460,7 @@ void Application::SetupTray() {
 
 	m_Tray->addEntry(Tray::Button("Exit", [&] {
 		m_Tray->exit();
-		std::exit(0);
+		glfwSetWindowShouldClose(m_GlfwWindow.get(), GLFW_TRUE);
 	}));
 	
 	m_TrayThread = std::thread([this] {
@@ -476,6 +480,9 @@ void Application::RestoreWindowFromTray() {
 }
 
 Application::~Application() {
+	// Hide the window immediately to prevent user from interacting with it while it's closing
+	glfwHideWindow(m_GlfwWindow.get());
+
 	// Unhide controllers
 #ifdef WINDOWS
 	if (IsRunningAsAdministratorWindows()) {

@@ -1638,17 +1638,22 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings &scePadSettin
 		ImGui::SameLine();
 		ImGui::RadioButton("DualShock 4", &scePadSettings.emulatedController, 2);
 		m_Vigem.PlugControllerByIndex(currentController, scePadSettings.emulatedController);
+		std::string instanceId = scePadGetPath(g_ScePad[currentController]);
 
 		static bool lastHidHideStatus[4] = {false, false, false, false};
 		if (m_IsAdminWindows && (scePadSettings.Hidden != lastHidHideStatus[currentController]))
 		{
 			if (!scePadSettings.WasHidHideRanAfterLoad && scePadSettings.Hidden)
 			{
-				HideController(scePadGetPath(g_ScePad[currentController]));
+				std::thread([instanceId, &scePadSettings]() {
+					HideController(instanceId);
+				}).detach();
 			}
 			else if (!scePadSettings.WasHidHideRanAfterLoad && !scePadSettings.Hidden)
 			{
-				UnhideController(scePadGetPath(g_ScePad[currentController]));
+				std::thread([instanceId, &scePadSettings]() {
+					UnhideController(instanceId);
+				}).detach();
 			}
 
 			lastHidHideStatus[currentController] = scePadSettings.Hidden;
@@ -1665,14 +1670,19 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings &scePadSettin
 				{
 					if (ImGui::Button(cstr("Hide")))
 					{
-						HideController(scePadGetPath(g_ScePad[currentController]));
-						scePadSettings.Hidden = true;
+							// thread for hiding
+							std::thread([instanceId, &scePadSettings]() {
+								HideController(instanceId);
+								scePadSettings.Hidden = true;
+								}).detach();
 					}
 					ImGui::SameLine();
 					if (ImGui::Button(cstr("Unhide")))
 					{
-						UnhideController(scePadGetPath(g_ScePad[currentController]));
-						scePadSettings.Hidden = false;
+						std::thread([instanceId, &scePadSettings]() {
+							UnhideController(instanceId);
+							scePadSettings.Hidden = false;
+							}).detach();
 					}
 				}
 				else
