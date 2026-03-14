@@ -185,7 +185,7 @@ void KeyboardMouseMapper::Thread()
 			if (m_ScePadSettings[i].gyroToMouse)
 			{
 				if (m_ScePadSettings[i].useGyroMouseHotkey && !IsHotkeyActive(m_ScePadSettings[i].gyroMouseHotkey, state.bitmask_buttons))
-					return;
+					goto skipGyroToMouse;
 
 				static bool lastVelX[4] = {0};
 				static bool lastVelY[4] = {0};
@@ -202,7 +202,7 @@ void KeyboardMouseMapper::Thread()
 				lastVelX[i] = velX;
 				lastVelY[i] = velY;
 			}
-
+			skipGyroToMouse:
 #pragma endregion
 
 #pragma region Mouse1 hotkey

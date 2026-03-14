@@ -7,7 +7,9 @@
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow) {
 
 #if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0)
-	AllocConsole();
+	if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+		AllocConsole();
+	}
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);
 	freopen_s(&fp, "CONOUT$", "w", stderr);

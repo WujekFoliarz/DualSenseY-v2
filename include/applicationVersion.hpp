@@ -1,4 +1,4 @@
 #pragma once
 #include <cstdint>
 
-static inline uint32_t g_LocalAppVersion = 55;
+static inline uint32_t g_LocalAppVersion = 56;

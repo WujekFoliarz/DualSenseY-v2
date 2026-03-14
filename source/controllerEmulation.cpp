@@ -155,6 +155,9 @@ Vigem::Vigem(s_scePadSettings* scePadSettings, UDP& udp) : m_ScePadSettings(sceP
 
 Vigem::~Vigem() {
 #ifdef WINDOWS
+	if (!m_VigemClientInitalized)
+		return;
+
 	m_VigemThreadRunning = false;
 	if (m_VigemThread.joinable()) {
 		m_VigemThread.join();
