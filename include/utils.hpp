@@ -13,5 +13,6 @@ void UnhideController(const std::string& instanceId);
 void RegisterApplicationWithHidHide();  // Register DualsenseY application With HidHide to see under the cloak
 bool IsRunningAsAdministratorWindows();  
 void DisableBluetoothDevice(const std::string& Address);
+std::string getHidHideExecutablePath();
 
 #endif

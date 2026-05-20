@@ -1641,48 +1641,57 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings &scePadSettin
 		std::string instanceId = scePadGetPath(g_ScePad[currentController]);
 
 		static bool lastHidHideStatus[4] = {false, false, false, false};
-		if (m_IsAdminWindows && (scePadSettings.Hidden != lastHidHideStatus[currentController]))
-		{
-			if (!scePadSettings.WasHidHideRanAfterLoad && scePadSettings.Hidden)
+			if (m_IsAdminWindows && (scePadSettings.Hidden != lastHidHideStatus[currentController]))
 			{
-				std::thread([instanceId, &scePadSettings]() {
-					HideController(instanceId);
-				}).detach();
-			}
-			else if (!scePadSettings.WasHidHideRanAfterLoad && !scePadSettings.Hidden)
-			{
-				std::thread([instanceId, &scePadSettings]() {
-					UnhideController(instanceId);
-				}).detach();
-			}
+				if (!scePadSettings.WasHidHideRanAfterLoad && scePadSettings.Hidden)
+				{
+					std::thread([instanceId, &scePadSettings]() {
+						HideController(instanceId);
+						}).detach();
+				}
+				else if (!scePadSettings.WasHidHideRanAfterLoad && !scePadSettings.Hidden)
+				{
+					std::thread([instanceId, &scePadSettings]() {
+						UnhideController(instanceId);
+						}).detach();
+				}
 
-			lastHidHideStatus[currentController] = scePadSettings.Hidden;
-			scePadSettings.WasHidHideRanAfterLoad = true;
-		}
+				lastHidHideStatus[currentController] = scePadSettings.Hidden;
+				scePadSettings.WasHidHideRanAfterLoad = true;
+			}
+		
 
 		ImGui::NewLine();
 		if (ImGui::TreeNodeEx(cstr("ControllerSettings"), ImGuiTreeNodeFlags_DefaultOpen))
 		{
-
 			if (ImGui::TreeNode(cstr("HideRealController")))
 			{
 				if (m_IsAdminWindows)
 				{
-					if (ImGui::Button(cstr("Hide")))
+					static bool isHidHideInstalled = getHidHideExecutablePath() != "" ? true : false;
+					if (isHidHideInstalled)
 					{
+						if (ImGui::Button(cstr("Hide")))
+						{
 							// thread for hiding
 							std::thread([instanceId, &scePadSettings]() {
 								HideController(instanceId);
 								scePadSettings.Hidden = true;
-								}).detach();
-					}
-					ImGui::SameLine();
-					if (ImGui::Button(cstr("Unhide")))
-					{
-						std::thread([instanceId, &scePadSettings]() {
-							UnhideController(instanceId);
-							scePadSettings.Hidden = false;
 							}).detach();
+						}
+						ImGui::SameLine();
+						if (ImGui::Button(cstr("Unhide")))
+						{
+							std::thread([instanceId, &scePadSettings]() {
+								UnhideController(instanceId);
+								scePadSettings.Hidden = false;
+							}).detach();
+						}
+					}
+					else
+					{
+						ImGui::TextColored(ImVec4(1, 1, 0, 1), cstr("HidHideNotInstalled"));
+						ImGui::TextLinkOpenURL(cstr("HidHideInstallLink"), "https://github.com/nefarius/HidHide/releases");
 					}
 				}
 				else

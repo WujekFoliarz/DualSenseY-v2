@@ -115,14 +115,17 @@ std::string getHidHideExecutablePath() {
         }
     }
     
+#if 0
     // If not found, show alert message
     if (hidHidePath.empty()) {
         std::string errorMsg = "HidHide is not installed on your system.\n\n"
-                               "Please install HidHide from: https://github.com/nefarius/HidHide\n\n"
-                               "Without HidHide, the controller hiding feature will not work.";
+            "Please install HidHide from: https://github.com/nefarius/HidHide\n\n"
+            "Without HidHide, the controller hiding feature will not work.";
         LOGE("%s", errorMsg.c_str());
         MessageBoxA(NULL, errorMsg.c_str(), "HidHide Not Found", MB_OK | MB_ICONWARNING);
     }
+#endif // 0
+
     
     return hidHidePath;
 #else

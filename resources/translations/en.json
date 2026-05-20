@@ -159,5 +159,7 @@
   "TouchpadAsStart": "Touchpad as start",
   "CaptureDevice": "Capture device",
   "UseHotkey": "Use hotkey",
-  "GyroToMouseHotkey": "Gyro to mouse hotkey"
+  "GyroToMouseHotkey": "Gyro to mouse hotkey",
+  "HidHideNotInstalled": "HidHide is not installed!",
+  "HidHideInstallLink" : "Install HidHide"
 }
