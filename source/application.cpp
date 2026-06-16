@@ -315,7 +315,16 @@ void Application::InitializeWindow() {
 	ImFont* thai = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/Kanit-LightItalic.ttf", 20, nullptr, ranges.Data);
 	ImFont* arabic = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansArabic-Medium.ttf", 20, nullptr, arabicRanges);
 	ImFont* chinese = io.Fonts->AddFontFromFileTTF(RESOURCES_PATH "fonts/NotoSansSC-Regular.ttf", 20, nullptr, arabicRanges);
-	#pragma endregion
+	
+	if (io.Fonts->Fonts.empty())
+	{
+		LOGE("Couldn't load fonts");
+#ifdef WINDOWS
+		MessageBox(0, "Couldn't load fonts", "Error", MB_ICONERROR);
+#endif
+		std::exit(0);
+	}
+#pragma endregion
 
 	assert(m_GlfwWindow.get() != nullptr);
 	LOGI("Window created");
