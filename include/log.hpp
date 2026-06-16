@@ -1,11 +1,6 @@
 #ifndef LOG_HPP
 #define LOG_HPP
 
-#if (!defined(PRODUCTION_BUILD) && PRODUCTION_BUILD == 0)
-#define DISABLE_LOGGING
-#endif
-
-#ifdef DISABLE_LOGGING
 #	define LOGV(...) do { } while (0)
 #	define LOGD(...) do { } while (0)
 #	define LOGI(...) do { } while (0)
@@ -30,6 +25,5 @@
 #			define LOGE(...) do { printf("[ERROR] " __VA_ARGS__); printf("\n"); } while (0)
 #			define LOGSIMPLE(...) do { printf(__VA_ARGS__); printf("\n"); } while (0)
 #       endif 
-#endif
 
 #endif // LOG_HPP

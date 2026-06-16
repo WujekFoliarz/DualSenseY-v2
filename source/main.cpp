@@ -4,17 +4,87 @@
 #include <Windows.h>
 #include <shellapi.h>
 #include <iostream>
+#include <DbgHelp.h>
+
+#pragma comment(lib, "Dbghelp.lib")
+
+static std::wstring GetDumpFileName()
+{
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+
+	wchar_t filename[MAX_PATH];
+
+	swprintf_s(
+		filename,
+		L"crash_%04d-%02d-%02d_%02d-%02d-%02d.dmp",
+		st.wYear,
+		st.wMonth,
+		st.wDay,
+		st.wHour,
+		st.wMinute,
+		st.wSecond);
+
+	return filename;
+}
+
+static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* exceptionInfo)
+{
+	HANDLE hFile = CreateFileW(
+		GetDumpFileName().c_str(),
+		GENERIC_WRITE,
+		0,
+		nullptr,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		MINIDUMP_EXCEPTION_INFORMATION dumpInfo{};
+		dumpInfo.ThreadId = GetCurrentThreadId();
+		dumpInfo.ExceptionPointers = exceptionInfo;
+		dumpInfo.ClientPointers = FALSE;
+		MINIDUMP_TYPE dumpType =
+			(MINIDUMP_TYPE)(
+				MiniDumpWithDataSegs |
+				MiniDumpWithHandleData |
+				MiniDumpWithThreadInfo |
+				MiniDumpWithIndirectlyReferencedMemory |
+				MiniDumpScanMemory |
+				MiniDumpWithModuleHeaders |       
+				MiniDumpWithFullAuxiliaryState |   
+				MiniDumpWithProcessThreadData |
+				MiniDumpWithFullMemoryInfo |
+				MiniDumpWithUnloadedModules
+				);
+
+		MiniDumpWriteDump(
+			GetCurrentProcess(),
+			GetCurrentProcessId(),
+			hFile,
+			dumpType,
+			&dumpInfo,
+			nullptr,
+			nullptr);
+
+		CloseHandle(hFile);
+	}
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow) {
 
-#if (!defined(PRODUCTION_BUILD) || PRODUCTION_BUILD == 0)
-	if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
-		AllocConsole();
+	SetUnhandledExceptionFilter(CrashHandler);
+
+	if (AttachConsole(ATTACH_PARENT_PROCESS))
+	{
+		FILE* fp;
+		freopen_s(&fp, "CONOUT$", "w", stdout);
+		freopen_s(&fp, "CONOUT$", "w", stderr);
+		freopen_s(&fp, "CONIN$", "r", stdin);
 	}
-	FILE* fp;
-	freopen_s(&fp, "CONOUT$", "w", stdout);
-	freopen_s(&fp, "CONOUT$", "w", stderr);
-	freopen_s(&fp, "CONIN$", "r", stdin);
-#endif
 
 	wchar_t exePath[MAX_PATH];
 	GetModuleFileNameW(nullptr, exePath, MAX_PATH);

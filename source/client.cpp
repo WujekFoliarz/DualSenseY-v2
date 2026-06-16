@@ -30,6 +30,12 @@ Client::~Client() {
 }
 
 void Client::Connect(const std::string& Ip, uint16_t Port) {
+	if (Ip.empty())
+	{
+		LOGE("Ip was empty in connect!");
+		return;
+	}
+
 	m_Connecting = true;
 	m_AwaitingResponseCount++;
 	if (IsConnected())
