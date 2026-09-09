@@ -166,6 +166,8 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough &
 
 	scePadSetPlayerLedBrightness(g_ScePad[index], settings.brightness);
 	scePadSetPlayerLed(g_ScePad[index], settings.disablePlayerLed ? false : true);
+	bool micLedState = settings.gyroToRightStick && settings.gyroToRightStickPermanent;
+	scePadSetMicLed(g_ScePad[index], micLedState);
 	if (!settings.udpConfig)
 		scePadSetAudioOutPath(g_ScePad[index], settings.audioPath);
 

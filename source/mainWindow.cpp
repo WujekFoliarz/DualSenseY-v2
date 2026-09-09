@@ -941,43 +941,87 @@ bool MainWindow::TreeElement_motion(s_scePadSettings &scePadSettings, s_ScePadDa
 
 	if (ImGui::TreeNodeEx(cstr("Motion")))
 	{
-		ImGui::Checkbox(cstr("GyroToRightStick"), &scePadSettings.gyroToRightStick);
+		if (ImGui::Checkbox(cstr("GyroToRightStick"), &scePadSettings.gyroToRightStick))
+		{
+			if (currentController >= 0 && currentController < 4)
+			{
+				bool ledState = scePadSettings.gyroToRightStick && scePadSettings.gyroToRightStickPermanent;
+				scePadSetMicLed(g_ScePad[currentController], ledState);
+			}
+		}
 		if (scePadSettings.gyroToRightStick)
 		{
-			if (ImGui::Checkbox("Permanent (Mic button toggle)##permanentgyro", &scePadSettings.gyroToRightStickPermanent))
+			if (ImGui::Checkbox(std::string(strr("GyroMicGate") + "##micgate").c_str(), &scePadSettings.gyroToRightStickPermanent))
 			{
 				if (currentController >= 0 && currentController < 4)
 				{
-					scePadSetMicLed(g_ScePad[currentController], scePadSettings.gyroToRightStickPermanent);
+					bool ledState = scePadSettings.gyroToRightStick && scePadSettings.gyroToRightStickPermanent;
+					scePadSetMicLed(g_ScePad[currentController], ledState);
 				}
 			}
 			ImGui::SameLine();
-			ImGui::TextDisabled(scePadSettings.gyroToRightStickPermanent ? "[AKTYWNY - Mic LED ON]" : "[WYLACZONY - nacisnij Mic]");
+			bool hasHotkey = scePadSettings.useGyroRightStickHotkey && (scePadSettings.gyroToRightStickActivationButton != 0);
+			if (scePadSettings.gyroToRightStickPermanent)
+			{
+				if (hasHotkey)
+				{
+					std::string actBtn = GetFormattedActiveButtonNames(scePadSettings.gyroToRightStickActivationButton);
+					if (actBtn.empty()) actBtn = "L2";
+					char buf[128];
+					snprintf(buf, sizeof(buf), strr("GyroArmedStatus").c_str(), actBtn.c_str());
+					ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "%s", buf);
+				}
+				else
+				{
+					ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "%s", cstr("GyroAlwaysActiveStatus"));
+				}
+			}
+			else
+			{
+				ImGui::TextColored(ImVec4(0.85f, 0.35f, 0.35f, 1.0f), "%s", cstr("GyroDisarmedStatus"));
+			}
 		}
 
-		ImGui::Text(std::string(strr("SetActivationButton") + ": ").c_str());
-		ImGui::SameLine();
-
-		bool isHotkeyOpen = false;
-		if (ImGui::Button(GetFormattedActiveButtonNames(scePadSettings.gyroToRightStickActivationButton).c_str()))
+		ImGui::Checkbox(cstr("UseHotkey"), &scePadSettings.useGyroRightStickHotkey);
+		if (scePadSettings.useGyroRightStickHotkey)
 		{
-			time = now;
-			wasClicked = true;
-		}
+			ImGui::SameLine();
+			ImGui::Text(std::string(strr("SetActivationButton") + ": ").c_str());
+			ImGui::SameLine();
 
-		auto remainingTime = now - time;
-		if (remainingTime < std::chrono::seconds(3))
-		{
-			isHotkeyOpen = true;
-		}
-		else if (remainingTime > std::chrono::seconds(3) && wasClicked)
-		{
-			wasClicked = false;
-			if (state.bitmask_buttons != 0)
-				scePadSettings.gyroToRightStickActivationButton = state.bitmask_buttons;
-		}
+			bool isHotkeyOpen = false;
+			std::string btnName = GetFormattedActiveButtonNames(scePadSettings.gyroToRightStickActivationButton);
+			if (btnName.empty()) btnName = strr("None");
+			if (ImGui::Button(std::string(btnName + "##hotkeybtn").c_str()))
+			{
+				time = now;
+				wasClicked = true;
+			}
 
-		GetHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
+			ImGui::SameLine();
+			if (ImGui::Button("X##cleargps"))
+			{
+				scePadSettings.gyroToRightStickActivationButton = 0;
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Clear activation button (None)");
+			}
+
+			auto remainingTime = now - time;
+			if (remainingTime < std::chrono::seconds(3))
+			{
+				isHotkeyOpen = true;
+			}
+			else if (remainingTime > std::chrono::seconds(3) && wasClicked)
+			{
+				wasClicked = false;
+				if (state.bitmask_buttons != 0)
+					scePadSettings.gyroToRightStickActivationButton = state.bitmask_buttons;
+			}
+
+			GetHotkeyFromControllerScreen(&isHotkeyOpen, static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(remainingTime).count()), 3);
+		}
 
 		ImGui::SetNextItemWidth(350);
 		ImGui::SliderFloat(std::string(strr("Sensitivity") + "##gyrotorightstick").c_str(), &scePadSettings.gyroToRightStickSensitivity, 0, 2);

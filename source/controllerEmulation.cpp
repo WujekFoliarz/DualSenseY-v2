@@ -223,16 +223,22 @@ bool Vigem::IsVigemConnected() {
 }
 
 void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state, int controllerIndex) {
-#pragma region Microphone button toggle for Gyro
+#pragma region Microphone button toggle for Gyro (Gate / Arming switch)
 	if (controllerIndex >= 0 && controllerIndex < 4) {
 		static bool lastMicButtonState[4] = { false, false, false, false };
+		static std::chrono::steady_clock::time_point lastMicToggleTime[4] = {};
+		auto now = std::chrono::steady_clock::now();
 		bool micPressedNow = (state.bitmask_buttons & SCE_BM_MICBUTTON) != 0;
-		if (micPressedNow && !lastMicButtonState[controllerIndex]) {
-			settings.gyroToRightStickPermanent = !settings.gyroToRightStickPermanent;
-			if (m_ScePadSettings != nullptr) {
-				m_ScePadSettings[controllerIndex].gyroToRightStickPermanent = settings.gyroToRightStickPermanent;
+		if (settings.gyroToRightStick && micPressedNow && !lastMicButtonState[controllerIndex]) {
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastMicToggleTime[controllerIndex]).count() >= 50) {
+				settings.gyroToRightStickPermanent = !settings.gyroToRightStickPermanent;
+				if (m_ScePadSettings != nullptr) {
+					m_ScePadSettings[controllerIndex].gyroToRightStickPermanent = settings.gyroToRightStickPermanent;
+				}
+				bool ledState = settings.gyroToRightStick && settings.gyroToRightStickPermanent;
+				scePadSetMicLed(g_ScePad[controllerIndex], ledState);
+				lastMicToggleTime[controllerIndex] = now;
 			}
-			scePadSetMicLed(g_ScePad[controllerIndex], settings.gyroToRightStickPermanent);
 		}
 		lastMicButtonState[controllerIndex] = micPressedNow;
 	}
@@ -263,7 +269,11 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 #pragma endregion
 
 #pragma region Gyro to right stick
-	bool isGyroActive = settings.gyroToRightStick && (settings.gyroToRightStickPermanent || IsHotkeyActive(settings.gyroToRightStickActivationButton, state.bitmask_buttons));
+	bool hotkeyActive = !settings.useGyroRightStickHotkey || 
+	                    settings.gyroToRightStickActivationButton == 0 || 
+	                    IsHotkeyActive(settings.gyroToRightStickActivationButton, state.bitmask_buttons);
+
+	bool isGyroActive = settings.gyroToRightStick && settings.gyroToRightStickPermanent && hotkeyActive;
 	if (isGyroActive) {
 		if (abs(state.RightStick.X - 128) <= 80 &&
 			abs(state.RightStick.Y - 128) <= 80) {
