@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <hidapi.h>
 #include <stdio.h>
 #include <wchar.h>
@@ -1969,6 +1969,25 @@ int scePadSetPlayerLed(int handle, bool state) {
 		if (!controller.valid) return SCE_PAD_ERROR_DEVICE_NOT_CONNECTED;
 
 		controller.playerLed = state;
+
+		return SCE_OK;
+	}
+	return SCE_PAD_ERROR_INVALID_HANDLE;
+}
+
+int scePadSetMicLed(int handle, bool state) {
+	if (!g_initialized) return SCE_PAD_ERROR_NOT_INITIALIZED;
+
+	for (auto& controller : g_controllers) {
+		std::shared_lock guard(controller.lock);
+
+		if (controller.sceHandle != handle) continue;
+		if (!controller.valid) return SCE_PAD_ERROR_DEVICE_NOT_CONNECTED;
+
+		controller.isMicMuted = state;
+		controller.dualsenseCurOutputState.MuteLightMode = state ? dualsenseData::MuteLight::On : dualsenseData::MuteLight::Off;
+		controller.dualsenseCurOutputState.MicMute = state;
+		controller.dualsenseCurOutputState.AllowMuteLight = true;
 
 		return SCE_OK;
 	}

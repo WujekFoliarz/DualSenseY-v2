@@ -161,5 +161,6 @@
   "UseHotkey": "Use hotkey",
   "GyroToMouseHotkey": "Gyro to mouse hotkey",
   "HidHideNotInstalled": "HidHide is not installed!",
-  "HidHideInstallLink" : "Install HidHide"
+  "HidHideInstallLink" : "Install HidHide",
+  "PsBtnAsWinKey": "PS Button as Windows Key"
 }

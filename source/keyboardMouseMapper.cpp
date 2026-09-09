@@ -25,6 +25,16 @@ void sendKeyScan(WORD scancode, bool down)
 	SendInput(1, &input, sizeof(INPUT));
 }
 
+void sendVirtualKey(WORD vk, bool down)
+{
+	INPUT input = {};
+	input.type = INPUT_KEYBOARD;
+	input.ki.wVk = vk;
+	input.ki.wScan = static_cast<WORD>(MapVirtualKey(vk, MAPVK_VK_TO_VSC));
+	input.ki.dwFlags = (down ? 0 : KEYEVENTF_KEYUP) | KEYEVENTF_EXTENDEDKEY;
+	SendInput(1, &input, sizeof(INPUT));
+}
+
 void MouseClick(DWORD flag, DWORD mouseData = 0)
 {
 	INPUT input;
@@ -71,62 +81,188 @@ void KeyboardMouseMapper::Thread()
 			int result = scePadReadState(g_ScePad[i], &state);
 
 			if (result != SCE_OK || m_ScePadSettings == nullptr)
+			{
+				if (m_psState[i].isDown)
+				{
+					sendVirtualKey(VK_LWIN, false);
+					m_psState[i].isDown = false;
+					m_psState[i].releasePending = false;
+				}
 				continue;
+			}
 
 #pragma region Touchpad as mouse
-			if (m_ScePadSettings[i].touchpadAsMouse && !state.touchData.touch[0].reserve[0])
+			if (m_ScePadSettings[i].touchpadAsMouse)
 			{
+				auto& ts = m_touchState[i];
+				bool finger0Down = !state.touchData.touch[0].reserve[0];
+				bool finger1Down = !state.touchData.touch[1].reserve[0];
 
-				if (!m_ScePadSettings[i].wasTouching)
+				if (finger0Down)
 				{
-					m_ScePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
-					m_ScePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
+					float curX = static_cast<float>(state.touchData.touch[0].x);
+					float curY = static_cast<float>(state.touchData.touch[0].y);
+
+					if (!ts.wasTouching)
+					{
+						ts.lastTouchX = curX;
+						ts.lastTouchY = curY;
+						ts.smoothedDeltaX = 0.0f;
+						ts.smoothedDeltaY = 0.0f;
+						ts.accumX = 0.0f;
+						ts.accumY = 0.0f;
+						ts.accumScrollY = 0.0f;
+						ts.wasTouching = true;
+					}
+
+					float rawDeltaX = curX - ts.lastTouchX;
+					float rawDeltaY = curY - ts.lastTouchY;
+					ts.lastTouchX = curX;
+					ts.lastTouchY = curY;
+
+					if (!finger1Down)
+					{
+						// Single finger mode: Cursor movement
+						float magSq = rawDeltaX * rawDeltaX + rawDeltaY * rawDeltaY;
+						// Gentle noise gate (0.25f units squared -> delta 0.5)
+						if (magSq > 0.25f)
+						{
+							float speed = std::sqrt(magSq);
+							// Dynamic EMA alpha: higher responsiveness on fast swipes, smoother filtering on slow micro-movements
+							float alpha = (speed > 10.0f) ? 0.75f : 0.45f;
+							ts.smoothedDeltaX = alpha * rawDeltaX + (1.0f - alpha) * ts.smoothedDeltaX;
+							ts.smoothedDeltaY = alpha * rawDeltaY + (1.0f - alpha) * ts.smoothedDeltaY;
+
+							// Pointer ballistics: mild acceleration curve
+							float sensitivity = m_ScePadSettings[i].touchpadAsMouse_sensitivity;
+							float extraSpeed = speed / 16.0f;
+							if (extraSpeed > 1.6f) extraSpeed = 1.6f;
+							float speedFactor = 1.0f + extraSpeed;
+							float moveDeltaX = ts.smoothedDeltaX * sensitivity * 0.75f * speedFactor;
+							float moveDeltaY = ts.smoothedDeltaY * sensitivity * 0.75f * speedFactor;
+
+							// Sub-pixel accumulator
+							ts.accumX += moveDeltaX;
+							ts.accumY += moveDeltaY;
+
+							int stepX = static_cast<int>(ts.accumX);
+							int stepY = static_cast<int>(ts.accumY);
+
+							if (stepX != 0 || stepY != 0)
+							{
+								MoveCursor(stepX, stepY);
+								ts.accumX -= stepX;
+								ts.accumY -= stepY;
+							}
+						}
+						else
+						{
+							ts.smoothedDeltaX *= 0.5f;
+							ts.smoothedDeltaY *= 0.5f;
+						}
+					}
+					else
+					{
+						// Two finger mode: Smooth scroll
+						ts.accumScrollY += -rawDeltaY * 3.5f;
+						int scrollTicks = static_cast<int>(ts.accumScrollY / 10.0f);
+						if (scrollTicks != 0)
+						{
+							MouseClick(MOUSEEVENTF_WHEEL, scrollTicks * WHEEL_DELTA / 4);
+							ts.accumScrollY -= scrollTicks * 10.0f;
+						}
+					}
+				}
+				else
+				{
+					// Finger released
+					ts.wasTouching = false;
+					ts.smoothedDeltaX = 0.0f;
+					ts.smoothedDeltaY = 0.0f;
+					ts.accumX = 0.0f;
+					ts.accumY = 0.0f;
+					ts.accumScrollY = 0.0f;
 				}
 
-				int cursorX = state.touchData.touch[0].x - m_ScePadSettings[i].lastTouchData.touch[0].x;
-				int cursorY = state.touchData.touch[0].y - m_ScePadSettings[i].lastTouchData.touch[0].y;
+				// Touchpad physical click logic:
+				// Default Click = LPM, Hold (> 380ms) = PPM, 2-finger click = PPM, Drag = LPM Hold
+				bool isTouchPhysicallyDown = (state.bitmask_buttons & SCE_BM_TOUCH) != 0;
+				auto now = std::chrono::steady_clock::now();
 
-				float sensitivity = m_ScePadSettings[i].touchpadAsMouse_sensitivity;
-				if (state.touchData.touch[1].reserve[0] && (abs(cursorX) > 3 || abs(cursorY) > 3))
-					MoveCursor((float)cursorX * sensitivity, (float)cursorY * sensitivity);
-
-				m_ScePadSettings[i].lastTouchData.touch[0].reserve[0] = state.touchData.touch[0].reserve[0];
-				m_ScePadSettings[i].lastTouchData.touch[0].x = state.touchData.touch[0].x;
-				m_ScePadSettings[i].lastTouchData.touch[0].y = state.touchData.touch[0].y;
-				m_ScePadSettings[i].wasTouching = true;
-
-				if (!state.touchData.touch[1].reserve[0] && fabs(cursorY) > 5.0f)
+				if (isTouchPhysicallyDown && !ts.touchButtonPressed)
 				{
-					MouseClick(MOUSEEVENTF_WHEEL, static_cast<int>(-cursorY * 2));
+					// Physical button just pressed down
+					ts.touchButtonPressed = true;
+					ts.touchDownTime = now;
+					ts.clickDownX = static_cast<float>(state.touchData.touch[0].x);
+					ts.clickDownY = static_cast<float>(state.touchData.touch[0].y);
+					ts.isHoldingRightClick = false;
+					ts.isLeftDragging = false;
+
+					if (finger1Down)
+					{
+						// Two-finger click -> instant PPM
+						ts.isTwoFingerClick = true;
+						MouseClick(MOUSEEVENTF_RIGHTDOWN);
+					}
+					else
+					{
+						ts.isTwoFingerClick = false;
+					}
 				}
-			}
-			else if (m_ScePadSettings[i].touchpadAsMouse && state.touchData.touch[0].reserve[0])
-			{
-				m_ScePadSettings[i].wasTouching = false;
-			}
+				else if (isTouchPhysicallyDown && ts.touchButtonPressed)
+				{
+					// Physical button is currently held down
+					if (!ts.isTwoFingerClick && !ts.isHoldingRightClick)
+					{
+						float dx = static_cast<float>(state.touchData.touch[0].x) - ts.clickDownX;
+						float dy = static_cast<float>(state.touchData.touch[0].y) - ts.clickDownY;
+						float distSq = dx * dx + dy * dy;
 
-			static bool wasLeftMousePressed = false;
-			static bool wasRightMousePressed = false;
-			if (m_ScePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x < 1000 && state.bitmask_buttons & SCE_BM_TOUCH)
-			{
-				MouseClick(MOUSEEVENTF_LEFTDOWN);
-				wasLeftMousePressed = true;
-			}
-			else if (m_ScePadSettings[i].touchpadAsMouse && state.touchData.touch[0].x > 1000 && state.bitmask_buttons & SCE_BM_TOUCH)
-			{
-				wasRightMousePressed = true;
-				MouseClick(MOUSEEVENTF_RIGHTDOWN);
-			}
+						if (!ts.isLeftDragging && distSq > 400.0f) // moved > 20 touchpad units -> dragging
+						{
+							ts.isLeftDragging = true;
+							MouseClick(MOUSEEVENTF_LEFTDOWN);
+						}
+						else if (!ts.isLeftDragging)
+						{
+							auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - ts.touchDownTime);
+							if (elapsed >= std::chrono::milliseconds(380))
+							{
+								// Held stationary for >= 380ms -> trigger PPM
+								ts.isHoldingRightClick = true;
+								MouseClick(MOUSEEVENTF_RIGHTDOWN);
+							}
+						}
+					}
+				}
+				else if (!isTouchPhysicallyDown && ts.touchButtonPressed)
+				{
+					// Physical button released
+					ts.touchButtonPressed = false;
 
-			if (m_ScePadSettings[i].touchpadAsMouse && wasLeftMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH))
-			{
-				MouseClick(MOUSEEVENTF_LEFTUP);
-				wasLeftMousePressed = false;
-			}
-			if (m_ScePadSettings[i].touchpadAsMouse && wasRightMousePressed && !(state.bitmask_buttons & SCE_BM_TOUCH))
-			{
-				MouseClick(MOUSEEVENTF_RIGHTUP);
-				wasRightMousePressed = false;
+					if (ts.isTwoFingerClick)
+					{
+						MouseClick(MOUSEEVENTF_RIGHTUP);
+						ts.isTwoFingerClick = false;
+					}
+					else if (ts.isHoldingRightClick)
+					{
+						MouseClick(MOUSEEVENTF_RIGHTUP);
+						ts.isHoldingRightClick = false;
+					}
+					else if (ts.isLeftDragging)
+					{
+						MouseClick(MOUSEEVENTF_LEFTUP);
+						ts.isLeftDragging = false;
+					}
+					else
+					{
+						// Short tap/click -> send full Left Mouse Click (DOWN + UP)
+						MouseClick(MOUSEEVENTF_LEFTDOWN);
+						MouseClick(MOUSEEVENTF_LEFTUP);
+					}
+				}
 			}
 #pragma endregion
 
@@ -223,6 +359,77 @@ void KeyboardMouseMapper::Thread()
 			}
 
 #pragma endregion
+
+#pragma region PS button as Windows key
+			if (m_ScePadSettings[i].psBtnAsWinKey)
+			{
+				auto now = std::chrono::steady_clock::now();
+				bool psRawPressed = (state.bitmask_buttons & SCE_BM_PSBTN) != 0;
+				auto& ps = m_psState[i];
+
+				const auto DEBOUNCE_DURATION = std::chrono::milliseconds(30);
+				const auto MIN_HOLD_DURATION = std::chrono::milliseconds(35);
+				const auto MAX_HOLD_DURATION = std::chrono::milliseconds(5000);
+
+				if (psRawPressed && !ps.isDown)
+				{
+					// Rising edge: button pressed
+					if (now - ps.lastEdgeTime >= DEBOUNCE_DURATION)
+					{
+						sendVirtualKey(VK_LWIN, true);
+						ps.isDown = true;
+						ps.releasePending = false;
+						ps.pressTime = now;
+						ps.lastEdgeTime = now;
+					}
+				}
+				else if (!psRawPressed && ps.isDown)
+				{
+					// Falling edge: button released
+					if (now - ps.pressTime >= MIN_HOLD_DURATION)
+					{
+						if (now - ps.lastEdgeTime >= DEBOUNCE_DURATION)
+						{
+							sendVirtualKey(VK_LWIN, false);
+							ps.isDown = false;
+							ps.releasePending = false;
+							ps.lastEdgeTime = now;
+						}
+					}
+					else
+					{
+						// Ensure key is held for at least MIN_HOLD_DURATION so Windows registers it
+						ps.releasePending = true;
+					}
+				}
+				else if (ps.isDown && ps.releasePending)
+				{
+					// Minimum hold duration elapsed for quick tap
+					if (now - ps.pressTime >= MIN_HOLD_DURATION)
+					{
+						sendVirtualKey(VK_LWIN, false);
+						ps.isDown = false;
+						ps.releasePending = false;
+						ps.lastEdgeTime = now;
+					}
+				}
+				else if (ps.isDown && (now - ps.pressTime >= MAX_HOLD_DURATION))
+				{
+					// Safety timeout: release key if held longer than 5s
+					sendVirtualKey(VK_LWIN, false);
+					ps.isDown = false;
+					ps.releasePending = false;
+					ps.lastEdgeTime = now;
+				}
+			}
+			else if (m_psState[i].isDown)
+			{
+				// Safety: release if setting is toggled off while held
+				sendVirtualKey(VK_LWIN, false);
+				m_psState[i].isDown = false;
+				m_psState[i].releasePending = false;
+			}
+#pragma endregion
 		}
 
 		if (fire)
@@ -261,6 +468,16 @@ KeyboardMouseMapper::~KeyboardMouseMapper()
 {
 #ifdef WINDOWS
 	m_ThreadRunning = false;
+
+	for (int i = 0; i < 4; i++)
+	{
+		if (m_psState[i].isDown)
+		{
+			sendVirtualKey(VK_LWIN, false);
+			m_psState[i].isDown = false;
+			m_psState[i].releasePending = false;
+		}
+	}
 
 	if (m_thread.joinable())
 	{

@@ -55,7 +55,7 @@ private:
    std::unordered_map<uint32_t, PVIGEM_TARGET> m_PeerControllerTargets;
 #endif
 
-   void applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state);
+   void applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state, int controllerIndex = -1);
    s_scePadSettings* m_ScePadSettings = nullptr;
    UDP& m_Udp;
    std::atomic<uint32_t> m_SelectedController = 0;

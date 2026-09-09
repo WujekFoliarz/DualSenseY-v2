@@ -1,4 +1,4 @@
-﻿#include "mainWindow.hpp"
+#include "mainWindow.hpp"
 
 #include <imgui.h>
 #include <string>
@@ -784,6 +784,7 @@ bool MainWindow::KeyboardAndMouseMapping(s_scePadSettings &scePadSettings, s_Sce
 
 	ImGui::SeparatorText(cstr("KeyboardAndMouseMapping"));
 	ImGui::Checkbox(cstr("AnalogWsadEmulation"), &scePadSettings.emulateAnalogWsad);
+	ImGui::Checkbox(cstr("PsBtnAsWinKey"), &scePadSettings.psBtnAsWinKey);
 
 	ImGui::Checkbox(cstr("GyroToMouse"), &scePadSettings.gyroToMouse);
 	ImGui::SameLine();
@@ -932,7 +933,7 @@ bool MainWindow::TreeElement_dynamicAdaptiveTriggers(s_scePadSettings &scePadSet
 	return true;
 }
 
-bool MainWindow::TreeElement_motion(s_scePadSettings &scePadSettings, s_ScePadData &state)
+bool MainWindow::TreeElement_motion(s_scePadSettings &scePadSettings, s_ScePadData &state, int currentController)
 {
 	static std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now() - std::chrono::seconds(3);
 	auto now = std::chrono::steady_clock::now();
@@ -941,6 +942,18 @@ bool MainWindow::TreeElement_motion(s_scePadSettings &scePadSettings, s_ScePadDa
 	if (ImGui::TreeNodeEx(cstr("Motion")))
 	{
 		ImGui::Checkbox(cstr("GyroToRightStick"), &scePadSettings.gyroToRightStick);
+		if (scePadSettings.gyroToRightStick)
+		{
+			if (ImGui::Checkbox("Permanent (Mic button toggle)##permanentgyro", &scePadSettings.gyroToRightStickPermanent))
+			{
+				if (currentController >= 0 && currentController < 4)
+				{
+					scePadSetMicLed(g_ScePad[currentController], scePadSettings.gyroToRightStickPermanent);
+				}
+			}
+			ImGui::SameLine();
+			ImGui::TextDisabled(scePadSettings.gyroToRightStickPermanent ? "[AKTYWNY - Mic LED ON]" : "[WYLACZONY - nacisnij Mic]");
+		}
 
 		ImGui::Text(std::string(strr("SetActivationButton") + ": ").c_str());
 		ImGui::SameLine();
@@ -1705,7 +1718,7 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings &scePadSettin
 			TreeElement_lightbar(scePadSettings);
 			TreeElement_vibration(scePadSettings);
 			TreeElement_dynamicAdaptiveTriggers(scePadSettings);
-			TreeElement_motion(scePadSettings, state);
+			TreeElement_motion(scePadSettings, state, currentController);
 			TreeElement_touchpad(scePadSettings);
 			TreeElement_sharebtn(scePadSettings);
 

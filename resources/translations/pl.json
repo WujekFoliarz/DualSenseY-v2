@@ -152,5 +152,6 @@
   "Options": "Opcje",
   "Apply": "Użyj",
   "SaveToFile": "Zapisz do pliku",
-  "SortingOption": "Opcje sortowania"
+  "SortingOption": "Opcje sortowania",
+  "PsBtnAsWinKey": "Przycisk PS jako klawisz Windows"
 }
