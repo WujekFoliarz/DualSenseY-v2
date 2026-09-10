@@ -547,17 +547,8 @@ int readFunc() {
 				else if (res > 0) {
 					controller.failedReadCount = 0;
 
-					if (!inputData.ButtonMute && controller.dualsenseCurInputState.ButtonMute) {
-						controller.dualsenseCurOutputState.AllowAudioMute = true;
-						controller.isMicMuted = !controller.isMicMuted;
-						controller.dualsenseCurOutputState.MuteLightMode = controller.isMicMuted ? dualsenseData::MuteLight::On : dualsenseData::MuteLight::Off;
-						controller.dualsenseCurOutputState.MicMute = controller.isMicMuted;
-						controller.dualsenseCurOutputState.AllowMuteLight = true;
-					}
-					else {
-						controller.dualsenseCurOutputState.AllowAudioMute = false;
-						controller.dualsenseCurOutputState.AllowMuteLight = false;
-					}
+					controller.dualsenseCurOutputState.AllowMuteLight = true;
+					controller.dualsenseCurOutputState.AllowAudioMute = true;
 
 					if (controller.dualsenseCurOutputState.LedRed != controller.dualsenseLastOutputState.LedRed ||
 						controller.dualsenseCurOutputState.LedGreen != controller.dualsenseLastOutputState.LedGreen ||
@@ -591,7 +582,9 @@ int readFunc() {
 
 					if (controller.wasDisconnected) {
 						controller.dualsenseCurOutputState.MicMute = controller.isMicMuted;
+						controller.dualsenseCurOutputState.MuteLightMode = controller.isMicMuted ? dualsenseData::MuteLight::On : dualsenseData::MuteLight::Off;
 						controller.dualsenseCurOutputState.AllowMuteLight = true;
+						controller.dualsenseCurOutputState.AllowAudioMute = true;
 					}
 
 					if (controller.dualsenseCurOutputState.OutputPathSelect != controller.dualsenseLastOutputState.OutputPathSelect ||
@@ -1988,6 +1981,7 @@ int scePadSetMicLed(int handle, bool state) {
 		controller.dualsenseCurOutputState.MuteLightMode = state ? dualsenseData::MuteLight::On : dualsenseData::MuteLight::Off;
 		controller.dualsenseCurOutputState.MicMute = state;
 		controller.dualsenseCurOutputState.AllowMuteLight = true;
+		controller.dualsenseCurOutputState.AllowAudioMute = true;
 
 		return SCE_OK;
 	}
