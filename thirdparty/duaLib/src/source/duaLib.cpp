@@ -1878,12 +1878,26 @@ int scePadSetVolumeGain(int handle, s_ScePadVolumeGain* gainSettings) {
 		if (!controller.valid) return SCE_PAD_ERROR_DEVICE_NOT_CONNECTED;
 
 		if (controller.deviceType == DUALSENSE) {
-			controller.dualsenseCurOutputState.VolumeSpeaker = gainSettings->speakerVolume + 64;
+			if (gainSettings->speakerVolume == 0) {
+				controller.dualsenseCurOutputState.VolumeSpeaker = 0;
+				controller.dualsenseCurOutputState.SpeakerMute = 1;
+			}
+			else {
+				int spk = gainSettings->speakerVolume + 64;
+				controller.dualsenseCurOutputState.VolumeSpeaker = static_cast<uint8_t>(spk > 255 ? 255 : spk);
+				controller.dualsenseCurOutputState.SpeakerMute = 0;
+			}
 			controller.dualsenseCurOutputState.VolumeMic = gainSettings->micGain;
-			controller.dualsenseCurOutputState.VolumeHeadphones = gainSettings->headsetVolume + 64;
+			int hp = gainSettings->headsetVolume + 64;
+			controller.dualsenseCurOutputState.VolumeHeadphones = static_cast<uint8_t>(hp > 255 ? 255 : hp);
 		}
 		else if (controller.deviceType == DUALSHOCK4) {
-			controller.dualshock4CurOutputState.VolumeSpeaker = 40 + (int)((gainSettings->speakerVolume / 126.0) * 79);
+			if (gainSettings->speakerVolume == 0) {
+				controller.dualshock4CurOutputState.VolumeSpeaker = 0;
+			}
+			else {
+				controller.dualshock4CurOutputState.VolumeSpeaker = 40 + (int)((gainSettings->speakerVolume / 126.0) * 79);
+			}
 			controller.dualshock4CurOutputState.VolumeMic = 40 + (int)((gainSettings->micGain / 100.0) * 79);
 			controller.dualshock4CurOutputState.VolumeLeft = 40 + (int)((gainSettings->headsetVolume / 100.0) * 79);
 			controller.dualshock4CurOutputState.VolumeRight = 40 + (int)((gainSettings->headsetVolume / 100.0) * 79);

@@ -180,6 +180,7 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough &
 	scePadSetVolumeGain(g_ScePad[index], &volume);
 
 	audio.SetHapticIntensityByUserId(index + 1, settings.hapticIntensity);
+	audio.SetSpeakerVolumeByUserId(index + 1, (float)settings.speakerVolume / 8.0f);
 
 	int l2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.smallMotor : settings.rumbleFromEmulatedController.largeMotor;
 	int r2Value = settings.rumbleToAt_swapTriggers ? settings.rumbleFromEmulatedController.largeMotor : settings.rumbleFromEmulatedController.smallMotor;

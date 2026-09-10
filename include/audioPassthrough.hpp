@@ -23,6 +23,7 @@ private:
 	uint32_t m_Indexes[4] = { 0,1,2,3 };
 	std::atomic<float> m_CurrentCapturePeak = 0.0f;
 	std::atomic<float> m_HapticIntensity[4] = { 1.0f,1.0f,1.0f,1.0f };
+	std::atomic<float> m_SpeakerVolume[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	uint32_t m_CurrentCaptureDevice = 0;
 	uint32_t m_LastCaptureDevice = 0;
 
@@ -40,6 +41,7 @@ public:
 	bool StartByUserId(uint32_t userId);
 	bool StopByUserId(uint32_t userId);
 	void SetHapticIntensityByUserId(uint32_t userId, float intensity);
+	void SetSpeakerVolumeByUserId(uint32_t userId, float volume);
 	float GetCurrentCapturePeak();
 	void SetCaptureDevice(uint32_t Device = 0);
 	std::vector<std::string> GetCaptureDeviceList();

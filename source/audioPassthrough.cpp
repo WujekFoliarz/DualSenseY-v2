@@ -590,15 +590,27 @@ void PlaybackDualsenseDataCallback(ma_device *pDevice, void *pOutput, const void
 	size_t availableFrames = userData->m_AudioBuffer[index].size() / 2;
 	size_t framesToWrite = std::min<size_t>(frameCount, availableFrames);
 
+	float speakerGain = userData->m_SpeakerVolume[index].load();
+	float hapticGain = userData->m_HapticIntensity[index].load();
+
 	for (size_t i = 0; i < framesToWrite; ++i)
 	{
 		float inL = userData->m_AudioBuffer[index][i * 2 + 0];
 		float inR = userData->m_AudioBuffer[index][i * 2 + 1];
+		float mono = (inL + inR) * 0.5f;
 
-		out[i * 4 + 0] = 0.0f;
-		out[i * 4 + 1] = std::clamp(inL, -1.0f, 1.0f);
-		out[i * 4 + 2] = std::clamp(inL * userData->m_HapticIntensity[index], -1.0f, 1.0f);
-		out[i * 4 + 3] = std::clamp(inR * userData->m_HapticIntensity[index], -1.0f, 1.0f);
+		if (speakerGain <= 0.0f)
+		{
+			out[i * 4 + 0] = 0.0f;
+			out[i * 4 + 1] = 0.0f;
+		}
+		else
+		{
+			out[i * 4 + 0] = 0.0f;
+			out[i * 4 + 1] = std::clamp(mono * speakerGain, -1.0f, 1.0f);
+		}
+		out[i * 4 + 2] = std::clamp(inL * hapticGain, -1.0f, 1.0f);
+		out[i * 4 + 3] = std::clamp(inR * hapticGain, -1.0f, 1.0f);
 	}
 
 	for (size_t i = framesToWrite; i < frameCount; ++i)
@@ -630,13 +642,24 @@ void PlaybackDualshock4DataCallback(ma_device *pDevice, void *pOutput, const voi
 	size_t availableFrames = userData->m_AudioBuffer[index].size() / 2;
 	size_t framesToWrite = std::min<size_t>(frameCount, availableFrames);
 
+	float speakerGain = userData->m_SpeakerVolume[index].load();
+
 	for (size_t i = 0; i < framesToWrite; ++i)
 	{
 		float inL = userData->m_AudioBuffer[index][i * 2 + 0];
 		float inR = userData->m_AudioBuffer[index][i * 2 + 1];
+		float mono = (inL + inR) * 0.5f;
 
-		out[i * 2 + 0] = 0.0f;
-		out[i * 2 + 1] = std::clamp(inL, -1.0f, 1.0f);
+		if (speakerGain <= 0.0f)
+		{
+			out[i * 2 + 0] = 0.0f;
+			out[i * 2 + 1] = 0.0f;
+		}
+		else
+		{
+			out[i * 2 + 0] = 0.0f;
+			out[i * 2 + 1] = std::clamp(mono * speakerGain, -1.0f, 1.0f);
+		}
 	}
 
 	for (size_t i = framesToWrite; i < frameCount; ++i)
@@ -836,6 +859,13 @@ void AudioPassthrough::SetHapticIntensityByUserId(uint32_t userId, float intensi
 	assert(userId >= 1 && userId <= 4);
 
 	m_HapticIntensity[userId - 1] = intensity;
+}
+
+void AudioPassthrough::SetSpeakerVolumeByUserId(uint32_t userId, float volume)
+{
+	assert(userId >= 1 && userId <= 4);
+
+	m_SpeakerVolume[userId - 1] = volume;
 }
 
 float AudioPassthrough::GetCurrentCapturePeak()
