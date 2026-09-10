@@ -169,7 +169,12 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough &
 	bool micLedState = settings.gyroToRightStick && settings.gyroToRightStickPermanent;
 	scePadSetMicLed(g_ScePad[index], micLedState);
 	if (!settings.udpConfig)
-		scePadSetAudioOutPath(g_ScePad[index], settings.audioPath);
+	{
+		if (settings.speakerVolume == 0)
+			scePadSetAudioOutPath(g_ScePad[index], SCE_PAD_AUDIO_PATH_STEREO_HEADSET);
+		else
+			scePadSetAudioOutPath(g_ScePad[index], settings.audioPath);
+	}
 
 	s_SceControllerType controllerType = {};
 	scePadGetControllerType(g_ScePad[index], &controllerType);

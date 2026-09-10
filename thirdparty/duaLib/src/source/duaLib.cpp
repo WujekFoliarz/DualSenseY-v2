@@ -178,7 +178,8 @@ namespace duaLibUtils {
 			data.State.AllowAudioMute = true;
 			data.State.MicMute = false;
 			data.State.AllowColorLightFadeAnimation = false;
-			data.State.AllowHapticLowPassFilter = false;
+			data.State.AllowHapticLowPassFilter = true;
+			data.State.HapticLowPassFilter = 1;
 			data.State.AllowHeadphoneVolume = false;
 			data.State.AllowLightBrightnessChange = false;
 			data.State.AllowMicVolume = false;
@@ -549,6 +550,8 @@ int readFunc() {
 
 					controller.dualsenseCurOutputState.AllowMuteLight = true;
 					controller.dualsenseCurOutputState.AllowAudioMute = true;
+					controller.dualsenseCurOutputState.AllowHapticLowPassFilter = true;
+					controller.dualsenseCurOutputState.HapticLowPassFilter = 1;
 
 					if (controller.dualsenseCurOutputState.LedRed != controller.dualsenseLastOutputState.LedRed ||
 						controller.dualsenseCurOutputState.LedGreen != controller.dualsenseLastOutputState.LedGreen ||
@@ -1879,7 +1882,7 @@ int scePadSetVolumeGain(int handle, s_ScePadVolumeGain* gainSettings) {
 
 		if (controller.deviceType == DUALSENSE) {
 			if (gainSettings->speakerVolume == 0) {
-				controller.dualsenseCurOutputState.VolumeSpeaker = 0;
+				controller.dualsenseCurOutputState.VolumeSpeaker = 0x3D; // PS5 min volume (0x3D = 61), avoiding 0 which causes firmware fallback to 0 dB max
 				controller.dualsenseCurOutputState.SpeakerMute = 1;
 			}
 			else {
@@ -1887,6 +1890,7 @@ int scePadSetVolumeGain(int handle, s_ScePadVolumeGain* gainSettings) {
 				controller.dualsenseCurOutputState.VolumeSpeaker = static_cast<uint8_t>(spk > 255 ? 255 : spk);
 				controller.dualsenseCurOutputState.SpeakerMute = 0;
 			}
+			controller.dualsenseCurOutputState.HapticMute = 0;
 			controller.dualsenseCurOutputState.VolumeMic = gainSettings->micGain;
 			int hp = gainSettings->headsetVolume + 64;
 			controller.dualsenseCurOutputState.VolumeHeadphones = static_cast<uint8_t>(hp > 255 ? 255 : hp);

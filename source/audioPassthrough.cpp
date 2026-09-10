@@ -609,8 +609,21 @@ void PlaybackDualsenseDataCallback(ma_device *pDevice, void *pOutput, const void
 			out[i * 4 + 0] = 0.0f;
 			out[i * 4 + 1] = std::clamp(mono * speakerGain, -1.0f, 1.0f);
 		}
-		out[i * 4 + 2] = std::clamp(inL * hapticGain, -1.0f, 1.0f);
-		out[i * 4 + 3] = std::clamp(inR * hapticGain, -1.0f, 1.0f);
+
+		if (hapticGain <= 0.0f)
+		{
+			out[i * 4 + 2] = 0.0f;
+			out[i * 4 + 3] = 0.0f;
+			userData->m_HapticFilterL[index].reset();
+			userData->m_HapticFilterR[index].reset();
+		}
+		else
+		{
+			float filteredL = userData->m_HapticFilterL[index].process(inL);
+			float filteredR = userData->m_HapticFilterR[index].process(inR);
+			out[i * 4 + 2] = std::clamp(filteredL * hapticGain, -1.0f, 1.0f);
+			out[i * 4 + 3] = std::clamp(filteredR * hapticGain, -1.0f, 1.0f);
+		}
 	}
 
 	for (size_t i = framesToWrite; i < frameCount; ++i)
@@ -713,6 +726,12 @@ void AudioPassthrough::StartCaptureDevice(ma_device *pDevice, ma_device_config *
 
 AudioPassthrough::AudioPassthrough()
 {
+	for (int i = 0; i < 4; i++)
+	{
+		m_HapticFilterL[i].init(160.0f, 48000.0f);
+		m_HapticFilterR[i].init(160.0f, 48000.0f);
+	}
+
 	if (ma_context_init(NULL, 0, NULL, &g_context) != MA_SUCCESS)
 		return;
 	m_LastTimeValidated = std::chrono::steady_clock::now();
@@ -752,6 +771,8 @@ bool AudioPassthrough::StartByUserId(uint32_t userId)
 		{
 			m_AudioBuffer[i].clear();
 		}
+		m_HapticFilterL[index].reset();
+		m_HapticFilterR[index].reset();
 	}
 
 	s_ScePadContainerIdInfo info = {};
@@ -846,6 +867,8 @@ bool AudioPassthrough::StopByUserId(uint32_t userId)
 			std::lock_guard<std::mutex> lock(m_BufferMutex);
 			m_AudioBuffer[index].clear();
 			m_AudioBuffer[index].shrink_to_fit();
+			m_HapticFilterL[index].reset();
+			m_HapticFilterR[index].reset();
 		}
 	}
 
