@@ -892,10 +892,55 @@ bool MainWindow::TreeElement_vibration(s_scePadSettings &scePadSettings)
 	return true;
 }
 
-bool MainWindow::TreeElement_dynamicAdaptiveTriggers(s_scePadSettings &scePadSettings)
+bool MainWindow::TreeElement_dynamicAdaptiveTriggers(s_scePadSettings &scePadSettings, int currentController)
 {
 	if (ImGui::TreeNodeEx(cstr("DynamicTriggerSettings")))
 	{
+		// --- Haptics to adaptive triggers ---
+		ImGui::SeparatorText(cstr("HapticsToAdaptiveTriggers"));
+		ImGui::Checkbox(cstr("HapticsToAdaptiveTriggers"), &scePadSettings.hapticsToAt);
+		if (scePadSettings.hapticsToAt)
+		{
+			if (!scePadSettings.audioPassthrough)
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "%s", cstr("HapticsAtAudioPassthroughNotice"));
+			}
+
+			ImGui::SetNextItemWidth(400);
+			ImGui::SliderFloat(cstr("HapticsAtStrength"), &scePadSettings.hapticsToAt_intensity, 0.1f, 2.0f, "%.2fx");
+
+			ImGui::Text("%s:", cstr("HapticsAtMode"));
+			ImGui::SameLine();
+			ImGui::RadioButton(cstr("HapticsAtModeVibration"), &scePadSettings.hapticsToAt_mode, 0);
+			ImGui::SameLine();
+			ImGui::RadioButton(cstr("HapticsAtModeResistance"), &scePadSettings.hapticsToAt_mode, 1);
+
+			ImGui::Checkbox(cstr("HapticsAtSwapTriggers"), &scePadSettings.hapticsToAt_swapTriggers);
+
+			// Real-time visual progress bars for L2 and R2
+			float rawL = m_Audio.GetHapticLevelL(currentController + 1);
+			float rawR = m_Audio.GetHapticLevelR(currentController + 1);
+			float dispL = scePadSettings.hapticsToAt_swapTriggers ? rawR : rawL;
+			float dispR = scePadSettings.hapticsToAt_swapTriggers ? rawL : rawR;
+			dispL = std::clamp(dispL * scePadSettings.hapticsToAt_intensity, 0.0f, 1.0f);
+			dispR = std::clamp(dispR * scePadSettings.hapticsToAt_intensity, 0.0f, 1.0f);
+
+			char bufL[32];
+			char bufR[32];
+			snprintf(bufL, sizeof(bufL), "%.0f%%", dispL * 100.0f);
+			snprintf(bufR, sizeof(bufR), "%.0f%%", dispR * 100.0f);
+
+			ImGui::Text("L2:");
+			ImGui::SameLine();
+			ImGui::ProgressBar(dispL, ImVec2(180, 0), bufL);
+			ImGui::SameLine();
+			ImGui::Text("R2:");
+			ImGui::SameLine();
+			ImGui::ProgressBar(dispR, ImVec2(180, 0), bufR);
+		}
+
+		// --- Rumble to adaptive triggers & Triggers as buttons ---
+		ImGui::SeparatorText(cstr("RumbleToAT"));
 		ImGui::Checkbox(cstr("TriggersAsButtons"), &scePadSettings.triggersAsButtons);
 
 		if (scePadSettings.triggersAsButtons)
@@ -908,6 +953,10 @@ bool MainWindow::TreeElement_dynamicAdaptiveTriggers(s_scePadSettings &scePadSet
 			ImGui::Checkbox(cstr("RumbleToAT"), &scePadSettings.rumbleToAT);
 			if (scePadSettings.rumbleToAT)
 			{
+				if (scePadSettings.hapticsToAt && scePadSettings.audioPassthrough)
+				{
+					ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "%s", cstr("HapticsAtPriorityNotice"));
+				}
 				ImGui::Checkbox(cstr("SwapTriggersRumbleToAT"), &scePadSettings.rumbleToAt_swapTriggers);
 			}
 
@@ -1761,7 +1810,7 @@ bool MainWindow::Emulation(int currentController, s_scePadSettings &scePadSettin
 			TreeElement_analogSticks(scePadSettings, state);
 			TreeElement_lightbar(scePadSettings);
 			TreeElement_vibration(scePadSettings);
-			TreeElement_dynamicAdaptiveTriggers(scePadSettings);
+			TreeElement_dynamicAdaptiveTriggers(scePadSettings, currentController);
 			TreeElement_motion(scePadSettings, state, currentController);
 			TreeElement_touchpad(scePadSettings);
 			TreeElement_sharebtn(scePadSettings);

@@ -199,6 +199,59 @@ void applySettings(uint32_t index, s_scePadSettings settings, AudioPassthrough &
 		CustomTriggerHardestB(rightTrigger, settings.triggersAsButtonStartPos);
 		scePadSetTriggerEffectCustom(g_ScePad[index], leftTrigger, rightTrigger, SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 | SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2);
 	}
+	else if (settings.hapticsToAt && settings.audioPassthrough)
+	{
+		uint8_t leftTrigger[11] = {};
+		uint8_t rightTrigger[11] = {};
+
+		float rawL = audio.GetHapticLevelL(index + 1);
+		float rawR = audio.GetHapticLevelR(index + 1);
+
+		float levelL = settings.hapticsToAt_swapTriggers ? rawR : rawL;
+		float levelR = settings.hapticsToAt_swapTriggers ? rawL : rawR;
+
+		levelL *= settings.hapticsToAt_intensity;
+		levelR *= settings.hapticsToAt_intensity;
+
+		const float noiseGate = 0.03f;
+		if (levelL < noiseGate) levelL = 0.0f;
+		if (levelR < noiseGate) levelR = 0.0f;
+
+		levelL = std::clamp(levelL, 0.0f, 1.0f);
+		levelR = std::clamp(levelR, 0.0f, 1.0f);
+
+		auto applyHapticEffect = [](float level, int mode, uint8_t trigger[11])
+		{
+			if (level <= 0.0f)
+			{
+				CustomTriggerOFF(trigger);
+				return;
+			}
+
+			if (mode == 0)
+			{
+				// Mode 0: Vibration (Pulse_B)
+				uint8_t freq = static_cast<uint8_t>(std::clamp(static_cast<int>(5.0f + level * 30.0f), 5, 40));
+				uint8_t intensity = static_cast<uint8_t>(std::clamp(static_cast<int>(level * 255.0f), 10, 255));
+				uint8_t pos = 0;
+				std::vector<uint8_t> param = { freq, intensity, pos };
+				CustomTriggerBetterVibration(param, trigger);
+			}
+			else
+			{
+				// Mode 1: Dynamic Resistance (Feedback)
+				uint8_t force = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(level * 8.0f)), 1, 8));
+				uint8_t start = 0;
+				std::vector<uint8_t> param = { start, force };
+				CustomTriggerResistance(param, trigger);
+			}
+		};
+
+		applyHapticEffect(levelL, settings.hapticsToAt_mode, leftTrigger);
+		applyHapticEffect(levelR, settings.hapticsToAt_mode, rightTrigger);
+
+		scePadSetTriggerEffectCustom(g_ScePad[index], leftTrigger, rightTrigger, SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 | SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2);
+	}
 	else if (settings.rumbleToAT && (settings.usingPeerController || settings.emulatedController != (int)EmulatedController::NONE))
 	{
 		uint8_t leftTrigger[11] = {};

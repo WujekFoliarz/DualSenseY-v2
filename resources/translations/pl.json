@@ -157,5 +157,13 @@
   "UseHotkey": "Użyj przycisku",
   "GyroArmedStatus": "[UZBROJONY - wciśnij %s by celować, LED ON]",
   "GyroDisarmedStatus": "[ZABLOKOWANY - Gyro wyłączone, LED OFF]",
-  "GyroAlwaysActiveStatus": "[UZBROJONY - Zawsze aktywny, LED ON]"
+  "GyroAlwaysActiveStatus": "[UZBROJONY - Zawsze aktywny, LED ON]",
+  "HapticsToAdaptiveTriggers": "Haptyka do adaptacyjnych triggerów",
+  "HapticsAtStrength": "Siła",
+  "HapticsAtMode": "Tryb spustów",
+  "HapticsAtModeVibration": "Wibracja",
+  "HapticsAtModeResistance": "Opór",
+  "HapticsAtSwapTriggers": "Zamień spusty",
+  "HapticsAtAudioPassthroughNotice": "Audio passthrough musi być włączone, aby funkcja działała.",
+  "HapticsAtPriorityNotice": "(Haptyka do AT jest aktywna i ma priorytet nad Rumble do AT)"
 }

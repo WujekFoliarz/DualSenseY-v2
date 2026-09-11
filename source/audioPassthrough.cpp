@@ -593,6 +593,9 @@ void PlaybackDualsenseDataCallback(ma_device *pDevice, void *pOutput, const void
 	float speakerGain = userData->m_SpeakerVolume[index].load();
 	float hapticGain = userData->m_HapticIntensity[index].load();
 
+	float maxPeakL = 0.0f;
+	float maxPeakR = 0.0f;
+
 	for (size_t i = 0; i < framesToWrite; ++i)
 	{
 		float inL = userData->m_AudioBuffer[index][i * 2 + 0];
@@ -623,6 +626,11 @@ void PlaybackDualsenseDataCallback(ma_device *pDevice, void *pOutput, const void
 			float filteredR = userData->m_HapticFilterR[index].process(inR);
 			out[i * 4 + 2] = std::clamp(filteredL * hapticGain, -1.0f, 1.0f);
 			out[i * 4 + 3] = std::clamp(filteredR * hapticGain, -1.0f, 1.0f);
+
+			float absL = fabsf(filteredL);
+			float absR = fabsf(filteredR);
+			if (absL > maxPeakL) maxPeakL = absL;
+			if (absR > maxPeakR) maxPeakR = absR;
 		}
 	}
 
@@ -635,6 +643,30 @@ void PlaybackDualsenseDataCallback(ma_device *pDevice, void *pOutput, const void
 	}
 
 	userData->m_AudioBuffer[index].erase(userData->m_AudioBuffer[index].begin(), userData->m_AudioBuffer[index].begin() + framesToWrite * 2);
+
+	// Envelope follower with fast attack and smooth decay
+	if (hapticGain <= 0.0f)
+	{
+		userData->m_HapticLevelL[index].store(0.0f);
+		userData->m_HapticLevelR[index].store(0.0f);
+	}
+	else
+	{
+		float currentL = userData->m_HapticLevelL[index].load();
+		float currentR = userData->m_HapticLevelR[index].load();
+
+		float targetL = std::clamp(maxPeakL * hapticGain, 0.0f, 1.0f);
+		float targetR = std::clamp(maxPeakR * hapticGain, 0.0f, 1.0f);
+
+		float newL = (targetL > currentL) ? targetL : (currentL * 0.92f);
+		float newR = (targetR > currentR) ? targetR : (currentR * 0.92f);
+
+		if (newL < 0.001f) newL = 0.0f;
+		if (newR < 0.001f) newR = 0.0f;
+
+		userData->m_HapticLevelL[index].store(newL);
+		userData->m_HapticLevelR[index].store(newR);
+	}
 }
 
 void PlaybackDualshock4DataCallback(ma_device *pDevice, void *pOutput, const void *pInput, ma_uint32 frameCount)
@@ -730,6 +762,8 @@ AudioPassthrough::AudioPassthrough()
 	{
 		m_HapticFilterL[i].init(160.0f, 48000.0f);
 		m_HapticFilterR[i].init(160.0f, 48000.0f);
+		m_HapticLevelL[i].store(0.0f);
+		m_HapticLevelR[i].store(0.0f);
 	}
 
 	if (ma_context_init(NULL, 0, NULL, &g_context) != MA_SUCCESS)
@@ -773,6 +807,8 @@ bool AudioPassthrough::StartByUserId(uint32_t userId)
 		}
 		m_HapticFilterL[index].reset();
 		m_HapticFilterR[index].reset();
+		m_HapticLevelL[index].store(0.0f);
+		m_HapticLevelR[index].store(0.0f);
 	}
 
 	s_ScePadContainerIdInfo info = {};
@@ -869,6 +905,8 @@ bool AudioPassthrough::StopByUserId(uint32_t userId)
 			m_AudioBuffer[index].shrink_to_fit();
 			m_HapticFilterL[index].reset();
 			m_HapticFilterR[index].reset();
+			m_HapticLevelL[index].store(0.0f);
+			m_HapticLevelR[index].store(0.0f);
 		}
 	}
 
@@ -889,6 +927,20 @@ void AudioPassthrough::SetSpeakerVolumeByUserId(uint32_t userId, float volume)
 	assert(userId >= 1 && userId <= 4);
 
 	m_SpeakerVolume[userId - 1] = volume;
+}
+
+float AudioPassthrough::GetHapticLevelL(uint32_t userId)
+{
+	assert(userId >= 1 && userId <= 4);
+	if (userId < 1 || userId > 4) return 0.0f;
+	return m_HapticLevelL[userId - 1].load();
+}
+
+float AudioPassthrough::GetHapticLevelR(uint32_t userId)
+{
+	assert(userId >= 1 && userId <= 4);
+	if (userId < 1 || userId > 4) return 0.0f;
+	return m_HapticLevelR[userId - 1].load();
 }
 
 float AudioPassthrough::GetCurrentCapturePeak()

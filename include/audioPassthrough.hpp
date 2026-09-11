@@ -87,6 +87,8 @@ private:
 	std::atomic<float> m_CurrentCapturePeak = 0.0f;
 	std::atomic<float> m_HapticIntensity[4] = { 1.0f,1.0f,1.0f,1.0f };
 	std::atomic<float> m_SpeakerVolume[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	std::atomic<float> m_HapticLevelL[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	std::atomic<float> m_HapticLevelR[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	HapticLowPassFilter m_HapticFilterL[4];
 	HapticLowPassFilter m_HapticFilterR[4];
 	uint32_t m_CurrentCaptureDevice = 0;
@@ -107,6 +109,8 @@ public:
 	bool StopByUserId(uint32_t userId);
 	void SetHapticIntensityByUserId(uint32_t userId, float intensity);
 	void SetSpeakerVolumeByUserId(uint32_t userId, float volume);
+	float GetHapticLevelL(uint32_t userId);
+	float GetHapticLevelR(uint32_t userId);
 	float GetCurrentCapturePeak();
 	void SetCaptureDevice(uint32_t Device = 0);
 	std::vector<std::string> GetCaptureDeviceList();
