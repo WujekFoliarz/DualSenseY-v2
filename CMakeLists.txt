@@ -63,7 +63,8 @@ add_subdirectory(thirdparty/asio-cmake)
 add_subdirectory(thirdparty/stb_image)
 add_subdirectory(thirdparty/nativefiledialog)
 add_subdirectory(thirdparty/PlatformFolders)
-add_subdirectory(thirdparty/Updater)
+# add_subdirectory(thirdparty/Updater)
+add_subdirectory(thirdparty/Updater/thirdparty/tiny-process-library)
 add_subdirectory(thirdparty/traypp)
 
 # Linking libraries

@@ -424,3 +424,6 @@ FodyWeavers.xsd
 /.vs/DualSenseY-v2/v17/DocumentLayout.json
 /.vs/ProjectSettings.json
 /.vs/slnx.sqlite
+
+build/
+.idea/

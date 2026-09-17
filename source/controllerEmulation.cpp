@@ -222,7 +222,28 @@ bool Vigem::IsVigemConnected() {
 	return false;
 }
 
-void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state) {
+void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePadData& state, int controllerIndex) {
+#pragma region Microphone button toggle for Gyro (Gate / Arming switch)
+	if (controllerIndex >= 0 && controllerIndex < 4) {
+		static bool lastMicButtonState[4] = { false, false, false, false };
+		static std::chrono::steady_clock::time_point lastMicToggleTime[4] = {};
+		auto now = std::chrono::steady_clock::now();
+		bool micPressedNow = (state.bitmask_buttons & SCE_BM_MICBUTTON) != 0;
+		if (settings.gyroToRightStick && micPressedNow && !lastMicButtonState[controllerIndex]) {
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastMicToggleTime[controllerIndex]).count() >= 50) {
+				settings.gyroToRightStickPermanent = !settings.gyroToRightStickPermanent;
+				if (m_ScePadSettings != nullptr) {
+					m_ScePadSettings[controllerIndex].gyroToRightStickPermanent = settings.gyroToRightStickPermanent;
+				}
+				bool ledState = settings.gyroToRightStick && settings.gyroToRightStickPermanent;
+				scePadSetMicLed(g_ScePad[controllerIndex], ledState);
+				lastMicToggleTime[controllerIndex] = now;
+			}
+		}
+		lastMicButtonState[controllerIndex] = micPressedNow;
+	}
+#pragma endregion
+
 #pragma region Trigger threshold
 	state.L2_Analog = state.L2_Analog >= settings.leftTriggerThreshold ? state.L2_Analog : 0;
 	state.R2_Analog = state.R2_Analog >= settings.rightTriggerThreshold ? state.R2_Analog : 0;
@@ -248,7 +269,12 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 #pragma endregion
 
 #pragma region Gyro to right stick
-	if (settings.gyroToRightStick && IsHotkeyActive(settings.gyroToRightStickActivationButton, state.bitmask_buttons)) {
+	bool hotkeyActive = !settings.useGyroRightStickHotkey || 
+	                    settings.gyroToRightStickActivationButton == 0 || 
+	                    IsHotkeyActive(settings.gyroToRightStickActivationButton, state.bitmask_buttons);
+
+	bool isGyroActive = settings.gyroToRightStick && settings.gyroToRightStickPermanent && hotkeyActive;
+	if (isGyroActive) {
 		if (abs(state.RightStick.X - 128) <= 80 &&
 			abs(state.RightStick.Y - 128) <= 80) {
 
@@ -305,6 +331,12 @@ void Vigem::applyInputSettingsToScePadState(s_scePadSettings& settings, s_ScePad
 		state.bitmask_buttons &= ~SCE_BM_SHARE;
 	}
 #pragma endregion
+
+#pragma region PS button as Windows key
+	if (settings.psBtnAsWinKey) {
+		state.bitmask_buttons &= ~SCE_BM_PSBTN;
+	}
+#pragma endregion
 }
 
 #ifdef WINDOWS
@@ -329,7 +361,7 @@ void Vigem::EmulatedControllerUpdate() {
 				uint32_t result = scePadReadState(g_ScePad[i], &scePadState);
 
 				s_scePadSettings settingsToUse = (m_SelectedController == i && m_Udp.IsActive()) ? m_Udp.GetSettings() : m_ScePadSettings[i];
-				applyInputSettingsToScePadState(settingsToUse, scePadState);
+				applyInputSettingsToScePadState(settingsToUse, scePadState, i);
 
 				if (result == SCE_OK) {
 

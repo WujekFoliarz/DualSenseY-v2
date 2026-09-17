@@ -152,5 +152,10 @@
   "Options": "Opcje",
   "Apply": "Użyj",
   "SaveToFile": "Zapisz do pliku",
-  "SortingOption": "Opcje sortowania"
+  "PsBtnAsWinKey": "Przycisk PS jako klawisz Windows",
+  "GyroMicGate": "Bramka mikrofonu (aktywacja przyciskiem)",
+  "UseHotkey": "Użyj przycisku",
+  "GyroArmedStatus": "[UZBROJONY - wciśnij %s by celować, LED ON]",
+  "GyroDisarmedStatus": "[ZABLOKOWANY - Gyro wyłączone, LED OFF]",
+  "GyroAlwaysActiveStatus": "[UZBROJONY - Zawsze aktywny, LED ON]"
 }

@@ -142,6 +142,8 @@ struct s_scePadSettings {
 	s_SceLightBar lightbarFromEmulatedController = { 0,0,0 };
 	bool useLightbarFromEmulatedController = true;
 	bool gyroToRightStick = false;
+	bool gyroToRightStickPermanent = true; // Gyro gate / arming switch (1 = armed / gate open, 0 = disarmed / gyro blocked)
+	bool useGyroRightStickHotkey = true;
 	uint32_t gyroToRightStickActivationButton = SCE_BM_L2;
 	float gyroToRightStickSensitivity = 1.0f;
 	int gyroToRightStickDeadzone = 0;
@@ -153,6 +155,7 @@ struct s_scePadSettings {
 
 	// Keyboard and mouse stuff
 	bool emulateAnalogWsad = false;
+	bool psBtnAsWinKey = false;
 	bool gyroToMouse = false;
 	float gyroToMouseSensitivity = 1.0f;
 	bool useGyroMouseHotkey = false;
@@ -239,10 +242,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	useRumbleFromEmulatedController,
 	useLightbarFromEmulatedController,
 	gyroToRightStick,
+	gyroToRightStickPermanent,
+	useGyroRightStickHotkey,
 	gyroToRightStickActivationButton,
 	gyroToRightStickSensitivity,
 	gyroToRightStickDeadzone,
 	emulateAnalogWsad,
+	psBtnAsWinKey,
 	leftStickDeadzone,
 	rightStickDeadzone,
 	touchpadAsMouse,

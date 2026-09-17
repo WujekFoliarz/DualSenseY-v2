@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <hidapi.h>
 #include <stdio.h>
 #include <wchar.h>
@@ -547,17 +547,8 @@ int readFunc() {
 				else if (res > 0) {
 					controller.failedReadCount = 0;
 
-					if (!inputData.ButtonMute && controller.dualsenseCurInputState.ButtonMute) {
-						controller.dualsenseCurOutputState.AllowAudioMute = true;
-						controller.isMicMuted = !controller.isMicMuted;
-						controller.dualsenseCurOutputState.MuteLightMode = controller.isMicMuted ? dualsenseData::MuteLight::On : dualsenseData::MuteLight::Off;
-						controller.dualsenseCurOutputState.MicMute = controller.isMicMuted;
-						controller.dualsenseCurOutputState.AllowMuteLight = true;
-					}
-					else {
-						controller.dualsenseCurOutputState.AllowAudioMute = false;
-						controller.dualsenseCurOutputState.AllowMuteLight = false;
-					}
+					controller.dualsenseCurOutputState.AllowMuteLight = true;
+					controller.dualsenseCurOutputState.AllowAudioMute = true;
 
 					if (controller.dualsenseCurOutputState.LedRed != controller.dualsenseLastOutputState.LedRed ||
 						controller.dualsenseCurOutputState.LedGreen != controller.dualsenseLastOutputState.LedGreen ||
@@ -591,7 +582,9 @@ int readFunc() {
 
 					if (controller.wasDisconnected) {
 						controller.dualsenseCurOutputState.MicMute = controller.isMicMuted;
+						controller.dualsenseCurOutputState.MuteLightMode = controller.isMicMuted ? dualsenseData::MuteLight::On : dualsenseData::MuteLight::Off;
 						controller.dualsenseCurOutputState.AllowMuteLight = true;
+						controller.dualsenseCurOutputState.AllowAudioMute = true;
 					}
 
 					if (controller.dualsenseCurOutputState.OutputPathSelect != controller.dualsenseLastOutputState.OutputPathSelect ||
@@ -1969,6 +1962,26 @@ int scePadSetPlayerLed(int handle, bool state) {
 		if (!controller.valid) return SCE_PAD_ERROR_DEVICE_NOT_CONNECTED;
 
 		controller.playerLed = state;
+
+		return SCE_OK;
+	}
+	return SCE_PAD_ERROR_INVALID_HANDLE;
+}
+
+int scePadSetMicLed(int handle, bool state) {
+	if (!g_initialized) return SCE_PAD_ERROR_NOT_INITIALIZED;
+
+	for (auto& controller : g_controllers) {
+		std::shared_lock guard(controller.lock);
+
+		if (controller.sceHandle != handle) continue;
+		if (!controller.valid) return SCE_PAD_ERROR_DEVICE_NOT_CONNECTED;
+
+		controller.isMicMuted = state;
+		controller.dualsenseCurOutputState.MuteLightMode = state ? dualsenseData::MuteLight::On : dualsenseData::MuteLight::Off;
+		controller.dualsenseCurOutputState.MicMute = state;
+		controller.dualsenseCurOutputState.AllowMuteLight = true;
+		controller.dualsenseCurOutputState.AllowAudioMute = true;
 
 		return SCE_OK;
 	}

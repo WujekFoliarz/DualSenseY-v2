@@ -161,5 +161,9 @@
   "UseHotkey": "Use hotkey",
   "GyroToMouseHotkey": "Gyro to mouse hotkey",
   "HidHideNotInstalled": "HidHide is not installed!",
-  "HidHideInstallLink" : "Install HidHide"
+  "PsBtnAsWinKey": "PS Button as Windows Key",
+  "GyroMicGate": "Mic button as Gyro Gate (Arm hotkey)",
+  "GyroArmedStatus": "[ARMED - hold %s to aim, LED ON]",
+  "GyroDisarmedStatus": "[DISARMED - Gyro blocked, LED OFF]",
+  "GyroAlwaysActiveStatus": "[ARMED - Always active, LED ON]"
 }
