@@ -124,6 +124,12 @@ struct s_scePadSettings {
 	std::array<int, TRIGGER_COUNT> rumbleToAt_position = { 0,0 };
 	bool rumbleToAt_swapTriggers = false;
 
+	// Haptics to adaptive triggers
+	bool hapticsToAt = false;
+	float hapticsToAt_intensity = 1.0f;
+	bool hapticsToAt_swapTriggers = false;
+	int hapticsToAt_mode = 0;
+
 	// For DSX trigger format
 	bool isLeftUsingDsxTrigger = false;
 	bool isRightUsingDsxTrigger = false;
@@ -232,6 +238,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	rumbleToAt_frequency,
 	rumbleToAt_position,
 	rumbleToAt_swapTriggers,
+	hapticsToAt,
+	hapticsToAt_intensity,
+	hapticsToAt_swapTriggers,
+	hapticsToAt_mode,
 	isLeftUsingDsxTrigger,
 	isRightUsingDsxTrigger,
 	leftCustomTrigger,

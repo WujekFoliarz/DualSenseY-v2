@@ -55,7 +55,7 @@ private:
 	bool TreeElement_analogSticks(s_scePadSettings& scePadSettings, s_ScePadData& state);
 	bool TreeElement_lightbar(s_scePadSettings& scePadSettings);
 	bool TreeElement_vibration(s_scePadSettings& scePadSettings);
-	bool TreeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings);
+	bool TreeElement_dynamicAdaptiveTriggers(s_scePadSettings& scePadSettings, int currentController = 0);
 	bool TreeElement_motion(s_scePadSettings& scePadSettings, s_ScePadData& state, int currentController = 0);
 	bool TreeElement_touchpad(s_scePadSettings& scePadSettings);
 	bool TreeElement_sharebtn(s_scePadSettings& scePadSettings);
