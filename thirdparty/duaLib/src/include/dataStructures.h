@@ -374,6 +374,11 @@ namespace dualsenseData {
 				VolumeSpeaker == other.VolumeSpeaker &&
 				VolumeMic == other.VolumeMic &&
 				VolumeHeadphones == other.VolumeHeadphones &&
+				SpeakerMute == other.SpeakerMute &&
+				MicMute == other.MicMute &&
+				HeadphoneMute == other.HeadphoneMute &&
+				HapticMute == other.HapticMute &&
+				HapticLowPassFilter == other.HapticLowPassFilter &&
 				lightBrightness == other.lightBrightness &&
 				OutputPathSelect == other.OutputPathSelect;
 		}

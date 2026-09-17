@@ -590,15 +590,40 @@ void PlaybackDualsenseDataCallback(ma_device *pDevice, void *pOutput, const void
 	size_t availableFrames = userData->m_AudioBuffer[index].size() / 2;
 	size_t framesToWrite = std::min<size_t>(frameCount, availableFrames);
 
+	float speakerGain = userData->m_SpeakerVolume[index].load();
+	float hapticGain = userData->m_HapticIntensity[index].load();
+
 	for (size_t i = 0; i < framesToWrite; ++i)
 	{
 		float inL = userData->m_AudioBuffer[index][i * 2 + 0];
 		float inR = userData->m_AudioBuffer[index][i * 2 + 1];
+		float mono = (inL + inR) * 0.5f;
 
-		out[i * 4 + 0] = 0.0f;
-		out[i * 4 + 1] = std::clamp(inL, -1.0f, 1.0f);
-		out[i * 4 + 2] = std::clamp(inL * userData->m_HapticIntensity[index], -1.0f, 1.0f);
-		out[i * 4 + 3] = std::clamp(inR * userData->m_HapticIntensity[index], -1.0f, 1.0f);
+		if (speakerGain <= 0.0f)
+		{
+			out[i * 4 + 0] = 0.0f;
+			out[i * 4 + 1] = 0.0f;
+		}
+		else
+		{
+			out[i * 4 + 0] = 0.0f;
+			out[i * 4 + 1] = std::clamp(mono * speakerGain, -1.0f, 1.0f);
+		}
+
+		if (hapticGain <= 0.0f)
+		{
+			out[i * 4 + 2] = 0.0f;
+			out[i * 4 + 3] = 0.0f;
+			userData->m_HapticFilterL[index].reset();
+			userData->m_HapticFilterR[index].reset();
+		}
+		else
+		{
+			float filteredL = userData->m_HapticFilterL[index].process(inL);
+			float filteredR = userData->m_HapticFilterR[index].process(inR);
+			out[i * 4 + 2] = std::clamp(filteredL * hapticGain, -1.0f, 1.0f);
+			out[i * 4 + 3] = std::clamp(filteredR * hapticGain, -1.0f, 1.0f);
+		}
 	}
 
 	for (size_t i = framesToWrite; i < frameCount; ++i)
@@ -630,13 +655,24 @@ void PlaybackDualshock4DataCallback(ma_device *pDevice, void *pOutput, const voi
 	size_t availableFrames = userData->m_AudioBuffer[index].size() / 2;
 	size_t framesToWrite = std::min<size_t>(frameCount, availableFrames);
 
+	float speakerGain = userData->m_SpeakerVolume[index].load();
+
 	for (size_t i = 0; i < framesToWrite; ++i)
 	{
 		float inL = userData->m_AudioBuffer[index][i * 2 + 0];
 		float inR = userData->m_AudioBuffer[index][i * 2 + 1];
+		float mono = (inL + inR) * 0.5f;
 
-		out[i * 2 + 0] = 0.0f;
-		out[i * 2 + 1] = std::clamp(inL, -1.0f, 1.0f);
+		if (speakerGain <= 0.0f)
+		{
+			out[i * 2 + 0] = 0.0f;
+			out[i * 2 + 1] = 0.0f;
+		}
+		else
+		{
+			out[i * 2 + 0] = 0.0f;
+			out[i * 2 + 1] = std::clamp(mono * speakerGain, -1.0f, 1.0f);
+		}
 	}
 
 	for (size_t i = framesToWrite; i < frameCount; ++i)
@@ -690,6 +726,12 @@ void AudioPassthrough::StartCaptureDevice(ma_device *pDevice, ma_device_config *
 
 AudioPassthrough::AudioPassthrough()
 {
+	for (int i = 0; i < 4; i++)
+	{
+		m_HapticFilterL[i].init(160.0f, 48000.0f);
+		m_HapticFilterR[i].init(160.0f, 48000.0f);
+	}
+
 	if (ma_context_init(NULL, 0, NULL, &g_context) != MA_SUCCESS)
 		return;
 	m_LastTimeValidated = std::chrono::steady_clock::now();
@@ -729,6 +771,8 @@ bool AudioPassthrough::StartByUserId(uint32_t userId)
 		{
 			m_AudioBuffer[i].clear();
 		}
+		m_HapticFilterL[index].reset();
+		m_HapticFilterR[index].reset();
 	}
 
 	s_ScePadContainerIdInfo info = {};
@@ -823,6 +867,8 @@ bool AudioPassthrough::StopByUserId(uint32_t userId)
 			std::lock_guard<std::mutex> lock(m_BufferMutex);
 			m_AudioBuffer[index].clear();
 			m_AudioBuffer[index].shrink_to_fit();
+			m_HapticFilterL[index].reset();
+			m_HapticFilterR[index].reset();
 		}
 	}
 
@@ -836,6 +882,13 @@ void AudioPassthrough::SetHapticIntensityByUserId(uint32_t userId, float intensi
 	assert(userId >= 1 && userId <= 4);
 
 	m_HapticIntensity[userId - 1] = intensity;
+}
+
+void AudioPassthrough::SetSpeakerVolumeByUserId(uint32_t userId, float volume)
+{
+	assert(userId >= 1 && userId <= 4);
+
+	m_SpeakerVolume[userId - 1] = volume;
 }
 
 float AudioPassthrough::GetCurrentCapturePeak()
