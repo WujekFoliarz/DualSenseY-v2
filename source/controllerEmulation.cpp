@@ -360,7 +360,9 @@ void Vigem::EmulatedControllerUpdate() {
 				s_ScePadData scePadState = {};
 				uint32_t result = scePadReadState(g_ScePad[i], &scePadState);
 
-				s_scePadSettings settingsToUse = (m_SelectedController == i && m_Udp.IsActive()) ? m_Udp.GetSettings() : m_ScePadSettings[i];
+				// Input remapping always follows the user's settings: a UDP (DSX) client only drives
+				// outputs, and the UDP settings carry defaults for everything else.
+				s_scePadSettings settingsToUse = m_ScePadSettings[i];
 				applyInputSettingsToScePadState(settingsToUse, scePadState, i);
 
 				if (result == SCE_OK) {
