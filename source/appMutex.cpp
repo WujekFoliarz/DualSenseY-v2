@@ -13,7 +13,7 @@
 #include <signal.h>
 #endif
 
-static inline std::filesystem::path directory = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/");
+static inline std::filesystem::path directory = std::filesystem::u8path(sago::getDocumentsFolder() + "/DSY/");
 
 bool IsAlreadyRunning(const std::string& LockName) {
     namespace fs = std::filesystem;

@@ -12,18 +12,18 @@ static std::unordered_map<std::string, bool> loadList;
 void SaveSettingsToFile(const s_scePadSettings &s, const std::string &filepath)
 {
 
-	std::filesystem::path filePath = std::filesystem::path(filepath);
+	std::filesystem::path filePath = std::filesystem::u8path(filepath);
 	if (!std::filesystem::exists(filePath.parent_path()))
 		std::filesystem::create_directory(filePath.parent_path());
 	nlohmann::json j = s;
-	std::ofstream(filepath) << j.dump(4);
+	std::ofstream(filePath) << j.dump(4);
 }
 
 bool LoadSettingsFromFile(s_scePadSettings *s, const std::string &filepath)
 {
 	try
 	{
-		std::ifstream ifs(filepath);
+		std::ifstream ifs(std::filesystem::u8path(filepath));
 		if (!ifs)
 			return false;
 		nlohmann::json j;
@@ -41,13 +41,13 @@ bool GetDefaultConfigFromMac(const std::string &mac, s_scePadSettings *s)
 {
 	std::string cleanMac = mac;
 	cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
-	std::filesystem::path filePath = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
+	std::filesystem::path filePath = std::filesystem::u8path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
 
 	if (std::filesystem::exists(filePath))
 	{
 		std::ifstream file(filePath);
 		std::string configPath = "";
-		file >> configPath;
+		std::getline(file, configPath); // the stored path may contain spaces
 		file.close();
 		LoadSettingsFromFile(s, configPath);
 		return true;
@@ -60,7 +60,7 @@ bool RemoveDefaultConfigByMac(const std::string &mac)
 {
 	std::string cleanMac = mac;
 	cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
-	std::filesystem::path filePath = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
+	std::filesystem::path filePath = std::filesystem::u8path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/" + cleanMac);
 
 	if (std::filesystem::exists(filePath))
 	{
