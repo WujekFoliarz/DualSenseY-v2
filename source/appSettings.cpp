@@ -4,7 +4,7 @@
 #include <fstream>
 #include "log.hpp"
 
-static inline std::filesystem::path directory = std::filesystem::path(sago::getDocumentsFolder() + "/DSY/");
+static inline std::filesystem::path directory = std::filesystem::u8path(sago::getDocumentsFolder() + "/DSY/");
 static inline std::filesystem::path filePath = directory / "Config.json";
 
 void SaveAppSettings(AppSettings* appSettings) {

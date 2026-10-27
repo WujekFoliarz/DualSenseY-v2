@@ -32,6 +32,40 @@
 #include "client.hpp"
 #include "appMutex.hpp"
 
+#ifdef WINDOWS
+#include <TlHelp32.h>
+
+// Index of the first profile whose process is running, or -1
+static int FindRunningGameProfile(const std::vector<GameProfile>& profiles) {
+	if (profiles.empty()) return -1;
+
+	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (snapshot == INVALID_HANDLE_VALUE) return -1;
+
+	std::vector<std::wstring> names;
+	for (const auto& profile : profiles) {
+		int size = MultiByteToWideChar(CP_UTF8, 0, profile.ProcessName.c_str(), -1, nullptr, 0);
+		std::wstring name(size > 0 ? size - 1 : 0, L'\0');
+		if (size > 1) MultiByteToWideChar(CP_UTF8, 0, profile.ProcessName.c_str(), -1, name.data(), size);
+		names.push_back(name);
+	}
+
+	int found = -1;
+	PROCESSENTRY32W entry = { sizeof(entry) };
+	for (BOOL ok = Process32FirstW(snapshot, &entry); ok && found == -1; ok = Process32NextW(snapshot, &entry)) {
+		for (size_t i = 0; i < names.size(); i++) {
+			if (!names[i].empty() && _wcsicmp(entry.szExeFile, names[i].c_str()) == 0) {
+				found = (int)i;
+				break;
+			}
+		}
+	}
+
+	CloseHandle(snapshot);
+	return found;
+}
+#endif
+
 bool isLightMode = false;
 #if !defined(__linux__) && !defined(__MACOS__)
 bool IsWindowsLightMode() {
@@ -164,6 +198,11 @@ bool Application::Run(const std::string& Argument1) {
 	RegisterApplicationWithHidHide();
 #endif
 
+	int activeGameProfile = -1;
+	int gameProfileController = 0;
+	s_scePadSettings settingsBeforeGameProfile = {};
+	auto lastGameProfileCheck = std::chrono::steady_clock::now();
+
 	int display_w, display_h = 0;
 	float xscale, yscale = 1;
 	bool active = false;
@@ -199,6 +238,38 @@ bool Application::Run(const std::string& Argument1) {
 	#pragma endregion
 
 		int selectedController = main.GetSelectedController();
+
+	#ifdef WINDOWS
+		if (std::chrono::steady_clock::now() - lastGameProfileCheck >= std::chrono::seconds(2)) {
+			lastGameProfileCheck = std::chrono::steady_clock::now();
+			int runningProfile = FindRunningGameProfile(m_AppSettings.GameProfiles);
+
+			if (runningProfile != activeGameProfile) {
+				if (activeGameProfile != -1) {
+					m_ScePadSettings[gameProfileController] = settingsBeforeGameProfile;
+					// Emulation is otherwise only (un)plugged from the UI, which barely renders while minimized to tray
+					vigem.PlugControllerByIndex(gameProfileController, m_ScePadSettings[gameProfileController].emulatedController);
+					LOGI("[GameProfiles] %s exited, settings restored", m_AppSettings.GameProfiles[activeGameProfile].ProcessName.c_str());
+				}
+
+				activeGameProfile = -1;
+				if (runningProfile != -1) {
+					s_scePadSettings profileSettings = {};
+					if (LoadSettingsFromFile(&profileSettings, m_AppSettings.GameProfiles[runningProfile].ConfigPath)) {
+						gameProfileController = selectedController;
+						settingsBeforeGameProfile = m_ScePadSettings[gameProfileController];
+						m_ScePadSettings[gameProfileController] = profileSettings;
+						vigem.PlugControllerByIndex(gameProfileController, profileSettings.emulatedController);
+						activeGameProfile = runningProfile;
+						LOGI("[GameProfiles] %s detected, applied %s", m_AppSettings.GameProfiles[runningProfile].ProcessName.c_str(), m_AppSettings.GameProfiles[runningProfile].ConfigPath.c_str());
+					}
+					else {
+						LOGE("[GameProfiles] Failed to load %s", m_AppSettings.GameProfiles[runningProfile].ConfigPath.c_str());
+					}
+				}
+			}
+		}
+	#endif
 		vigem.SetSelectedController(selectedController);
 		client.SetSelectedController(selectedController);
 		udp.SetVibrationToUdpConfig(m_ScePadSettings[selectedController].rumbleFromEmulatedController);

@@ -41,6 +41,19 @@ static std::unordered_map<std::string, uint8_t> g_FontIndex = {
 	{"zh", FONT_CHINESE_SIMPLIFIED},
 };
 
+// While a process with this name is running, ConfigPath (a .dsy file) is applied to the selected
+// controller; the previous settings come back when the process exits.
+struct GameProfile {
+	std::string ProcessName; // e.g. "RDR2.exe" (case-insensitive)
+	std::string ConfigPath;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+	GameProfile,
+	ProcessName,
+	ConfigPath
+);
+
 struct AppSettings {
 	bool DisableAllBluetoothControllersOnExit = false;
 	bool DontConnectToServerOnStart = false;
@@ -51,6 +64,7 @@ struct AppSettings {
 	uint16_t ServerPort = 30151;
 	uint16_t LocalPort = 6969;
 	uint32_t UdpTimeoutSeconds = 15; // 0 = keep the last UDP state until the next packet or a reset
+	std::vector<GameProfile> GameProfiles;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
@@ -64,6 +78,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	ServerPort,
 	LocalPort,
 	UdpTimeoutSeconds
+	GameProfiles
 );
 
 void SaveAppSettings(AppSettings* appSettings);

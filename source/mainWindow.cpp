@@ -98,7 +98,7 @@ bool MainWindow::MenuBar(int &currentController, s_scePadSettings &scePadSetting
 
 			if (ImGui::MenuItem(cstr("SetDefaultConfig")))
 			{
-				std::string pathToDSYSaves = sago::getDocumentsFolder() + "/DSY/DefaultConfigs/";
+				std::filesystem::path pathToDSYSaves = std::filesystem::u8path(sago::getDocumentsFolder() + "/DSY/DefaultConfigs/");
 				if (!std::filesystem::is_directory(pathToDSYSaves))
 					std::filesystem::create_directories(pathToDSYSaves);
 
@@ -120,7 +120,7 @@ bool MainWindow::MenuBar(int &currentController, s_scePadSettings &scePadSetting
 					{
 						std::string cleanMac = macAddress;
 						cleanMac.erase(std::remove(cleanMac.begin(), cleanMac.end(), ':'), cleanMac.end());
-						std::filesystem::path filePath = std::filesystem::path(pathToDSYSaves) / cleanMac;
+						std::filesystem::path filePath = pathToDSYSaves / cleanMac;
 						std::ofstream file(filePath);
 						file << outPath;
 						file.close();
