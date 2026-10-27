@@ -156,5 +156,7 @@
   "ShareButton": "Кнопка \"Поделиться\"",
   "ShareButtonAsSelect": "Кнопка «Поделиться» как выбрать",
   "TouchpadAsSelect": "Сенсорная панель как Select",
-  "TouchpadAsStart": "Сенсорная панель как Start"
+  "TouchpadAsStart": "Сенсорная панель как Start",
+  "UdpTimeoutSeconds": "Таймаут UDP (секунды)",
+  "UdpTimeoutSecondsTooltip": "Сколько держать эффекты мода после последнего UDP-пакета. 0 = держать до следующего пакета или сброса."
 }

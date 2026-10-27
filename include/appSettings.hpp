@@ -50,6 +50,7 @@ struct AppSettings {
 	std::string ServerAddress = "maluch.mikr.us";
 	uint16_t ServerPort = 30151;
 	uint16_t LocalPort = 6969;
+	uint32_t UdpTimeoutSeconds = 15; // 0 = keep the last UDP state until the next packet or a reset
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
@@ -61,7 +62,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
 	HideToTrayOnStart,
 	ServerAddress,
 	ServerPort,
-	LocalPort
+	LocalPort,
+	UdpTimeoutSeconds
 );
 
 void SaveAppSettings(AppSettings* appSettings);

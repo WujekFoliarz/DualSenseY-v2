@@ -118,6 +118,7 @@ bool Application::Run(const std::string& Argument1) {
 	LoadAppSettings(&m_AppSettings);
 	SaveAppSettings(&m_AppSettings); // Save here so it updates
 	UDP udp(m_AppSettings.LocalPort);
+	udp.SetTimeoutSeconds(m_AppSettings.UdpTimeoutSeconds);
 	if (udp.IsConnectedInsteadOfBinded()) {
 			
 		if (Argument1 != "") udp.SendConfigPathToAnotherInstance(Argument1);

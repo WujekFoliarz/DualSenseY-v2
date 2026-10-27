@@ -57,6 +57,9 @@ void UDP::Listen() {
 					case InstructionType::PlayerLEDNewRevision:
 						break;
 					case InstructionType::ResetToUserSettings:
+						// Hand control back to the user settings right away instead of waiting for the timeout
+						m_LastUpdate = {};
+						dontCountAsUpdate = true;
 						break;
 
 					case InstructionType::CONFIG:
@@ -324,12 +327,19 @@ void UDP::HandleTriggerThresholdUpdate(Instruction instruction) {
 }
 
 bool UDP::IsActive() {
-	if (m_Socket.is_open() &&
-	   (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - m_LastUpdate) <= std::chrono::seconds(15))) {
-		return true;
-	}
+	if (!m_Socket.is_open() || m_LastUpdate == std::chrono::steady_clock::time_point{})
+		return false;
 
-	return false;
+	// 0 = no timeout: mods that only send on state changes keep their effects until the next packet or a reset
+	uint32_t timeout = m_TimeoutSeconds;
+	if (timeout == 0)
+		return true;
+
+	return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - m_LastUpdate) <= std::chrono::seconds(timeout);
+}
+
+void UDP::SetTimeoutSeconds(uint32_t Seconds) {
+	m_TimeoutSeconds = Seconds;
 }
 
 bool UDP::IsAvailable() {
