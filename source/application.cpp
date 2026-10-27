@@ -246,6 +246,8 @@ bool Application::Run(const std::string& Argument1) {
 			if (runningProfile != activeGameProfile) {
 				if (activeGameProfile != -1) {
 					m_ScePadSettings[gameProfileController] = settingsBeforeGameProfile;
+					// Emulation is otherwise only (un)plugged from the UI, which barely renders while minimized to tray
+					vigem.PlugControllerByIndex(gameProfileController, m_ScePadSettings[gameProfileController].emulatedController);
 					LOGI("[GameProfiles] %s exited, settings restored", m_AppSettings.GameProfiles[activeGameProfile].ProcessName.c_str());
 				}
 
@@ -256,6 +258,7 @@ bool Application::Run(const std::string& Argument1) {
 						gameProfileController = selectedController;
 						settingsBeforeGameProfile = m_ScePadSettings[gameProfileController];
 						m_ScePadSettings[gameProfileController] = profileSettings;
+						vigem.PlugControllerByIndex(gameProfileController, profileSettings.emulatedController);
 						activeGameProfile = runningProfile;
 						LOGI("[GameProfiles] %s detected, applied %s", m_AppSettings.GameProfiles[runningProfile].ProcessName.c_str(), m_AppSettings.GameProfiles[runningProfile].ConfigPath.c_str());
 					}
