@@ -35,6 +35,12 @@ No, it's a free alternative for those who need it and a hobby project.
 #### How do I activate UDP?
 All you need to do is run a game with dualsense mod installed, it will turn to active as soon as it receives data (If the mod asks for a port, use 6969)
 
+#### How do I switch settings automatically for one game?
+Add `GameProfiles` to `Documents/DSY/Config.json`. While a listed process is running, its `.dsy` config is applied to the selected controller, and your previous settings come back when the process exits (Windows only):
+```json
+"GameProfiles": [ { "ProcessName": "RDR2.exe", "ConfigPath": "C:\\DSY\\rdr2.dsy" } ]
+```
+
 ## Credits
 #### [Wireless haptics](https://github.com/egormanga/SAxense)
 
