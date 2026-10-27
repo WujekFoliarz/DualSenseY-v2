@@ -165,5 +165,7 @@
   "HapticsAtModeResistance": "Opór",
   "HapticsAtSwapTriggers": "Zamień spusty",
   "HapticsAtAudioPassthroughNotice": "Audio passthrough musi być włączone, aby funkcja działała.",
-  "HapticsAtPriorityNotice": "(Haptyka do AT jest aktywna i ma priorytet nad Rumble do AT)"
+  "HapticsAtPriorityNotice": "(Haptyka do AT jest aktywna i ma priorytet nad Rumble do AT)",
+  "UdpTimeoutSeconds": "Limit czasu UDP (sekundy)",
+  "UdpTimeoutSecondsTooltip": "Jak długo efekty moda pozostają aktywne po ostatnim pakiecie UDP. 0 = do następnego pakietu lub resetu."
 }

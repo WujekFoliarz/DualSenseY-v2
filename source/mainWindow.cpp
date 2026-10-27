@@ -194,6 +194,16 @@ bool MainWindow::MenuBar(int &currentController, s_scePadSettings &scePadSetting
 				SaveAppSettings(&m_AppSettings);
 			if (ImGui::MenuItem(cstr("DontConnectToServerOnStart"), NULL, &m_AppSettings.DontConnectToServerOnStart))
 				SaveAppSettings(&m_AppSettings);
+
+			int udpTimeout = (int)m_AppSettings.UdpTimeoutSeconds;
+			ImGui::SetNextItemWidth(150);
+			if (ImGui::InputInt(cstr("UdpTimeoutSeconds"), &udpTimeout)) {
+				m_AppSettings.UdpTimeoutSeconds = udpTimeout < 0 ? 0u : (uint32_t)udpTimeout;
+				m_Udp.SetTimeoutSeconds(m_AppSettings.UdpTimeoutSeconds);
+				SaveAppSettings(&m_AppSettings);
+			}
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("%s", cstr("UdpTimeoutSecondsTooltip"));
 			ImGui::EndMenu();
 		}
 

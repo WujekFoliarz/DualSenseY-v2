@@ -173,5 +173,7 @@
   "HapticsAtModeResistance": "Resistance",
   "HapticsAtSwapTriggers": "Swap triggers",
   "HapticsAtAudioPassthroughNotice": "Audio passthrough must be enabled for this feature to work.",
-  "HapticsAtPriorityNotice": "(Haptics to AT is active and takes priority over Rumble to AT)"
+  "HapticsAtPriorityNotice": "(Haptics to AT is active and takes priority over Rumble to AT)",
+  "UdpTimeoutSeconds": "UDP timeout (seconds)",
+  "UdpTimeoutSecondsTooltip": "How long mod effects stay active after the last UDP packet. 0 = keep them until the next packet or a reset."
 }

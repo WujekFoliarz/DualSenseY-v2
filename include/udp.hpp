@@ -258,6 +258,7 @@ private:
 	std::atomic<bool> m_ThreadRunning = true;
 	std::thread m_ListenThread;
 	std::chrono::steady_clock::time_point m_LastUpdate;
+	std::atomic<uint32_t> m_TimeoutSeconds = 15;
 	std::mutex m_SettingsLock;
 	s_scePadSettings m_Settings = {};
 	s_scePadSettings m_OtherInstanceSettings = {};
@@ -272,6 +273,7 @@ private:
 	void HandleTriggerThresholdUpdate(Instruction instruction);
 public:
 	bool IsActive();
+	void SetTimeoutSeconds(uint32_t Seconds);
 	bool IsAvailable();
 	bool IsConnectedInsteadOfBinded();
 	s_scePadSettings GetSettings();
