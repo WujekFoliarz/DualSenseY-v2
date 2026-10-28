@@ -5,8 +5,30 @@
 #include <shellapi.h>
 #include <iostream>
 #include <DbgHelp.h>
+#include <platform_folders.h>
+#include <filesystem>
 
 #pragma comment(lib, "Dbghelp.lib")
+
+// Resolved at startup: the install folder (Program Files) is not writable for a normal user,
+// so a dump written next to the exe is silently lost.
+static wchar_t g_DumpDirectory[MAX_PATH] = L"";
+
+static void PrepareDumpDirectory()
+{
+	try {
+		std::filesystem::path directory = std::filesystem::u8path(sago::getDocumentsFolder() + "/DSY/CrashDumps/");
+		std::error_code ec;
+		std::filesystem::create_directories(directory, ec);
+		std::wstring directoryString = directory.make_preferred().wstring();
+		// Leave room for "crash_YYYY-MM-DD_HH-MM-SS.dmp"; otherwise keep the old relative name.
+		if (!ec && directoryString.size() + 32 < MAX_PATH) {
+			wcscpy_s(g_DumpDirectory, directoryString.c_str());
+		}
+	}
+	catch (...) {
+	}
+}
 
 static std::wstring GetDumpFileName()
 {
@@ -17,7 +39,8 @@ static std::wstring GetDumpFileName()
 
 	swprintf_s(
 		filename,
-		L"crash_%04d-%02d-%02d_%02d-%02d-%02d.dmp",
+		L"%lscrash_%04d-%02d-%02d_%02d-%02d-%02d.dmp",
+		g_DumpDirectory,
 		st.wYear,
 		st.wMonth,
 		st.wDay,
@@ -76,6 +99,7 @@ static LONG WINAPI CrashHandler(EXCEPTION_POINTERS* exceptionInfo)
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow) {
 
+	PrepareDumpDirectory();
 	SetUnhandledExceptionFilter(CrashHandler);
 
 	if (AttachConsole(ATTACH_PARENT_PROCESS))
