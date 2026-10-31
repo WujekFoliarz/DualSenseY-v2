@@ -644,6 +644,7 @@ int readFunc() {
 
 					controller.dualsenseCurOutputState.HostTimestamp = controller.dualsenseCurInputState.SensorTimestamp;
 					res = -1;
+					bool outputPending = (controller.dualsenseCurOutputState != controller.dualsenseLastOutputState) || controller.wasDisconnected;
 
 					if (controller.connectionType == HID_API_BUS_USB || controller.connectionType == HID_API_BUS_UNKNOWN) {
 						dualsenseData::ReportOut02 usbOutput = {};
@@ -651,7 +652,7 @@ int readFunc() {
 						usbOutput.ReportID = 0x02;
 						usbOutput.State = controller.dualsenseCurOutputState;
 
-						if ((controller.dualsenseCurOutputState != controller.dualsenseLastOutputState) || controller.wasDisconnected) {
+						if (outputPending) {
 							res = hid_write(controller.handle, reinterpret_cast<unsigned char*>(&usbOutput), sizeof(usbOutput));
 						}
 					}
@@ -664,7 +665,7 @@ int readFunc() {
 
 						uint32_t crc = compute(btOutput.CRC.Buff, sizeof(btOutput) - 4);
 						btOutput.CRC.CRC = crc;
-						if ((controller.dualsenseCurOutputState != controller.dualsenseLastOutputState) || controller.wasDisconnected) {
+						if (outputPending) {
 							res = hid_write(controller.handle, reinterpret_cast<unsigned char*>(&btOutput), sizeof(btOutput));
 						}
 					}
@@ -677,7 +678,12 @@ int readFunc() {
 
 					{
 						std::shared_lock guard(controller.lock);
-						controller.dualsenseLastOutputState = controller.dualsenseCurOutputState;
+						// Only a report hid_write accepted counts as sent. If a failed write were recorded here,
+						// the Allow* flags computed against it would be cleared on the next pass and the change
+						// (lightbar colour, trigger effect) would never be retried.
+						if (!outputPending || res > 0) {
+							controller.dualsenseLastOutputState = controller.dualsenseCurOutputState;
+						}
 						controller.dualsenseCurInputState = inputData;
 					}
 				}
