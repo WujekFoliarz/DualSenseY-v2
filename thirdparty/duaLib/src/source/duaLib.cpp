@@ -78,6 +78,7 @@ namespace duaLibUtils {
 		bool valid = false;
 		uint32_t failedReadCount = 0;
 		std::chrono::steady_clock::time_point lastInputTime = {};
+		bool lightsReleased = false;
 		dualsenseData::USBGetStateData dualsenseCurInputState = {};
 		dualsenseData::SetStateData dualsenseLastOutputState = {};
 		dualsenseData::SetStateData dualsenseCurOutputState = {};
@@ -555,6 +556,7 @@ int readFunc() {
 					std::chrono::steady_clock::now() - controller.lastInputTime > std::chrono::milliseconds(1500)) {
 					std::shared_lock guard(controller.lock);
 					controller.wasDisconnected = true;
+					controller.lightsReleased = false;
 				}
 
 				// A pad that reconnects over Bluetooth starts in simple mode (input report 0x01). Reading
@@ -566,6 +568,7 @@ int readFunc() {
 					controller.lastInputTime = std::chrono::steady_clock::now();
 					std::shared_lock guard(controller.lock);
 					controller.wasDisconnected = true;
+					controller.lightsReleased = false;
 					continue;
 				}
 
@@ -577,6 +580,13 @@ int readFunc() {
 					controller.dualsenseCurOutputState.AllowAudioMute = true;
 					controller.dualsenseCurOutputState.AllowHapticLowPassFilter = true;
 					controller.dualsenseCurOutputState.HapticLowPassFilter = 1;
+
+					// Over Bluetooth the lightbar stays under firmware control (blue) after a connect and
+					// ignores colour changes until the host pulses ResetLights, which the pad also ignores
+					// during its pairing animation. Like SDL, pulse it once the sensor timestamp reaches
+					// 10200000, then send the whole state again.
+					bool releaseLights = isBt && !controller.lightsReleased && inputData.SensorTimestamp >= 10200000;
+					controller.dualsenseCurOutputState.ResetLights = releaseLights;
 
 					if (controller.dualsenseCurOutputState.LedRed != controller.dualsenseLastOutputState.LedRed ||
 						controller.dualsenseCurOutputState.LedGreen != controller.dualsenseLastOutputState.LedGreen ||
@@ -698,6 +708,10 @@ int readFunc() {
 					if (res > 0) {
 						std::shared_lock guard(controller.lock);
 						controller.wasDisconnected = false;
+						if (releaseLights) {
+							controller.lightsReleased = true;
+							controller.wasDisconnected = true; // resend colour, player LEDs and triggers now that the lightbar is ours
+						}
 						//std::cout << "Controller idx " << controller.sceHandle << " path=" << controller.macAddress << " connType=" << (int)controller.connectionType << std::endl;
 					}
 
@@ -914,6 +928,7 @@ int watchFunc() {
 								controller.productID = g_deviceList.devices[j].Device;
 								controller.dualsenseLastOutputState = {};
 								controller.dualshock4LastOutputState = {};
+								controller.lightsReleased = false;
 								hid_set_nonblocking(controller.handle, true);
 
 								const char* id = {};
