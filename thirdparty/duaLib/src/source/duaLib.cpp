@@ -77,6 +77,8 @@ namespace duaLibUtils {
 		bool wasDisconnected = false;
 		bool valid = false;
 		uint32_t failedReadCount = 0;
+		std::chrono::steady_clock::time_point lastInputTime = {};
+		bool lightsReleased = false;
 		dualsenseData::USBGetStateData dualsenseCurInputState = {};
 		dualsenseData::SetStateData dualsenseLastOutputState = {};
 		dualsenseData::SetStateData dualsenseCurOutputState = {};
@@ -545,13 +547,46 @@ int readFunc() {
 					controller.failedReadCount++;
 					continue;
 				}
-				else if (res > 0) {
+
+				// Windows keeps a paired Bluetooth DualSense's HID handle open while the pad is switched off:
+				// reads just return 0, so the pad never counts as disconnected. Treat a long silence as a
+				// disconnect, so the whole output state (lightbar, player LEDs, triggers) is sent again
+				// once the pad is back.
+				if (isBt && res == 0 && controller.lastInputTime != std::chrono::steady_clock::time_point{} &&
+					std::chrono::steady_clock::now() - controller.lastInputTime > std::chrono::milliseconds(1500)) {
+					std::shared_lock guard(controller.lock);
+					controller.wasDisconnected = true;
+					controller.lightsReleased = false;
+				}
+
+				// A pad that reconnects over Bluetooth starts in simple mode (input report 0x01). Reading
+				// feature report 0x09 switches it back to full 0x31 reports. The simple report itself is
+				// not parsed as a 0x31 one.
+				if (isBt && res > 0 && inputBt.Data.ReportID != 0x31) {
+					std::string mac;
+					duaLibUtils::getMacAddress(controller.handle, mac, controller.productID, controller.connectionType);
+					controller.lastInputTime = std::chrono::steady_clock::now();
+					std::shared_lock guard(controller.lock);
+					controller.wasDisconnected = true;
+					controller.lightsReleased = false;
+					continue;
+				}
+
+				if (res > 0) {
 					controller.failedReadCount = 0;
+					controller.lastInputTime = std::chrono::steady_clock::now();
 
 					controller.dualsenseCurOutputState.AllowMuteLight = true;
 					controller.dualsenseCurOutputState.AllowAudioMute = true;
 					controller.dualsenseCurOutputState.AllowHapticLowPassFilter = true;
 					controller.dualsenseCurOutputState.HapticLowPassFilter = 1;
+
+					// Over Bluetooth the lightbar stays under firmware control (blue) after a connect and
+					// ignores colour changes until the host pulses ResetLights, which the pad also ignores
+					// during its pairing animation. Like SDL, pulse it once the sensor timestamp reaches
+					// 10200000, then send the whole state again.
+					bool releaseLights = isBt && !controller.lightsReleased && inputData.SensorTimestamp >= 10200000;
+					controller.dualsenseCurOutputState.ResetLights = releaseLights;
 
 					if (controller.dualsenseCurOutputState.LedRed != controller.dualsenseLastOutputState.LedRed ||
 						controller.dualsenseCurOutputState.LedGreen != controller.dualsenseLastOutputState.LedGreen ||
@@ -673,6 +708,10 @@ int readFunc() {
 					if (res > 0) {
 						std::shared_lock guard(controller.lock);
 						controller.wasDisconnected = false;
+						if (releaseLights) {
+							controller.lightsReleased = true;
+							controller.wasDisconnected = true; // resend colour, player LEDs and triggers now that the lightbar is ours
+						}
 						//std::cout << "Controller idx " << controller.sceHandle << " path=" << controller.macAddress << " connType=" << (int)controller.connectionType << std::endl;
 					}
 
@@ -889,6 +928,7 @@ int watchFunc() {
 								controller.productID = g_deviceList.devices[j].Device;
 								controller.dualsenseLastOutputState = {};
 								controller.dualshock4LastOutputState = {};
+								controller.lightsReleased = false;
 								hid_set_nonblocking(controller.handle, true);
 
 								const char* id = {};
