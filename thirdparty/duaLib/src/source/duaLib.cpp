@@ -589,6 +589,10 @@ int readFunc() {
 					// during its connect animation. SDL waits for sensor timestamp 10200000, but after a
 					// reconnect one pulse at that point was still lost, so it is sent 4, 8 and 15 s after
 					// the first report, each time followed by the whole state.
+					// The same report also switches the lightbar on (lightbar setup "light on"). The fade-out
+					// sent when the pad is opened (see watchFunc) is ignored during the connect animation, but
+					// it switches the lightbar off for good when the pad was already connected, e.g. when DSY
+					// restarts, and no colour shows until "light on" is sent.
 					static constexpr std::chrono::seconds lightReleaseAt[] = { std::chrono::seconds(4), std::chrono::seconds(8), std::chrono::seconds(15) };
 					if (isBt && controller.connectTime == std::chrono::steady_clock::time_point{})
 						controller.connectTime = std::chrono::steady_clock::now();
@@ -596,6 +600,8 @@ int readFunc() {
 						inputData.SensorTimestamp >= 10200000 &&
 						std::chrono::steady_clock::now() - controller.connectTime >= lightReleaseAt[controller.lightReleasesSent];
 					controller.dualsenseCurOutputState.ResetLights = releaseLights;
+					controller.dualsenseCurOutputState.AllowColorLightFadeAnimation = releaseLights;
+					controller.dualsenseCurOutputState.lightFadeAnimation = releaseLights ? dualsenseData::LightFadeAnimation::FadeIn : dualsenseData::LightFadeAnimation::Nothing;
 
 					if (controller.dualsenseCurOutputState.LedRed != controller.dualsenseLastOutputState.LedRed ||
 						controller.dualsenseCurOutputState.LedGreen != controller.dualsenseLastOutputState.LedGreen ||
