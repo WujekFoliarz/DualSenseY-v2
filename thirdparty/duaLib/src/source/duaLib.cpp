@@ -78,7 +78,8 @@ namespace duaLibUtils {
 		bool valid = false;
 		uint32_t failedReadCount = 0;
 		std::chrono::steady_clock::time_point lastInputTime = {};
-		bool lightsReleased = false;
+		std::chrono::steady_clock::time_point connectTime = {}; // first input report after the pad (re)connected
+		uint8_t lightReleasesSent = 0;
 		dualsenseData::USBGetStateData dualsenseCurInputState = {};
 		dualsenseData::SetStateData dualsenseLastOutputState = {};
 		dualsenseData::SetStateData dualsenseCurOutputState = {};
@@ -556,7 +557,8 @@ int readFunc() {
 					std::chrono::steady_clock::now() - controller.lastInputTime > std::chrono::milliseconds(1500)) {
 					std::shared_lock guard(controller.lock);
 					controller.wasDisconnected = true;
-					controller.lightsReleased = false;
+					controller.lightReleasesSent = 0;
+					controller.connectTime = {};
 				}
 
 				// A pad that reconnects over Bluetooth starts in simple mode (input report 0x01). Reading
@@ -568,7 +570,8 @@ int readFunc() {
 					controller.lastInputTime = std::chrono::steady_clock::now();
 					std::shared_lock guard(controller.lock);
 					controller.wasDisconnected = true;
-					controller.lightsReleased = false;
+					controller.lightReleasesSent = 0;
+					controller.connectTime = {};
 					continue;
 				}
 
@@ -583,10 +586,22 @@ int readFunc() {
 
 					// Over Bluetooth the lightbar stays under firmware control (blue) after a connect and
 					// ignores colour changes until the host pulses ResetLights, which the pad also ignores
-					// during its pairing animation. Like SDL, pulse it once the sensor timestamp reaches
-					// 10200000, then send the whole state again.
-					bool releaseLights = isBt && !controller.lightsReleased && inputData.SensorTimestamp >= 10200000;
+					// during its connect animation. SDL waits for sensor timestamp 10200000, but after a
+					// reconnect one pulse at that point was still lost, so it is sent 4, 8 and 15 s after
+					// the first report, each time followed by the whole state.
+					// The same report also switches the lightbar on (lightbar setup "light on"). The fade-out
+					// sent when the pad is opened (see watchFunc) is ignored during the connect animation, but
+					// it switches the lightbar off for good when the pad was already connected, e.g. when DSY
+					// restarts, and no colour shows until "light on" is sent.
+					static constexpr std::chrono::seconds lightReleaseAt[] = { std::chrono::seconds(4), std::chrono::seconds(8), std::chrono::seconds(15) };
+					if (isBt && controller.connectTime == std::chrono::steady_clock::time_point{})
+						controller.connectTime = std::chrono::steady_clock::now();
+					bool releaseLights = isBt && controller.lightReleasesSent < 3 &&
+						inputData.SensorTimestamp >= 10200000 &&
+						std::chrono::steady_clock::now() - controller.connectTime >= lightReleaseAt[controller.lightReleasesSent];
 					controller.dualsenseCurOutputState.ResetLights = releaseLights;
+					controller.dualsenseCurOutputState.AllowColorLightFadeAnimation = releaseLights;
+					controller.dualsenseCurOutputState.lightFadeAnimation = releaseLights ? dualsenseData::LightFadeAnimation::FadeIn : dualsenseData::LightFadeAnimation::Nothing;
 
 					if (controller.dualsenseCurOutputState.LedRed != controller.dualsenseLastOutputState.LedRed ||
 						controller.dualsenseCurOutputState.LedGreen != controller.dualsenseLastOutputState.LedGreen ||
@@ -709,7 +724,7 @@ int readFunc() {
 						std::shared_lock guard(controller.lock);
 						controller.wasDisconnected = false;
 						if (releaseLights) {
-							controller.lightsReleased = true;
+							controller.lightReleasesSent++;
 							controller.wasDisconnected = true; // resend colour, player LEDs and triggers now that the lightbar is ours
 						}
 						//std::cout << "Controller idx " << controller.sceHandle << " path=" << controller.macAddress << " connType=" << (int)controller.connectionType << std::endl;
@@ -928,7 +943,8 @@ int watchFunc() {
 								controller.productID = g_deviceList.devices[j].Device;
 								controller.dualsenseLastOutputState = {};
 								controller.dualshock4LastOutputState = {};
-								controller.lightsReleased = false;
+								controller.lightReleasesSent = 0;
+								controller.connectTime = {};
 								hid_set_nonblocking(controller.handle, true);
 
 								const char* id = {};
