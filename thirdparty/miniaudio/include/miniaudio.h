@@ -22405,6 +22405,12 @@ static ma_result ma_device_start__wasapi_nolock(ma_device* pDevice) {
         }
     }
 
+    /* A failed reroute releases the audio clients (see ma_device_reinit__wasapi()): there is nothing to start. */
+    if (((pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) && pDevice->wasapi.pAudioClientCapture == NULL) ||
+        ((pDevice->type == ma_device_type_playback || pDevice->type == ma_device_type_duplex) && pDevice->wasapi.pAudioClientPlayback == NULL)) {
+        return MA_INVALID_OPERATION;
+    }
+
     if (pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) {
         hr = ma_IAudioClient_Start((ma_IAudioClient*)pDevice->wasapi.pAudioClientCapture);
         if (FAILED(hr)) {
@@ -22454,9 +22460,16 @@ static ma_result ma_device_stop__wasapi_nolock(ma_device* pDevice) {
         pDevice->wasapi.hAvrtHandle = NULL;
     }
 
-    if (pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) {
+    /* After a failed reroute the audio clients are gone (see ma_device_reinit__wasapi()): nothing to stop. */
+    if ((pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) && pDevice->wasapi.pAudioClientCapture == NULL) {
+        pDevice->wasapi.pMappedBufferCapture = NULL;
+        pDevice->wasapi.mappedBufferCaptureCap = 0;
+        pDevice->wasapi.mappedBufferCaptureLen = 0;
+        ma_atomic_bool32_set(&pDevice->wasapi.isStartedCapture, MA_FALSE);
+    }
+    else if (pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) {
         /* If we have a mapped buffer we need to release it. */
-        if (pDevice->wasapi.pMappedBufferCapture != NULL) {
+        if (pDevice->wasapi.pMappedBufferCapture != NULL && pDevice->wasapi.pCaptureClient != NULL) {
             ma_IAudioCaptureClient_ReleaseBuffer((ma_IAudioCaptureClient*)pDevice->wasapi.pCaptureClient, pDevice->wasapi.mappedBufferCaptureCap);
             pDevice->wasapi.pMappedBufferCapture = NULL;
             pDevice->wasapi.mappedBufferCaptureCap = 0;
@@ -22479,8 +22492,14 @@ static ma_result ma_device_stop__wasapi_nolock(ma_device* pDevice) {
         ma_atomic_bool32_set(&pDevice->wasapi.isStartedCapture, MA_FALSE);
     }
 
-    if (pDevice->type == ma_device_type_playback || pDevice->type == ma_device_type_duplex) {
-        if (pDevice->wasapi.pMappedBufferPlayback != NULL) {
+    if ((pDevice->type == ma_device_type_playback || pDevice->type == ma_device_type_duplex) && pDevice->wasapi.pAudioClientPlayback == NULL) {
+        pDevice->wasapi.pMappedBufferPlayback = NULL;
+        pDevice->wasapi.mappedBufferPlaybackCap = 0;
+        pDevice->wasapi.mappedBufferPlaybackLen = 0;
+        ma_atomic_bool32_set(&pDevice->wasapi.isStartedPlayback, MA_FALSE);
+    }
+    else if (pDevice->type == ma_device_type_playback || pDevice->type == ma_device_type_duplex) {
+        if (pDevice->wasapi.pMappedBufferPlayback != NULL && pDevice->wasapi.pRenderClient != NULL) {
             ma_silence_pcm_frames(
                 ma_offset_pcm_frames_ptr(pDevice->wasapi.pMappedBufferPlayback, pDevice->wasapi.mappedBufferPlaybackLen, pDevice->playback.internalFormat, pDevice->playback.internalChannels),
                 pDevice->wasapi.mappedBufferPlaybackCap - pDevice->wasapi.mappedBufferPlaybackLen,
@@ -22591,6 +22610,18 @@ static ma_result ma_device_read__wasapi(ma_device* pDevice, void* pFrames, ma_ui
     /* Keep running until we've processed the requested number of frames. */
     while (ma_device_get_state(pDevice) == ma_device_state_started && totalFramesProcessed < frameCount) {
         ma_uint32 framesRemaining = frameCount - totalFramesProcessed;
+
+        /*
+        A failed reroute (the default device went away and no new one could be opened) leaves the
+        device started without a capture client. Stop reading instead of calling into a NULL client.
+        */
+        if (pDevice->wasapi.pCaptureClient == NULL) {
+            pDevice->wasapi.pMappedBufferCapture   = NULL;
+            pDevice->wasapi.mappedBufferCaptureLen = 0;
+            pDevice->wasapi.mappedBufferCaptureCap = 0;
+            result = MA_INVALID_OPERATION;
+            break;
+        }
 
         /* If we have a mapped data buffer, consume that first. */
         if (pDevice->wasapi.pMappedBufferCapture != NULL) {
@@ -22786,6 +22817,15 @@ static ma_result ma_device_write__wasapi(ma_device* pDevice, const void* pFrames
     /* Keep writing to the device until it's stopped or we've consumed all of our input. */
     while (ma_device_get_state(pDevice) == ma_device_state_started && totalFramesProcessed < frameCount) {
         ma_uint32 framesRemaining = frameCount - totalFramesProcessed;
+
+        /* See ma_device_read__wasapi(): a failed reroute leaves the device without a render client. */
+        if (pDevice->wasapi.pRenderClient == NULL) {
+            pDevice->wasapi.pMappedBufferPlayback   = NULL;
+            pDevice->wasapi.mappedBufferPlaybackLen = 0;
+            pDevice->wasapi.mappedBufferPlaybackCap = 0;
+            result = MA_INVALID_OPERATION;
+            break;
+        }
 
         /*
         We're going to do this in a similar way to capture. We'll first check if the cached data pointer
