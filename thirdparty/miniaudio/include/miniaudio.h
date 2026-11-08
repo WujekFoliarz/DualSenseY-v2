@@ -22405,6 +22405,12 @@ static ma_result ma_device_start__wasapi_nolock(ma_device* pDevice) {
         }
     }
 
+    /* A failed reroute releases the audio clients (see ma_device_reinit__wasapi()): there is nothing to start. */
+    if (((pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) && pDevice->wasapi.pAudioClientCapture == NULL) ||
+        ((pDevice->type == ma_device_type_playback || pDevice->type == ma_device_type_duplex) && pDevice->wasapi.pAudioClientPlayback == NULL)) {
+        return MA_INVALID_OPERATION;
+    }
+
     if (pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) {
         hr = ma_IAudioClient_Start((ma_IAudioClient*)pDevice->wasapi.pAudioClientCapture);
         if (FAILED(hr)) {
